@@ -1,0 +1,12 @@
+*.tsv
+*.tsv.gz
+*.o 
+*.swp
+*.dSYM
+.DS_Store
+.vscode/
+kamratReduce
+kamratNorm
+test_data/
+test/
+kamrat-simg/
