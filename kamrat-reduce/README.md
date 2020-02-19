@@ -16,8 +16,8 @@
 
     nb           Naive Bayes classification between conditions
     lr           Logistic regression (slower than Naive Bayes) between conditions
-    sd           Standard derivation
-    rsd          Relative standard derivation
+    sd           Standard deviation
+    rsd          Relative standard deviation
     sdc          Standard deviation contrast between conditions
     ttest        T-test between conditions
     user:name    User-defined method, where name indicates a column in the k-mer count table

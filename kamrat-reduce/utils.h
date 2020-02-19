@@ -32,8 +32,8 @@ inline void PrintHelper()
               << std::endl;
     std::cerr << "[Evaluation]    nb           Naive Bayes classification between conditions" << std::endl;
     std::cerr << "                lr           Logistic regression (slower than Naive Bayes) between conditions" << std::endl;
-    std::cerr << "                sd           Standard derivation" << std::endl;
-    std::cerr << "                rsd          Relative standard derivation" << std::endl;
+    std::cerr << "                sd           Standard deviation" << std::endl;
+    std::cerr << "                rsd          Relative standard deviation" << std::endl;
     std::cerr << "                sdc          Standard deviation contrast between conditions" << std::endl;
     std::cerr << "                ttest        T-test between conditions" << std::endl;
     std::cerr << "                es           Effect size between conditions" << std::endl;
