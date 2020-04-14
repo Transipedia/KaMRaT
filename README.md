@@ -65,6 +65,8 @@ kamratReduce [-d samp_info_path -m eval_method:fold_num -s sort_mode -N top_num 
 -N INT       Number of top features to print
 -T STRING    Transformation before evaluation (e.g. log)
 -C DOUBLE    Count offset to be added before transformation and evaluation
+-r INT       Accepted minimum recurrence number among samples
+-a INT       Accepted minimum count abundance for counting sample recurrence
 ```
 
 ### Reduce Evaluation Methods
@@ -74,7 +76,8 @@ nb           Naive Bayes classification between conditions, the fold number may 
 lr           Logistic regression (slower than Naive Bayes) between conditions, the fold number may be precised after ':' (if not precised, fold_num=2)
 sd           Standard deviation
 rsd          Relative standard deviation
-sdc          Standard deviation contrast between conditions
+mc           Contrast of mean between conditions
+rsdc         Contrast of relative standard deviation between conditions
 ttest        T-test between conditions
 es           Effect size between conditions
 lfc:mean     Log2 fold change by group mean, 'mean' can be omitted as default value
@@ -86,7 +89,7 @@ user:name    User-defined method, where name indicates a column in the k-mer cou
 
 ```text
 dec          Sorting by decreasing order                              (as default for nb, lr, sd, rsd, user:name)
-dec:abs      Sorting by decreasing order but on the absolute value    (as default for sdc, es, lfc:mean, lfc:median)
+dec:abs      Sorting by decreasing order but on the absolute value    (as default for mc, rsdc, es, lfc:mean, lfc:median)
 inc          Sorting by increasing order                              (as default for ttest)
 inc:abs      Sorting by increasing order but on the absolute value
 ```
