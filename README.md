@@ -11,7 +11,7 @@ The toolbox contains for now modules below:
 
 The kamratReduce module is dependent on MLPack library. It could be installed from [conda cloud](https://anaconda.org/conda-forge/mlpack).
 
-After installation, it is needed to add the include path to bash environment by
+After installation, please add the following line into your ```.bashrc``` file in the home directory:
 
 ```bash
 export LD_LIBRARY_PATH="/path_to_conda_env/mlpack/lib:$LD_LIBRARY_PATH"
