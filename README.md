@@ -19,7 +19,7 @@ export LD_LIBRARY_PATH="/path_to_conda_env/mlpack/lib:$LD_LIBRARY_PATH"
 
 For compiling the source, you can use ```compile.bash``` in root directory of KaMRaT:
 ```bash
-bash compile
+bash compile.bash
 ```
 And the executable files are in ```bin/``` directory.
 
