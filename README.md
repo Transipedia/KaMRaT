@@ -40,10 +40,20 @@ kamratMerge [-h] [-k k_length] [-m min_overlap] [-nj] [-d sample_info] [-i inter
 -m INT     Min assembly overlap (max_value: k) [15]
 -d STRING  Sample-info path, either list or table with sample names as the first column
            if absent, all columns except the first one in k-mer count table are taken as samples
--i STRING  Intervention method (none, pearson, spearman, contrast) [none]
+-i STRING  Intervention method (none, mac:0.25) [none]
            the threshold can be precised after a ':' symbol
 -q STRING  Quantification mode (rep, mean) [rep]
+           the column name for selecting representative k-mer can be precised after ':' symbol, e.g. rep:pvalue
+           if no column name precised, the firstly input k-mer of a contig will be taken as representative k-mer
 -j         Adjacent k-mer comparison (valid only with intervention) [false]
+           if absent, the counts of representative k-mers or mean counts are taken according to quantification mode
+```
+
+### Intervention Method
+
+```text
+none: without any intervention, only consider overlap for extension
+mac: mean absolute contrast, mac(k1, k2) = mean(abs(k1-k2)./(k1+k2)), where k1, k2 are count vectors of two k-mers and './' means division for each components.
 ```
 
 ## kamratReduce
