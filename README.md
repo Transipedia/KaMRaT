@@ -31,7 +31,7 @@ And the executable files are in ```bin/``` directory.
 kamratMerge [-h] [-k k_length] [-m min_overlap] [-nj] [-d sample_info] [-i interv_method] [-q quant_mode] kmer_count_path
 ```
 
-### Query Parameters
+### Merge Parameters
 
 ```text
 -h         Print the helper
