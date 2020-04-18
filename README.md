@@ -18,9 +18,11 @@ export LD_LIBRARY_PATH="/path_to_conda_env/mlpack/lib:$LD_LIBRARY_PATH"
 ```
 
 For compiling the source, you can use ```compile.bash``` in root directory of KaMRaT:
+
 ```bash
 bash compile.bash
 ```
+
 And the executable files are in ```bin/``` directory.
 
 ## kamratMerge
@@ -28,7 +30,7 @@ And the executable files are in ```bin/``` directory.
 ### Merge Usage
 
 ```text
-kamratMerge [-h] [-k k_length] [-m min_overlap] [-nj] [-d sample_info] [-i interv_method] [-q quant_mode] kmer_count_path
+kamratMerge [-h] [-k k_length] [-m min_overlap] [-nxj] [-d sample_info] [-i interv_method] [-q quant_mode] [-t tmp_dir] kmer_count_path
 ```
 
 ### Merge Parameters
@@ -47,6 +49,8 @@ kamratMerge [-h] [-k k_length] [-m min_overlap] [-nj] [-d sample_info] [-i inter
            if no column name precised, the firstly input k-mer of a contig will be taken as representative k-mer
 -j         Adjacent k-mer comparison (valid only with intervention) [false]
            if absent, the counts of representative k-mers or mean counts are taken according to quantification mode
+-x         Query on disk [false]
+-t STRING  Temporary directory [./]
 ```
 
 ### Intervention Method

@@ -167,7 +167,7 @@ void PrintContigList(std::ostream &out_s,
         }
         for (double count_x : counts)
         {
-            out_s << std::fixed << std::setprecision(2) << "\t" << static_cast<size_t>(count_x * 100 + 0.5) / 100.0;
+            out_s << std::fixed << std::setprecision(2) << "\t" << (count_x + 0.005);
         }
         out_s << std::endl;
     }
@@ -202,8 +202,18 @@ const bool DoExtension(std::vector<ContigInfo> &contig_list,
             std::vector<double> pred_counts, succ_counts;
             if (disk_mode)
             {
-                EstimateContigCount(pred_counts, contig_list.at(pred_serial), nb_sample, index_file);
-                EstimateContigCount(succ_counts, contig_list.at(succ_serial), nb_sample, index_file);
+                if (comp_adj)
+                {
+                    ov_kt.second.IsPredtigRC() ? LoadCountFromIndex(index_file, pred_counts, contig_list.at(pred_serial).GetHeadPos(), nb_sample)
+                                               : LoadCountFromIndex(index_file, pred_counts, contig_list.at(pred_serial).GetRearPos(), nb_sample);
+                    ov_kt.second.IsSucctigRC() ? LoadCountFromIndex(index_file, succ_counts, contig_list.at(succ_serial).GetRearPos(), nb_sample)
+                                               : LoadCountFromIndex(index_file, succ_counts, contig_list.at(succ_serial).GetHeadPos(), nb_sample);
+                }
+                else
+                {
+                    EstimateContigCount(pred_counts, contig_list.at(pred_serial), nb_sample, index_file);
+                    EstimateContigCount(succ_counts, contig_list.at(succ_serial), nb_sample, index_file);
+                }
             }
             else
             {
