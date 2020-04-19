@@ -35,7 +35,7 @@ inline void PrintHelper()
     std::cerr << "                user:name    User-defined method, where name indicates a column in the k-mer count table" << std::endl
               << std::endl;
     std::cerr << "[SORT MODE]     dec          Sorting by decreasing order                              (as default for nb, lr, sd, rsd, user:name)" << std::endl;
-    std::cerr << "                dec:abs      Sorting by decreasing order but on the absolute value    (as default for mdc, rsdc, es, lfc:mean, lfc:median)" << std::endl;
+    std::cerr << "                dec:abs      Sorting by decreasing order but on the absolute value    (as default for mc, rsdc, es, lfc:mean, lfc:median)" << std::endl;
     std::cerr << "                inc          Sorting by increasing order                              (as default for ttest)" << std::endl;
     std::cerr << "                inc:abs      Sorting by increasing order but on the absolute value" << std::endl
               << std::endl;
