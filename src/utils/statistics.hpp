@@ -7,6 +7,18 @@
 #include <algorithm>
 
 template <typename T>
+inline T GetMaxInPair(T x, T y)
+{
+    return (x > y) ? x : y;
+}
+
+template <typename T>
+inline T GetMinInPair(T x, T y)
+{
+    return (x < y) ? x : y;
+}
+
+template <typename T>
 inline double CalcVectMean(const std::vector<T> &x)
 {
     double sum = std::accumulate(x.cbegin(), x.cend(), 0.0);
