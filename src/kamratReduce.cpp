@@ -41,7 +41,7 @@ void LoadModelInfo(std::vector<ModelInfo> &model_info_vect,
     ParseSampleLabel(sample_labels, header_term_nat);
 
     // Evaluating k-mers line by line //
-    for (size_t i_line(0); std::getline(kmer_count_file, line); ++i_line)
+    for (size_t idx_pos(kmer_count_file.tellg()); std::getline(kmer_count_file, line); idx_pos = kmer_count_file.tellg())
     {
         std::istringstream conv(line);
         double score_value;
@@ -76,21 +76,14 @@ void LoadModelInfo(std::vector<ModelInfo> &model_info_vect,
         {
             continue;
         }
-        if (has_score_value)
-        {
-            model_info_vect.emplace_back(seq, 0, score_value);
-        }
-        else
+        if (!has_score_value)
         {
             score_value = eval_func(sample_counts, sample_labels, nb_fold, sample_info.GetNbCondition());
-            model_info_vect.emplace_back(seq, 0, score_value);
         }
+        model_info_vect.emplace_back(seq, idx_pos, score_value);
     }
 
-    if (kmer_count_file.is_open())
-    {
-        kmer_count_file.close();
-    }
+    kmer_count_file.close();
 }
 
 void ModelSort(std::vector<ModelInfo> &model_info_vect, const std::string &sort_mode)
@@ -141,14 +134,30 @@ void PValueAdjustmentBH(std::vector<ModelInfo> &model_info_vect)
     }
 }
 
-void ModelPrint(const std::vector<ModelInfo> &model_info_vect, const size_t top_num, const std::string &out_header)
+void ModelPrint(const std::vector<ModelInfo> &model_info_vect,
+                const size_t top_num,
+                const std::string &out_header,
+                const std::string &kmer_count_path,
+                const SampleInfo &sample_info)
 {
     size_t parsed_top_num = (top_num == 0) ? model_info_vect.size() : top_num;
+    std::ifstream kmer_count_file(kmer_count_path);
+    ExitIf(!kmer_count_file.is_open(), "ERROR: cannot open count index file: " + kmer_count_path);
+
+    std::string line;
+
+    std::getline(kmer_count_file, line); // header line indicating sample names
+    std::vector<int> header_term_nat;
+    size_t sample_num = ParseHeader(header_term_nat, line, sample_info, "whatever");
+
     std::cout << out_header << std::endl;
     for (size_t i(0); i < parsed_top_num; ++i)
     {
-        std::cout << model_info_vect.at(i).GetSeq() << "\t" << model_info_vect.at(i).GetModelScore() << std::endl;
+        std::cout << model_info_vect.at(i).GetSeq() << "\t" << model_info_vect.at(i).GetModelScore();
+        GetStringLineFromDisk(line, kmer_count_file, model_info_vect.at(i).GetCountDiskPos());
+        std::cout << "\t" << line.substr(line.find_first_of(" \t") + 1) << std::endl;
     }
+    kmer_count_file.close();
 }
 
 int main(int argc, char *argv[])
@@ -183,7 +192,7 @@ int main(int argc, char *argv[])
     {
         PValueAdjustmentBH(model_info_vect);
     }
-    ModelPrint(model_info_vect, top_num, out_header);
+    ModelPrint(model_info_vect, top_num, out_header, kmer_count_path, sample_info);
 
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
     return EXIT_SUCCESS;
