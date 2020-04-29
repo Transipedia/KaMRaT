@@ -150,7 +150,7 @@ void ModelPrint(const std::vector<ModelInfo> &model_info_vect,
     std::vector<int> header_term_nat;
     size_t sample_num = ParseHeader(header_term_nat, line, sample_info, "whatever");
 
-    std::cout << out_header << std::endl;
+    std::cout << out_header << "\t" << line.substr(line.find_first_of(" \t") + 1) << std::endl;
     for (size_t i(0); i < parsed_top_num; ++i)
     {
         std::cout << model_info_vect.at(i).GetSeq() << "\t" << model_info_vect.at(i).GetModelScore();
