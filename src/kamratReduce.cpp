@@ -138,7 +138,8 @@ void ModelPrint(const std::vector<ModelInfo> &model_info_vect,
                 const size_t top_num,
                 const std::string &out_header,
                 const std::string &kmer_count_path,
-                const SampleInfo &sample_info)
+                const SampleInfo &sample_info,
+                const bool score_in_column)
 {
     size_t parsed_top_num = (top_num == 0) ? model_info_vect.size() : top_num;
     std::ifstream kmer_count_file(kmer_count_path);
@@ -153,7 +154,11 @@ void ModelPrint(const std::vector<ModelInfo> &model_info_vect,
     std::cout << out_header << "\t" << line.substr(line.find_first_of(" \t") + 1) << std::endl;
     for (size_t i(0); i < parsed_top_num; ++i)
     {
-        std::cout << model_info_vect.at(i).GetSeq() << "\t" << model_info_vect.at(i).GetModelScore();
+        std::cout << model_info_vect.at(i).GetSeq();
+        if (!score_in_column)
+        {
+            std::cout << "\t" << model_info_vect.at(i).GetModelScore();
+        }
         GetStringLineFromDisk(line, kmer_count_file, model_info_vect.at(i).GetCountDiskPos());
         std::cout << "\t" << line.substr(line.find_first_of(" \t") + 1) << std::endl;
     }
@@ -192,7 +197,7 @@ int main(int argc, char *argv[])
     {
         PValueAdjustmentBH(model_info_vect);
     }
-    ModelPrint(model_info_vect, top_num, out_header, kmer_count_path, sample_info);
+    ModelPrint(model_info_vect, top_num, out_header, kmer_count_path, sample_info, !user_method_name.empty());
 
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
     return EXIT_SUCCESS;

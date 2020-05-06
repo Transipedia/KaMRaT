@@ -341,7 +341,7 @@ void ParseMethod(std::string &user_method_name,
             exit(EXIT_FAILURE);
         }
         user_method_name = sub_eval_method;
-        out_header += user_method_name;
+        // out_header += user_method_name;
         eval_func = NULL;
         if (sort_mode.empty())
         {
