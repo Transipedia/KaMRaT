@@ -91,7 +91,7 @@ void ColumnInfo::MakeColumnInfo(const std::string &header_line,
             if (iter != sample_tag.cend())
             {
                 ++nb_sample_;
-                col_nat_vect_.push_back(iter->second);
+                col_nat_vect_.push_back(iter->second); // non-negative values for sample
             }
             else if (!rep_col_name.empty() && header_term == rep_col_name)
             {

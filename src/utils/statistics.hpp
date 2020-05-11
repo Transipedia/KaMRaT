@@ -6,27 +6,27 @@
 #include <cmath>
 #include <algorithm>
 
-template <typename T>
-inline T GetMaxInPair(T x, T y)
+template <typename countT>
+inline countT GetMaxInPair(countT x, countT y)
 {
     return (x > y) ? x : y;
 }
 
-template <typename T>
-inline T GetMinInPair(T x, T y)
+template <typename countT>
+inline countT GetMinInPair(countT x, countT y)
 {
     return (x < y) ? x : y;
 }
 
-template <typename T>
-inline double CalcVectMean(const std::vector<T> &x)
+template <typename countT>
+inline double CalcVectMean(const std::vector<countT> &x)
 {
     double sum = std::accumulate(x.cbegin(), x.cend(), 0.0);
     return (sum / x.size());
 }
 
-template <typename T>
-inline void CalcVectRank(std::vector<size_t> &x_rk, const std::vector<T> &x)
+template <typename countT>
+inline void CalcVectRank(std::vector<size_t> &x_rk, const std::vector<countT> &x)
 {
     std::vector<size_t> x_idx(x.size());
     std::iota(x_idx.begin(), x_idx.end(), 0);
@@ -40,18 +40,18 @@ inline void CalcVectRank(std::vector<size_t> &x_rk, const std::vector<T> &x)
                      [&x_idx](const size_t i, const size_t j) { return x_idx.at(i) < x_idx.at(j); });
 }
 
-template <typename T>
-inline double CalcPearsonCorrelation(const std::vector<T> &x, const std::vector<T> &y)
+template <typename countT>
+inline double CalcPearsonCorrelation(const std::vector<countT> &x, const std::vector<countT> &y)
 {
     double mean_x = CalcVectMean(x), mean_y = CalcVectMean(y), prod_sum(0), t1_sqsum(0), t2_sqsum(0);
-    
-    // for (T xx : x)
+
+    // for (countT xx : x)
     // {
     //     std::cout << xx << "\t";
     // }
     // std::cout << "=>\t" << mean_x << std::endl;
-    
-    // for (T yy : y)
+
+    // for (countT yy : y)
     // {
     //     std::cout << yy << "\t";
     // }
@@ -69,8 +69,8 @@ inline double CalcPearsonCorrelation(const std::vector<T> &x, const std::vector<
     return (prod_sum / sqrt(t1_sqsum * t2_sqsum));
 }
 
-template <typename T>
-inline double CalcSpearmanCorrelation(const std::vector<T> &x, const std::vector<T> &y)
+template <typename countT>
+inline double CalcSpearmanCorrelation(const std::vector<countT> &x, const std::vector<countT> &y)
 {
     std::vector<size_t> x_rk, y_rk;
     CalcVectRank(x_rk, x);
@@ -78,8 +78,8 @@ inline double CalcSpearmanCorrelation(const std::vector<T> &x, const std::vector
     return CalcPearsonCorrelation(x_rk, y_rk);
 }
 
-template <typename T>
-inline double CalcMeanAbsoluteContrast(const std::vector<T> &x, const std::vector<T> &y)
+template <typename countT>
+inline double CalcMeanAbsoluteContrast(const std::vector<countT> &x, const std::vector<countT> &y)
 {
     const size_t nb_sample(x.size());
     std::vector<double> ctrst(nb_sample);
@@ -95,6 +95,41 @@ inline double CalcMeanAbsoluteContrast(const std::vector<T> &x, const std::vecto
         }
     }
     return (CalcVectMean(ctrst));
+}
+
+template <typename countT>
+inline float CalcPearsonDistance(const std::vector<countT> &x, const std::vector<countT> &y)
+{
+    return 0.5 * (1 - CalcPearsonCorrelation(x, y));
+}
+
+template <typename countT>
+inline float CalcSpearmanDistance(const std::vector<countT> &x, const std::vector<countT> &y)
+{
+    return 0.5 * (1 - CalcSpearmanCorrelation(x, y));
+}
+
+template <typename countT>
+inline float CalcMACDistance(const std::vector<countT> &x, const std::vector<countT> &y)
+{
+    return CalcMeanAbsoluteContrast(x, y);
+}
+
+template <typename countT>
+inline float CalcDistance(const std::vector<countT> &x, const std::vector<countT> &y, const std::string &eval_method)
+{
+    if (eval_method == "mac")
+    {
+        return CalcMACDistance(kmer1_count, kmer2_count);
+    }
+    else if (eval_method == "pearson")
+    {
+        return CalcPearsonDistance(kmer1_count, kmer2_count);
+    }
+    else if (eval_method == "spearman")
+    {
+        return CalcSpearmanDistance(kmer1_count, kmer2_count);
+    }
 }
 
 #endif //KAMRAT_UTILS_STATISTICS_HPP
