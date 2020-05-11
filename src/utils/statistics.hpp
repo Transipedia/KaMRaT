@@ -120,15 +120,15 @@ inline float CalcDistance(const std::vector<countT> &x, const std::vector<countT
 {
     if (eval_method == "mac")
     {
-        return CalcMACDistance(kmer1_count, kmer2_count);
+        return CalcMACDistance(x, y);
     }
     else if (eval_method == "pearson")
     {
-        return CalcPearsonDistance(kmer1_count, kmer2_count);
+        return CalcPearsonDistance(x, y);
     }
     else if (eval_method == "spearman")
     {
-        return CalcSpearmanDistance(kmer1_count, kmer2_count);
+        return CalcSpearmanDistance(x, y);
     }
 }
 

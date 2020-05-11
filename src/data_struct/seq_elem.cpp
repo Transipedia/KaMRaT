@@ -27,17 +27,3 @@ const std::string SeqElem::GetSeq() const
     return seq_;
 }
 
-const std::string SeqElem::GetKMerAt(const size_t pos, const unsigned int k_len) const
-{
-    return seq_.substr(pos, k_len);
-}
-
-const std::string SeqElem::GetHeadKMer(const unsigned int k_len) const
-{
-    return GetKMerAt(0, k_len);
-}
-
-const std::string SeqElem::GetRearKMer(const unsigned int k_len) const
-{
-    return GetKMerAt(seq_.size() - k_len, k_len);
-}

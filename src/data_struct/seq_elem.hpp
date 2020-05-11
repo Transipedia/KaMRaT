@@ -14,9 +14,6 @@ public:
     void MakeUnaccessible();
     const std::string GetTag() const;
     const std::string GetSeq() const;
-    const std::string GetKMerAt(size_t pos, unsigned int k_len) const;
-    const std::string GetHeadKMer(unsigned int k_len) const;
-    const std::string GetRearKMer(unsigned int k_len) const;
 
 private:
     bool is_accessible_; // whether the contig is accessable

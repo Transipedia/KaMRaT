@@ -119,16 +119,18 @@ const void EvaluatePrintSeqElemFarthest(const std::string &seq,
                                         const unsigned int k_len,
                                         const KMerCountTab<countT> &kmer_count_tab)
 {
-    size_t start_pos1 = 0, start_pos2 = seq_elem.GetSeq().size() - k_len;
-    std::string kmer1 = seq_elem.GetKMerAt(start_pos1, k_len), kmer2 = seq_elem.GetKMerAt(start_pos2, k_len);
+    size_t start_pos1 = 0, start_pos2 = seq.size() - k_len;
+    std::string kmer1 = seq.substr(start_pos1, k_len), kmer2 = seq.substr(start_pos2, k_len);
     std::vector<countT> kmer1_count, kmer2_count;
     while (start_pos1 < start_pos2 && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1, k_len, stranded)))
     {
         ++start_pos1;
+	kmer1 = seq.substr(start_pos1, k_len);
     }
     while (start_pos1 < start_pos2 && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2, k_len, stranded)))
     {
         --start_pos2;
+	kmer2 = seq.substr(start_pos2, k_len);
     }
     if (start_pos1 >= start_pos2)
     {
@@ -154,23 +156,25 @@ const void EvaluatePrintSeqElemWorstShortest(const std::string &seq,
     while (start_pos2 < seq.size())
     {
         float dist_x;
-        std::string kmer_1_x = seq_elem.GetKMerAt(start_pos1, k_len), kmer_2_x = seq_elem.GetKMerAt(start_pos2, k_len);
-        while (start_pos1 < seq.size() && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1, k_len, stranded)))
+        std::string kmer1_x = seq.substr(start_pos1, k_len), kmer2_x = seq.substr(start_pos2, k_len);
+        while (start_pos1 < seq.size() && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1_x, k_len, stranded)))
         {
             ++start_pos1;
+	    kmer1_x = seq.substr(start_pos1, k_len); 
         }
         start_pos2 = start_pos1 + 1;
-        while (start_pos2 < seq.size() && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2, k_len, stranded)))
+        while (start_pos2 < seq.size() && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2_x, k_len, stranded)))
         {
             ++start_pos2;
+	    kmer2_x = seq.substr(start_pos2, k_len);
         }
         start_pos1 = start_pos2;
         dist_x = CalcDistance(kmer1_count, kmer2_count, eval_method);
         if (dist_x > dist)
         {
             dist = dist_x;
-            kmer1 = kmer_1_x;
-            kmer2 = kmer_2_x;
+            kmer1 = kmer1_x;
+            kmer2 = kmer2_x;
         }
     }
     std::cout << seq << "\t" << dist << "\t" << kmer1 << "\t" << kmer2 << std::endl;
@@ -202,7 +206,7 @@ int main(int argc, char **argv)
     for (const auto &seq_elem : seq_vect)
     {
         auto seq = seq_elem.GetSeq();
-        if (seq.size() == k_len && kmer_count_tab.IsKMerExist(Seq2Int(seq, k_len, stranded))) // if seq has only one k=mer and is in k-mer count table
+        if (seq.size() == k_len && kmer_count_tab.IsKMerExist(Seq2Int(seq, k_len, stranded))) // if seq has only one k-mer and is in k-mer count table
         {
             std::cout << seq << "\t" << MIN_DISTANCE << "\t" << seq << "\t" << seq << std::endl;
         }
