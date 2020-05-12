@@ -34,7 +34,7 @@
 #include "utils/statistics.hpp"
 #include "utils/column_info.hpp"
 #include "utils/seq_coding.hpp"
-#include "data_struct/kmer_count_tab.hpp"
+#include "data_struct/kmer_count_tab_tmplt.hpp"
 #include "data_struct/seq_elem.hpp"
 #include "run_info_parser/evaluate.hpp"
 

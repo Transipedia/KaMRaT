@@ -12,5 +12,5 @@ kamratReduce: kamratReduce.cpp utils/sample_info.cpp reduce/model_info.cpp
 kamratMerge: kamratMerge.cpp utils/column_info.cpp merge/contig_info.cpp merge/overlap_knot.cpp
 	g++ -o ../bin/kamratMerge kamratMerge.cpp utils/column_info.cpp merge/contig_info.cpp merge/overlap_knot.cpp
 
-kamratEvaluate: kamratEvaluate.cpp utils/column_info.cpp data_struct/kmer_count_tab.cpp data_struct/seq_elem.cpp
-	g++ -o ../bin/kamratEvaluate kamratEvaluate.cpp utils/column_info.cpp data_struct/kmer_count_tab.cpp data_struct/seq_elem.cpp
+kamratEvaluate: kamratEvaluate.cpp utils/column_info.cpp data_struct/seq_elem.cpp
+	g++ -o ../bin/kamratEvaluate kamratEvaluate.cpp utils/column_info.cpp data_struct/seq_elem.cpp

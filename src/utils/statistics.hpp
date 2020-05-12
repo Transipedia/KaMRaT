@@ -126,7 +126,7 @@ inline float CalcDistance(const std::vector<countT> &x, const std::vector<countT
     {
         return CalcPearsonDistance(x, y);
     }
-    else if (eval_method == "spearman")
+    else
     {
         return CalcSpearmanDistance(x, y);
     }

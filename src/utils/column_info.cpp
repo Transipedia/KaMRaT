@@ -127,6 +127,7 @@ const char ColumnInfo::GetColumnNature(size_t i_col) const
     else
     {
         ExitIf(true, "ERROR: unknown col_nat_code " + std::to_string(col_nat_vect_.at(i_col)));
+        return 'z';
     }
 }
 
