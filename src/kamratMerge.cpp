@@ -167,7 +167,7 @@ void PrintContigList(std::ostream &out_s,
         }
         for (double count_x : counts)
         {
-            out_s << std::fixed << std::setprecision(2) << "\t" << static_cast<size_t>(count_x * 100 + 0.5) / 100.0;
+            out_s << std::fixed << std::setprecision(2) << "\t" << count_x;
         }
         out_s << std::endl;
     }
