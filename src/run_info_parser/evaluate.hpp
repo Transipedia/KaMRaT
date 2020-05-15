@@ -35,8 +35,8 @@ inline void PrintRunInfo(const std::string &contig_list_path,
 {
     std::cerr << std::endl;
     std::cerr << "Contig list path:       " << contig_list_path << std::endl;
-    std::cerr << "Evaluation method:        " << eval_method << std::endl;
-    std::cerr << "Evaluation mode:          " << eval_mode << std::endl;
+    std::cerr << "Evaluation method:      " << eval_method << std::endl;
+    std::cerr << "Evaluation mode:        " << eval_mode << std::endl;
     std::cerr << "Stranded mode:          " << (stranded ? "On" : "Off") << std::endl;
     std::cerr << "k-mer length:           " << k_length << std::endl;
     if (!colname_list_path.empty())

@@ -86,8 +86,9 @@ void EstablishSeqListFromMultilineFasta(seqVect_t &seq_vect,
 
     std::string seq_name, seq, line;
     size_t nline(0);
-    while (std::getline(contig_list_file, line))
+    while (true)
     {
+        std::getline(contig_list_file, line);
         if (nline == 0) // reading the first line
         {
             seq_name = line;
@@ -103,11 +104,13 @@ void EstablishSeqListFromMultilineFasta(seqVect_t &seq_vect,
             seq_vect.emplace_back(seq_name, seq);
             std::cerr << "The last line visited: " << seq << std::endl;
             seq.clear();
+            break;
         }
         else
         {
             seq += line;
         }
+        ++nline;
     }
     contig_list_file.close();
 }
@@ -125,12 +128,12 @@ const void EvaluatePrintSeqElemFarthest(const std::string &seq,
     while (start_pos1 < start_pos2 && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1, k_len, stranded)))
     {
         ++start_pos1;
-	kmer1 = seq.substr(start_pos1, k_len);
+        kmer1 = seq.substr(start_pos1, k_len);
     }
     while (start_pos1 < start_pos2 && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2, k_len, stranded)))
     {
         --start_pos2;
-	kmer2 = seq.substr(start_pos2, k_len);
+        kmer2 = seq.substr(start_pos2, k_len);
     }
     if (start_pos1 >= start_pos2)
     {
@@ -138,7 +141,7 @@ const void EvaluatePrintSeqElemFarthest(const std::string &seq,
     }
     else
     {
-        std::cout << seq << "\t" << CalcDistance(kmer1_count, kmer2_count, eval_method) << "\t" << kmer1 << "\t" << kmer2;
+        std::cout << seq << "\t" << CalcDistance(kmer1_count, kmer2_count, eval_method) << "\t" << kmer1 << "\t" << kmer2 << std::endl;
     }
 }
 
@@ -160,13 +163,13 @@ const void EvaluatePrintSeqElemWorstShortest(const std::string &seq,
         while (start_pos1 < seq.size() && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1_x, k_len, stranded)))
         {
             ++start_pos1;
-	    kmer1_x = seq.substr(start_pos1, k_len); 
+            kmer1_x = seq.substr(start_pos1, k_len);
         }
         start_pos2 = start_pos1 + 1;
         while (start_pos2 < seq.size() && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2_x, k_len, stranded)))
         {
             ++start_pos2;
-	    kmer2_x = seq.substr(start_pos2, k_len);
+            kmer2_x = seq.substr(start_pos2, k_len);
         }
         start_pos1 = start_pos2;
         dist_x = CalcDistance(kmer1_count, kmer2_count, eval_method);
@@ -201,6 +204,7 @@ int main(int argc, char **argv)
 
     seqVect_t seq_vect;
     EstablishSeqListFromMultilineFasta(seq_vect, contig_list_path);
+    std::cerr << "Number of sequence for evaluation: " << seq_vect.size() << std::endl;
 
     std::cout << "sequence\teval_dist\tkmer1\tkmer2" << std::endl;
     for (const auto &seq_elem : seq_vect)
@@ -218,9 +222,13 @@ int main(int argc, char **argv)
         {
             EvaluatePrintSeqElemFarthest(seq, eval_method, stranded, k_len, kmer_count_tab);
         }
-        else
+        else if (eval_mode == "worstShortest")
         {
             EvaluatePrintSeqElemWorstShortest(seq, eval_method, stranded, k_len, kmer_count_tab);
+        }
+        else
+        {
+            ExitIf(true, "ERROR: unknown eval_mode");
         }
     }
 
