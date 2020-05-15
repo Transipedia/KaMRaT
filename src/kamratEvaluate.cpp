@@ -102,7 +102,6 @@ void EstablishSeqListFromMultilineFasta(seqVect_t &seq_vect,
         else if (contig_list_file.eof()) // reading the last line
         {
             seq_vect.emplace_back(seq_name, seq);
-            std::cerr << "The last line visited: " << seq << std::endl;
             seq.clear();
             break;
         }
@@ -156,23 +155,28 @@ const void EvaluatePrintSeqElemWorstShortest(const std::string &seq,
     std::vector<countT> kmer1_count, kmer2_count;
     float dist = MIN_DISTANCE;
     size_t start_pos1 = 0, start_pos2 = 0;
-    while (start_pos2 < seq.size())
+    while (start_pos1 + k_len <= seq.size())
     {
-        float dist_x;
+        float dist_x = dist;
         std::string kmer1_x = seq.substr(start_pos1, k_len), kmer2_x = seq.substr(start_pos2, k_len);
-        while (start_pos1 < seq.size() && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1_x, k_len, stranded)))
+        while (start_pos1 + k_len <= seq.size() && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1_x, k_len, stranded)))
         {
             ++start_pos1;
-            kmer1_x = seq.substr(start_pos1, k_len);
+            kmer1_x.erase(0, 1);
+            kmer1_x.push_back(start_pos1 + k_len - 1);
         }
         start_pos2 = start_pos1 + 1;
-        while (start_pos2 < seq.size() && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2_x, k_len, stranded)))
+        while (start_pos2 + k_len <= seq.size() && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2_x, k_len, stranded)))
         {
             ++start_pos2;
-            kmer2_x = seq.substr(start_pos2, k_len);
+            kmer2_x.erase(0, 1);
+            kmer2_x.push_back(start_pos2 + k_len - 1);
         }
         start_pos1 = start_pos2;
-        dist_x = CalcDistance(kmer1_count, kmer2_count, eval_method);
+        if (start_pos2 + k_len <= seq.size())
+        {
+            dist_x = CalcDistance(kmer1_count, kmer2_count, eval_method);
+        }
         if (dist_x > dist)
         {
             dist = dist_x;
@@ -180,7 +184,14 @@ const void EvaluatePrintSeqElemWorstShortest(const std::string &seq,
             kmer2 = kmer2_x;
         }
     }
-    std::cout << seq << "\t" << dist << "\t" << kmer1 << "\t" << kmer2 << std::endl;
+    if (kmer1.empty() || kmer2.empty())
+    {
+        std::cout << seq << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
+    }
+    else
+    {
+        std::cout << seq << "\t" << dist << "\t" << kmer1 << "\t" << kmer2 << std::endl;
+    }
 }
 
 int main(int argc, char **argv)
