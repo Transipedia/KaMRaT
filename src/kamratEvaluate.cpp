@@ -145,44 +145,41 @@ const void EvaluatePrintSeqElemFarthest(const std::string &seq,
 }
 
 template <typename countT>
-const void EvaluatePrintSeqElemWorstShortest(const std::string &seq,
-                                             const std::string &eval_method,
-                                             const bool stranded,
-                                             const unsigned int k_len,
-                                             const KMerCountTab<countT> &kmer_count_tab)
+const void EvaluatePrintSeqElemWorstShortest(const std::string &seq, const std::string &eval_method, const bool stranded, const unsigned int k_len, const KMerCountTab<countT> &kmer_count_tab)
 {
     std::string kmer1, kmer2;
     std::vector<countT> kmer1_count, kmer2_count;
-    float dist = MIN_DISTANCE;
-    size_t start_pos1 = 0, start_pos2 = 0;
-    while (start_pos1 + k_len <= seq.size())
+    float dist = MIN_DISTANCE - 1;
+    size_t start_pos1 = 0, start_pos2;
+    while (start_pos1 + k_len < seq.size())
     {
         float dist_x = dist;
-        std::string kmer1_x = seq.substr(start_pos1, k_len), kmer2_x = seq.substr(start_pos2, k_len);
+        std::string kmer1_x = seq.substr(start_pos1, k_len);
         while (start_pos1 + k_len <= seq.size() && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1_x, k_len, stranded)))
         {
             ++start_pos1;
             kmer1_x.erase(0, 1);
-            kmer1_x.push_back(start_pos1 + k_len - 1);
+            kmer1_x.push_back(seq.at(start_pos1 + k_len - 1));
         }
         start_pos2 = start_pos1 + 1;
+        std::string kmer2_x = seq.substr(start_pos2, k_len);
         while (start_pos2 + k_len <= seq.size() && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2_x, k_len, stranded)))
         {
             ++start_pos2;
             kmer2_x.erase(0, 1);
-            kmer2_x.push_back(start_pos2 + k_len - 1);
+            kmer2_x.push_back(seq.at(start_pos2 + k_len - 1));
         }
-        start_pos1 = start_pos2;
         if (start_pos2 + k_len <= seq.size())
         {
             dist_x = CalcDistance(kmer1_count, kmer2_count, eval_method);
+            if (dist_x > dist)
+            {
+                dist = dist_x;
+                kmer1 = kmer1_x;
+                kmer2 = kmer2_x;
+            }
         }
-        if (dist_x > dist)
-        {
-            dist = dist_x;
-            kmer1 = kmer1_x;
-            kmer2 = kmer2_x;
-        }
+        start_pos1 = start_pos2;
     }
     if (kmer1.empty() || kmer2.empty())
     {
