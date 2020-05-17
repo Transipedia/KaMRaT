@@ -9,7 +9,7 @@
 inline void PrintHelper(const size_t k_length, const size_t min_overlap)
 {
     std::cerr << "========= kamratMerge helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratMerge [-k k_length] [-m min_overlap] [-nj] [-d sample_info] [-i interv_method] [-q quant_mode] kmer_count_path" << std::endl
+    std::cerr << "[Usage]    kamratMerge [-k k_length] [-m min_overlap] [-nxj] [-d sample_info] [-i interv_method] [-q quant_mode] [-t tmp_dir] kmer_count_path" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h         Print the helper" << std::endl;
     std::cerr << "            -n         If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
@@ -21,7 +21,9 @@ inline void PrintHelper(const size_t k_length, const size_t min_overlap)
               << ", " << INTERV_MAC << ") [" << INTERV_NONE << "]" << std::endl
               << "                       the threshold can be precised after a ':' symbol" << std::endl;
     std::cerr << "            -q STRING  Quantification mode (rep, mean) [rep]" << std::endl;
-    std::cerr << "            -j         Adjacent k-mer comparison (valid only with intervention) [false]" << std::endl
+    std::cerr << "            -j         Adjacent k-mer comparison (valid only with intervention) [false]" << std::endl;
+    std::cerr << "            -x         Query on disk [false]" << std::endl;
+    std::cerr << "            -t STRING  Temporary directory [./]" << std::endl
               << std::endl;
     exit(EXIT_SUCCESS);
 }
@@ -108,10 +110,10 @@ inline void ParseOptions(int argc,
         {
             stranded = false;
         }
-        // else if (arg == "-x")
-        // {
-        //     disk_mode = true;
-        // }
+        else if (arg == "-x")
+        {
+            disk_mode = true;
+        }
         else if (arg == "-k" && i_opt + 1 < argc)
         {
             k_length = atoi(argv[++i_opt]);
@@ -136,10 +138,10 @@ inline void ParseOptions(int argc,
         {
             comp_adj = true;
         }
-        // else if (arg == "-t" && i_opt + 1 < argc)
-        // {
-        //     tmp_dir = argv[++i_opt];
-        // }
+        else if (arg == "-t" && i_opt + 1 < argc)
+        {
+            tmp_dir = argv[++i_opt];
+        }
         else
         {
             std::cerr << "ERROR: unknown option " << argv[i_opt] << std::endl;

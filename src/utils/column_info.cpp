@@ -91,7 +91,7 @@ void ColumnInfo::MakeColumnInfo(const std::string &header_line,
             if (iter != sample_tag.cend())
             {
                 ++nb_sample_;
-                col_nat_vect_.push_back(iter->second);
+                col_nat_vect_.push_back(iter->second); // non-negative values for sample
             }
             else if (!rep_col_name.empty() && header_term == rep_col_name)
             {
@@ -127,6 +127,7 @@ const char ColumnInfo::GetColumnNature(size_t i_col) const
     else
     {
         ExitIf(true, "ERROR: unknown col_nat_code " + std::to_string(col_nat_vect_.at(i_col)));
+        return 'z';
     }
 }
 

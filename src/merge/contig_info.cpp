@@ -9,7 +9,9 @@ ContigInfo::ContigInfo(const std::string &kmer_seq, const double rep_value, cons
       seq_(kmer_seq),
       nb_kmer_(1),
       rep_value_(rep_value),
-      count_pos_(1, count_pos)
+      count_pos_(1, count_pos),
+      head_pos_(count_pos),
+      rear_pos_(count_pos)
 {
 }
 
@@ -34,6 +36,8 @@ ContigInfo::ContigInfo(const ContigInfo &predtig, const ContigInfo &succtig, con
     rep_value_ = (predtig.GetRepValue() < succtig.GetRepValue()) ? predtig.GetRepValue() : succtig.GetRepValue();
     head_counts_ = predtig.GetHeadCounts();
     rear_counts_ = succtig.GetRearCounts();
+    head_pos_ = predtig.GetHeadPos();
+    rear_pos_ = succtig.GetRearPos();
     if (quant_mode == "rep")
     {
         count_pos_ = (predtig.GetRepValue() < succtig.GetRepValue()) ? predtig.GetCountPos() : succtig.GetCountPos();
@@ -77,6 +81,7 @@ void ContigInfo::ReverseComplement()
 {
     ToReverseComplement(seq_);
     head_counts_.swap(rear_counts_);
+    std::swap(head_pos_, rear_pos_);
 }
 
 const size_t ContigInfo::GetNbKmer() const
@@ -107,4 +112,14 @@ const std::vector<double> &ContigInfo::GetHeadCounts() const
 const std::vector<double> &ContigInfo::GetRearCounts() const
 {
     return rear_counts_;
+}
+
+const size_t ContigInfo::GetHeadPos() const
+{
+    return head_pos_;
+}
+
+const size_t ContigInfo::GetRearPos() const
+{
+    return rear_pos_;
 }
