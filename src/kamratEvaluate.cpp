@@ -91,12 +91,12 @@ void EstablishSeqListFromMultilineFasta(seqVect_t &seq_vect,
         std::getline(contig_list_file, line);
         if (nline == 0) // reading the first line
         {
-            seq_name = line;
+            seq_name = line.substr(1);
         }
         else if (line[0] == '>') // reading in middle of the file
         {
             seq_vect.emplace_back(seq_name, seq);
-            seq_name = line;
+            seq_name = line.substr(1);
             seq.clear();
         }
         else if (contig_list_file.eof()) // reading the last line
@@ -122,8 +122,9 @@ const void EvaluatePrintSeqElemFarthest(const SeqElem &seq_elem,
                                         const std::string &tag_type,
                                         const KMerCountTab<countT> &kmer_count_tab)
 {
+    std::string seq = seq_elem.GetSeq();
     size_t start_pos1 = 0, start_pos2 = seq.size() - k_len;
-    std::string seq = seq_elem.GetSeq(), kmer1 = seq.substr(start_pos1, k_len), kmer2 = seq.substr(start_pos2, k_len);
+    std::string kmer1 = seq.substr(start_pos1, k_len), kmer2 = seq.substr(start_pos2, k_len);
     std::vector<countT> kmer1_count, kmer2_count;
     while (start_pos1 < start_pos2 && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1, k_len, stranded)))
     {
@@ -204,7 +205,7 @@ int main(int argc, char **argv)
     unsigned int k_len(31);
     bool stranded(true);
 
-    ExitIf(ParseOptions(argc, argv, contig_list_path, eval_method, eval_mode, stranded, k_len, colname_list_path, tag_type, kmer_count_path),
+    ExitIf(!ParseOptions(argc, argv, contig_list_path, eval_method, eval_mode, stranded, k_len, colname_list_path, tag_type, kmer_count_path),
            "ERROR: option parsing interrupted, please check kamratEvaluate -h");
     PrintRunInfo(contig_list_path, eval_method, eval_mode, stranded, k_len, colname_list_path, tag_type, kmer_count_path);
 

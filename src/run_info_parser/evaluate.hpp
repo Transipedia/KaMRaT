@@ -132,3 +132,4 @@ inline bool ParseOptions(int argc,
 }
 
 #endif //KAMRAT_RUNINFOPARSER_EVALUATE_HPP
+
