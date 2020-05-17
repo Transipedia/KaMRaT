@@ -1,8 +1,8 @@
 #include "seq_elem.hpp"
 
-SeqElem::SeqElem(const std::string &tag, const std::string &seq)
+SeqElem::SeqElem(const std::string &name, const std::string &seq)
     : is_accessible_(true),
-      tag_(tag),
+      name_(name),
       seq_(seq)
 {
 }
@@ -17,13 +17,19 @@ void SeqElem::MakeUnaccessible()
     is_accessible_ = false;
 }
 
-const std::string SeqElem::GetTag() const
+const std::string SeqElem::GetTag(const std::string &tag_type) const
 {
-    return tag_;
+    if (tag_type == "name")
+    {
+        return name_;
+    }
+    else if(tag_type == "seq")
+    {
+        return GetSeq();
+    }
 }
 
 const std::string SeqElem::GetSeq() const
 {
     return seq_;
 }
-

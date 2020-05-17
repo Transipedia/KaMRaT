@@ -12,12 +12,12 @@ public:
     SeqElem(const std::string &tag, const std::string &seq);
     const bool IsAccessible() const;
     void MakeUnaccessible();
-    const std::string GetTag() const;
+    const std::string GetTag(const std::string &tag_type) const;
     const std::string GetSeq() const;
 
 private:
     bool is_accessible_; // whether the contig is accessable
-    std::string tag_;    // sequence name
+    std::string name_;    // sequence name
     std::string seq_;    // sequence
 };
 

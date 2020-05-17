@@ -9,18 +9,19 @@
 inline void PrintHelper()
 {
     std::cerr << "========= kamratEvaluate helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratEvaluate -l STRING -e STRING [-n] [-k INT] [-d STRING] [-o STRING] STRING" << std::endl
+    std::cerr << "[Usage]    kamratEvaluate -l STRING -e STRING [-n] [-k INT] [-d STRING] [-T STRING] STRING" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h         Print the helper" << std::endl;
     std::cerr << "            -l STRING  Contig list file path (MANDATORY)" << std::endl
               << "                       could be fasta, list, or table with contig sequences as the first column" << std::endl;
-    std::cerr << "            -e STRING  Evaluate method:mode string" << std::endl
+    std::cerr << "            -e STRING  Evaluate method:mode string (MANDATORY)" << std::endl
               << "                       method could be pearson, spearman, or mac" << std::endl
               << "                       mode could be farthest or worstShortest" << std::endl;
     std::cerr << "            -n         If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
     std::cerr << "            -k INT     k-mer length [31]" << std::endl;
     std::cerr << "            -d STRING  Colname list path indicating columns to print, either list or table with sample names as the first column" << std::endl
-              << "                       if absent, all columns will be printed" << std::endl
+              << "                       if absent, all columns will be printed" << std::endl;
+    std::cerr << "            -T STRING  Tag type of sequence identifier for output (name, seq) [name]" << std::endl
               << std::endl;
     exit(EXIT_SUCCESS);
 }
@@ -31,6 +32,7 @@ inline void PrintRunInfo(const std::string &contig_list_path,
                          const bool stranded,
                          const unsigned int k_length,
                          const std::string &colname_list_path,
+                         const std::string &tag_type,
                          const std::string &kmer_count_path)
 {
     std::cerr << std::endl;
@@ -43,6 +45,7 @@ inline void PrintRunInfo(const std::string &contig_list_path,
     {
         std::cerr << "Colname list path:      " << colname_list_path << std::endl;
     }
+    std::cerr << "Tag type:               " << tag_type << std::endl;
     std::cerr << "k-mer count path:       " << kmer_count_path << std::endl
               << std::endl;
 }
@@ -55,6 +58,7 @@ inline bool ParseOptions(int argc,
                          bool &stranded,
                          unsigned int &k_length,
                          std::string &colname_list_path,
+                         std::string &tag_type,
                          std::string &kmer_count_path)
 {
     int i_opt = 1;
@@ -86,6 +90,10 @@ inline bool ParseOptions(int argc,
         {
             colname_list_path = argv[++i_opt];
         }
+        else if (arg == "-T" && i_opt + 1 < argc)
+        {
+            tag_type = argv[++i_opt];
+        }
         else
         {
             std::cerr << "ERROR: unknown option " << argv[i_opt] << std::endl;
@@ -107,12 +115,17 @@ inline bool ParseOptions(int argc,
     }
     if (EVALU_METHOD_UNIV.find(eval_method) == EVALU_METHOD_UNIV.cend())
     {
-        std::cerr << "ERROR: evaluate method is missing or failed to be parsed" << std::endl;
+        std::cerr << "ERROR: evaluate method is missing or unknown" << std::endl;
         return false;
     }
     if (EVALU_MODE_UNIV.find(eval_mode) == EVALU_MODE_UNIV.cend())
     {
-        std::cerr << "ERROR: evaluate mode is missing or failed to be parsed" << std::endl;
+        std::cerr << "ERROR: evaluate mode is missing or unknown" << std::endl;
+        return false;
+    }
+    if (TAG_TYPE_UNIV.find(tag_type) == TAG_TYPE_UNIV.cend())
+    {
+        std::cerr << "ERROR: tag type is unknown" << std::endl;
         return false;
     }
     return true;
