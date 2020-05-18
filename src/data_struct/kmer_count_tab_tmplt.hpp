@@ -9,6 +9,7 @@ template <typename countT>
 class KMerCountTab
 {
 public:
+    KMerCountTab(const std::string &mode);
     const bool AddKMerCountInMem(uint64_t kmer_code, const std::vector<countT> &kmer_counts); // return whether adding is succeeded
     const bool AddKMerIndexOnDsk(uint64_t kmer_code, size_t dsk_pos);                         // return whether adding is succeeded
     const bool IsKMerExist(uint64_t kmer_code) const;
@@ -16,10 +17,16 @@ public:
     const bool GetIndexOnDsk(size_t &index_val, uint64_t kmer_code) const;
 
 private:
+    const std::string mode_; //inMem or onDsk
     std::map<uint64_t, size_t> kmer_count_dict_;
     std::vector<std::vector<countT>> count_tab_;
 };
 
+template <typename countT>
+KMerCountTab<countT>::KMerCountTab(const std::string &mode)
+    : mode_(mode)
+{
+}
 
 template <typename countT>
 const bool KMerCountTab<countT>::AddKMerCountInMem(const uint64_t kmer_code, const std::vector<countT> &kmer_counts)
@@ -73,40 +80,17 @@ const bool KMerCountTab<countT>::IsKMerExist(const uint64_t kmer_code) const
 
 template <typename countT>
 const bool KMerCountTab<countT>::GetCountInMem(std::vector<countT> &count, const uint64_t kmer_code) const
-/* ------------------------------------------------------------------------------------ *\
+/* ----------------------------------------------------------------------- *\
     Arg:    k-mer unique code
-    Value:  a pair object indicating
-                1. k-mer counts vectors for storing target counts in query (as refArg)
-                2. bool for whether the query was succeeded
+    Value:  1. count vector for k-mer count in query (as refArg)
+            2. bool for whether the query was succeeded
     Func:   return the k-mer counts stored in memory by k-mer unique code
-\* ------------------------------------------------------------------------------------ */
+\* ----------------------------------------------------------------------- */
 {
     auto iter = kmer_count_dict_.find(kmer_code);
     if (iter != kmer_count_dict_.cend())
     {
         count = count_tab_.at(iter->second);
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-template <typename countT>
-const bool KMerCountTab<countT>::GetIndexOnDsk(size_t &index_val, const uint64_t kmer_code) const
-/* ------------------------------------------------------------------------ *\
-    Arg:    k-mer unique code
-    Value:  a pair object indicating
-                1. size_t for the indexed position on disk (as refArg)
-                2. bool for whether the query was succeeded
-    Func:   return the k-mer indexed position on disk by k-mer unique code
-\* ------------------------------------------------------------------------ */
-{
-    auto iter = kmer_count_dict_.find(kmer_code);
-    if (iter != kmer_count_dict_.cend())
-    {
-        index_val = iter->second;
         return true;
     }
     else

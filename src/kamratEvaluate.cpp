@@ -212,7 +212,7 @@ int main(int argc, char **argv)
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    KMerCountTab<float> kmer_count_tab;
+    KMerCountTab<float> kmer_count_tab("inMem");
     ScanCountTable(kmer_count_tab, kmer_count_path, colname_list_path, stranded);
 
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
