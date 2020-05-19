@@ -1,6 +1,6 @@
 #include "seq_elem.hpp"
 
-SeqElem::SeqElem(const std::string &name, const std::string &seq)
+SeqElem::SeqElem(const std::string &seq)
     : seq_(seq)
 {
 }

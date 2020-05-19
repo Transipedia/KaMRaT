@@ -6,7 +6,6 @@
 
 const std::set<std::string> EVALU_METHOD_UNIV{"pearson", "spearman", "mac"};
 const std::set<std::string> EVALU_MODE_UNIV{"farthest", "worstAdj"};
-const std::set<std::string> TAG_TYPE_UNIV{"name", "seq"};
 
 inline void SubCommandParser(std::string &command, std::string &sub_command)
 {
