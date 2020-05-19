@@ -16,7 +16,7 @@ inline void PrintHelper()
               << "                       could be fasta, list, or table with contig sequences as the first column" << std::endl;
     std::cerr << "            -e STRING  Evaluate method:mode string (MANDATORY)" << std::endl
               << "                       method could be pearson, spearman, or mac" << std::endl
-              << "                       mode could be farthest or worstShortest" << std::endl;
+              << "                       mode could be farthest or worstAdj" << std::endl;
     std::cerr << "            -n         If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
     std::cerr << "            -k INT     k-mer length [31]" << std::endl;
     std::cerr << "            -d STRING  Colname list path indicating columns to print, either list or table with sample names as the first column" << std::endl

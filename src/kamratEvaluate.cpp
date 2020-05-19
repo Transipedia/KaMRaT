@@ -147,12 +147,12 @@ const void EvaluatePrintSeqElemFarthest(const SeqElem &seq_elem,
 }
 
 template <typename countT>
-const void EvaluatePrintSeqElemWorstShortest(const SeqElem &seq_elem,
-                                             const std::string &eval_method,
-                                             const bool stranded,
-                                             const unsigned int k_len,
-                                             const std::string &tag_type,
-                                             const KMerCountTab<countT> &kmer_count_tab)
+const void EvaluatePrintSeqElemWorstAdj(const SeqElem &seq_elem,
+                                        const std::string &eval_method,
+                                        const bool stranded,
+                                        const unsigned int k_len,
+                                        const std::string &tag_type,
+                                        const KMerCountTab<countT> &kmer_count_tab)
 {
     std::string seq = seq_elem.GetSeq(), kmer1, kmer2;
     std::vector<countT> kmer1_count, kmer2_count;
@@ -238,9 +238,9 @@ int main(int argc, char **argv)
         {
             EvaluatePrintSeqElemFarthest(seq_elem, eval_method, stranded, k_len, tag_type, kmer_count_tab);
         }
-        else if (eval_mode == "worstShortest")
+        else if (eval_mode == "worstAdj")
         {
-            EvaluatePrintSeqElemWorstShortest(seq_elem, eval_method, stranded, k_len, tag_type, kmer_count_tab);
+            EvaluatePrintSeqElemWorstAdj(seq_elem, eval_method, stranded, k_len, tag_type, kmer_count_tab);
         }
     }
 
