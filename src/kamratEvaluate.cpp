@@ -78,30 +78,30 @@ void ScanCountTable(KMerCountTab<countT> &kmer_count_tab,
     kmer_count_file.close();
 }
 
-void EstablishSeqListFromMultilineFasta(seqVect_t &seq_vect,
-                                        const std::string &contig_list_path)
+void EstablishSeqListFromMultilineFasta(tag2seq_t &tag_seq_dict,
+                                        const std::string &contig_fasta_path)
 {
-    std::ifstream contig_list_file(contig_list_path);
-    ExitIf(!contig_list_file.is_open(), "ERROR: contig list file " + contig_list_path + "was not found.");
+    std::ifstream contig_list_file(contig_fasta_path);
+    ExitIf(!contig_list_file.is_open(), "ERROR: contig fasta file " + contig_fasta_path + "was not found.");
 
-    std::string seq_name, seq, line;
+    std::string seq_tag, seq, line;
     size_t nline(0);
     while (true)
     {
         std::getline(contig_list_file, line);
         if (nline == 0) // reading the first line
         {
-            seq_name = line.substr(1);
+            seq_tag = line.substr(1);
         }
         else if (line[0] == '>') // reading in middle of the file
         {
-            seq_vect.emplace_back(seq_name, seq);
-            seq_name = line.substr(1);
+            tag_seq_dict.insert({seq_tag, SeqElem(seq)});
+            seq_tag = line.substr(1);
             seq.clear();
         }
         else if (contig_list_file.eof()) // reading the last line
         {
-            seq_vect.emplace_back(seq_name, seq);
+            tag_seq_dict.insert({seq_tag, SeqElem(seq)});
             seq.clear();
             break;
         }
@@ -115,14 +115,13 @@ void EstablishSeqListFromMultilineFasta(seqVect_t &seq_vect,
 }
 
 template <typename countT>
-const void EvaluatePrintSeqElemFarthest(const SeqElem &seq_elem,
+const void EvaluatePrintSeqElemFarthest(const std::string &tag,
+                                        const std::string &seq,
                                         const std::string &eval_method,
                                         const bool stranded,
                                         const unsigned int k_len,
-                                        const std::string &tag_type,
                                         const KMerCountTab<countT> &kmer_count_tab)
 {
-    std::string seq = seq_elem.GetSeq();
     size_t start_pos1 = 0, start_pos2 = seq.size() - k_len;
     std::string kmer1 = seq.substr(start_pos1, k_len), kmer2 = seq.substr(start_pos2, k_len);
     std::vector<countT> kmer1_count, kmer2_count;
@@ -138,23 +137,23 @@ const void EvaluatePrintSeqElemFarthest(const SeqElem &seq_elem,
     }
     if (start_pos1 >= start_pos2)
     {
-        std::cout << seq_elem.GetTag(tag_type) << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
+        std::cout << tag << "\t" << seq << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
     }
     else
     {
-        std::cout << seq_elem.GetTag(tag_type) << "\t" << CalcDistance(kmer1_count, kmer2_count, eval_method) << "\t" << kmer1 << "\t" << kmer2 << std::endl;
+        std::cout << tag << "\t" << seq << "\t" << CalcDistance(kmer1_count, kmer2_count, eval_method) << "\t" << kmer1 << "\t" << kmer2 << std::endl;
     }
 }
 
 template <typename countT>
-const void EvaluatePrintSeqElemWorstAdj(const SeqElem &seq_elem,
+const void EvaluatePrintSeqElemWorstAdj(const std::string &tag,
+                                        const std::string &seq,
                                         const std::string &eval_method,
                                         const bool stranded,
                                         const unsigned int k_len,
-                                        const std::string &tag_type,
                                         const KMerCountTab<countT> &kmer_count_tab)
 {
-    std::string seq = seq_elem.GetSeq(), kmer1, kmer2;
+    std::string kmer1, kmer2;
     std::vector<countT> kmer1_count, kmer2_count;
     float dist = MIN_DISTANCE - 1;
     size_t start_pos1 = 0, start_pos2;
@@ -190,24 +189,24 @@ const void EvaluatePrintSeqElemWorstAdj(const SeqElem &seq_elem,
     }
     if (kmer1.empty() || kmer2.empty())
     {
-        std::cout << seq_elem.GetTag(tag_type) << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
+        std::cout << tag << "\t" << seq << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
     }
     else
     {
-        std::cout << seq_elem.GetTag(tag_type) << "\t" << dist << "\t" << kmer1 << "\t" << kmer2 << std::endl;
+        std::cout << tag << "\t" << seq << "\t" << dist << "\t" << kmer1 << "\t" << kmer2 << std::endl;
     }
 }
 
 int main(int argc, char **argv)
 {
     std::clock_t begin_time = clock(), inter_time;
-    std::string contig_list_path, eval_method, eval_mode, colname_list_path, tag_type("name"), kmer_count_path;
+    std::string contig_fasta_path, eval_method, eval_mode, colname_list_path, kmer_count_path;
     unsigned int k_len(31);
     bool stranded(true);
 
-    ExitIf(!ParseOptions(argc, argv, contig_list_path, eval_method, eval_mode, stranded, k_len, colname_list_path, tag_type, kmer_count_path),
+    ExitIf(!ParseOptions(argc, argv, contig_fasta_path, eval_method, eval_mode, stranded, k_len, colname_list_path, kmer_count_path),
            "ERROR: option parsing interrupted, please check kamratEvaluate -h");
-    PrintRunInfo(contig_list_path, eval_method, eval_mode, stranded, k_len, colname_list_path, tag_type, kmer_count_path);
+    PrintRunInfo(contig_fasta_path, eval_method, eval_mode, stranded, k_len, colname_list_path, kmer_count_path);
 
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
@@ -218,29 +217,29 @@ int main(int argc, char **argv)
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    seqVect_t seq_vect;
-    EstablishSeqListFromMultilineFasta(seq_vect, contig_list_path);
-    std::cerr << "Number of sequence for evaluation: " << seq_vect.size() << std::endl;
+    tag2seq_t tag_seq_dict;
+    EstablishSeqListFromMultilineFasta(tag_seq_dict, contig_fasta_path);
+    std::cerr << "Number of sequence for evaluation: " << tag_seq_dict.size() << std::endl;
 
-    std::cout << "tag\teval_dist\tkmer1\tkmer2" << std::endl;
-    for (const auto &seq_elem : seq_vect)
+    std::cout << "tag\tseq\teval_dist\tkmer1\tkmer2" << std::endl;
+    for (const auto &ns_pair : tag_seq_dict)
     {
-        auto seq = seq_elem.GetSeq();
+        auto tag = ns_pair.first, seq = ns_pair.second.GetSeq();
         if (seq.size() == k_len && kmer_count_tab.IsKMerExist(Seq2Int(seq, k_len, stranded))) // if seq has only one k-mer and is in k-mer count table
         {
-            std::cout << seq << "\t" << MIN_DISTANCE << "\t" << seq << "\t" << seq << std::endl;
+            std::cout << tag << "\t" << seq << "\t" << MIN_DISTANCE << "\t" << seq << "\t" << seq << std::endl;
         }
         else if (seq.size() == k_len) // if seq has only one k-mer but is not in k-mer count table
         {
-            std::cout << seq << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
+            std::cout << tag << "\t" << seq << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
         }
         else if (eval_mode == "farthest") // if seq has multiple k-mers, and evaluation mode is "farthest"
         {
-            EvaluatePrintSeqElemFarthest(seq_elem, eval_method, stranded, k_len, tag_type, kmer_count_tab);
+            EvaluatePrintSeqElemFarthest(tag, seq, eval_method, stranded, k_len, kmer_count_tab);
         }
         else if (eval_mode == "worstAdj")
         {
-            EvaluatePrintSeqElemWorstAdj(seq_elem, eval_method, stranded, k_len, tag_type, kmer_count_tab);
+            EvaluatePrintSeqElemWorstAdj(tag, seq, eval_method, stranded, k_len, kmer_count_tab);
         }
     }
 

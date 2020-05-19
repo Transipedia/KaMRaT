@@ -1,0 +1,1 @@
+1. using "map" data structure for sequence list => sequence list will be sorted automatically according to alphabet order of names
