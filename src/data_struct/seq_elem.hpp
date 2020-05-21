@@ -11,8 +11,9 @@ public:
     const std::string GetSeq() const;
     const std::string GetHeadKMer(unsigned int k_len) const;
     const std::string GetRearKMer(unsigned int k_len) const;
+    const void SelfReverseComplement();
 
-private:
+protected:
     std::string seq_;
 };
 
