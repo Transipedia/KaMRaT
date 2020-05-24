@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 
-#include "utils.hpp"
 #include "column_info.hpp"
 
 /* ------------------------------------------------------------------------------------------------ *\ 
@@ -12,9 +11,9 @@
     Func:   if condition does not exist in cond_tag, insert it
             return corresponding tag of the condition 
 \* ------------------------------------------------------------------------------------------------ */
-inline unsigned int SetConditionTag(std::unordered_map<std::string, unsigned int> &cond_tag,
-                                    const std::string &condition,
-                                    const unsigned int nb_cond)
+inline size_t SetConditionTag(std::map<std::string, size_t> &cond_tag,
+                              const std::string &condition,
+                              const size_t nb_cond)
 {
     auto iter = cond_tag.find(condition);
     if (iter == cond_tag.cend())
@@ -32,75 +31,83 @@ inline unsigned int SetConditionTag(std::unordered_map<std::string, unsigned int
     Args:   sample-tag dictionary (to modify), sample-info file path 
     Value:  total number of registed conditions
 \* ------------------------------------------------------------------ */
-inline unsigned int LoadSampleInfo(std::unordered_map<std::string, unsigned int> &sample_tag,
-                                   const std::string &sample_info_path)
+inline size_t LoadSampleInfo(std::map<std::string, size_t> &sample_tag,
+                             const std::string &sample_info_path)
 
 {
     std::ifstream sample_info_file(sample_info_path);
     if (!sample_info_file.is_open())
     {
-        throw("meta data file " + sample_info_path + " was not found");
+        throw "meta data file " + sample_info_path + " was not found";
     }
-    unsigned int nb_cond(1);
-    std::unordered_map<std::string, unsigned int> cond_tag;
+    size_t nb_cond(1);
+    std::map<std::string, size_t> cond_tag;
     std::string sample_info_line;
     while (std::getline(sample_info_file, sample_info_line))
     {
         std::istringstream conv(sample_info_line);
         std::string sample, condition;
         conv >> sample >> condition;
-        unsigned int i_tag = (!conv.fail()) ? SetConditionTag(cond_tag, condition, nb_cond) : 0;
+        size_t i_tag = (!conv.fail()) ? SetConditionTag(cond_tag, condition, nb_cond) : 0;
         nb_cond = (nb_cond == i_tag) ? (i_tag + 1) : nb_cond; // cond_tag begins from 0, so nb_cond := max(i_tag) + 1
         if (!sample_tag.insert({sample, i_tag}).second)
         {
-            throw("sample-info file has duplicated sample name " + sample);
+            throw "sample-info file has duplicated sample name " + sample;
         }
     }
     sample_info_file.close();
     return nb_cond;
 }
 
-ColumnInfo::ColumnInfo(const std::string &header_line, // should assure that this line is not empty
-                       const std::string &sample_info_path,
-                       const std::string &rep_col_name)
-    : nb_sample_(0), nb_condition_(0)
+ColumnInfo::ColumnInfo()
+    : nb_condition_(0), nb_sample_(0), nb_value_(0)
 {
-    std::unordered_map<std::string, unsigned int> sample_tag;
-    nb_condition_ = (!sample_info_path.empty()) ? LoadSampleInfo(sample_tag, sample_info_path) : 1;
-    std::istringstream conv(header_line);
-    std::string header_term;
-    // first column //
-    conv >> header_term;
-    col_name_vect_.push_back(header_term);
-    col_nat_vect_.push_back(-2); // -2 for feature column
-    // other columns //
-    if (sample_info_path.empty())
+}
+
+void ColumnInfo::MakeColumnInfo(const std::string &header_line,
+                                const std::string &sample_info_path)
+{
+    if (header_line.empty()) // quit if header line is empty
     {
-        while (conv >> header_term)
+        throw "cannot make ColumnInfo object with an empty header line";
+    }
+
+    //----- Create Sample-Tag Dictionary -----//
+    std::map<std::string, size_t> sample_tag;
+    nb_condition_ = (!sample_info_path.empty()) ? LoadSampleInfo(sample_tag, sample_info_path) : 1;
+
+    //----- Make ColumnInfo Object -----//
+    std::istringstream conv(header_line);
+    std::string term;
+    conv >> term; // the first term which is supposed to be always the tag/feature column
+    colname_vect_.push_back(term);
+    colname2label_.insert({term, -2});
+    colname2serial_.insert({term, 0});
+
+    if (sample_info_path.empty()) // if no sample info file provided => all next columns are samples
+    {
+        while (conv >> term)
         {
-            ++nb_sample_;
-            col_name_vect_.push_back(header_term);
-            col_nat_vect_.push_back(0);
+            colname_vect_.push_back(term);
+            colname2label_.insert({term, 0});
+            colname2serial_.insert({term, nb_sample_++});
         }
     }
-    else
+    else // if a sample info file is provided => next columns may contain non-sample values
     {
-        while (conv >> header_term)
+        while (conv >> term)
         {
-            col_name_vect_.push_back(header_term);
-            auto iter = sample_tag.find(header_term);
+            colname_vect_.push_back(term);
+            auto iter = sample_tag.find(term);
             if (iter != sample_tag.cend())
             {
-                ++nb_sample_;
-                col_nat_vect_.push_back(iter->second); // non-negative values for sample
-            }
-            else if (!rep_col_name.empty() && header_term == rep_col_name)
-            {
-                col_nat_vect_.push_back(-1); // -1 for rep_col or score_col name
+                colname2label_.insert({term, iter->second}); // non-negative values for sample
+                colname2serial_.insert({term, nb_sample_++});
             }
             else
             {
-                col_nat_vect_.push_back(-3); // -3 for others
+                colname2label_.insert({term, -1}); // -1 for non-count value
+                colname2serial_.insert({term, nb_value_++});
             }
         }
     }
@@ -112,44 +119,55 @@ ColumnInfo::ColumnInfo(const std::string &header_line, // should assure that thi
 
 const std::string ColumnInfo::GetColumnName(const size_t i_col) const
 {
-    return col_name_vect_.at(i_col);
+    return colname_vect_.at(i_col);
+}
+
+const int ColumnInfo::GetColumnLabel(const size_t i_col) const
+{
+    return colname2label_.find(colname_vect_.at(i_col))->second;
 }
 
 const char ColumnInfo::GetColumnNature(const size_t i_col) const
 {
-    if (col_nat_vect_.at(i_col) >= 0)
+    if (colname2label_.find(colname_vect_.at(i_col))->second >= 0)
     {
-        return 's'; // sample column
+        return 's'; // sample-count column
     }
-    else if (col_nat_vect_.at(i_col) == -1)
+    else if (colname2label_.find(colname_vect_.at(i_col))->second == -1)
     {
-        return 'r'; // representative column
+        return 'v'; // value column
     }
-    else if (col_nat_vect_.at(i_col) == -2)
+    else if (colname2label_.find(colname_vect_.at(i_col))->second == -2)
     {
         return 'f'; // feature column
     }
-    else if (col_nat_vect_.at(i_col) == -3)
-    {
-        return 'o'; // other column
-    }
     else
     {
-        throw("unknown column nature code " + col_nat_vect_.at(i_col));
+        throw "unknown column nature code " + std::to_string(colname2label_.find(colname_vect_.at(i_col))->second);
     }
 }
 
-const unsigned int ColumnInfo::GetNbCondition() const
+const size_t ColumnInfo::GetColumnSerial(const std::string &colname) const
+{
+    auto iter = colname2serial_.find(colname);
+    if (iter == colname2serial_.cend())
+    {
+        throw "non-registered column name " + colname;
+    }
+    return iter->second;
+}
+
+const size_t ColumnInfo::GetNbCondition() const
 {
     return nb_condition_;
 }
 
-const unsigned int ColumnInfo::GetNbSample() const
+const size_t ColumnInfo::GetNbSample() const
 {
     return nb_sample_;
 }
 
-const unsigned int ColumnInfo::GetNbColumn() const
+const size_t ColumnInfo::GetNbColumn() const
 {
-    return col_name_vect_.size();
+    return colname_vect_.size();
 }

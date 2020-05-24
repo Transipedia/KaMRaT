@@ -9,8 +9,8 @@ kamratReduce: kamratReduce.cpp utils/sample_info.cpp reduce/model_info.cpp
 # kamratNorm: kamratNorm.cpp
 # 	g++ -o ../bin/kamratNorm kamratNorm.cpp -lboost_iostreams
 
-kamratMerge: kamratMerge.cpp utils/column_info.cpp merge/contig_info.cpp merge/overlap_knot.cpp
-	g++ -o ../bin/kamratMerge kamratMerge.cpp utils/column_info.cpp merge/contig_info.cpp merge/overlap_knot.cpp
+kamratMerge: kamratMerge.cpp data_struct/column_info.cpp data_struct/kmer_count_tab.cpp data_struct/seq_elem.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp
+	g++ -o ../bin/kamratMerge kamratMerge.cpp data_struct/column_info.cpp data_struct/kmer_count_tab.cpp data_struct/seq_elem.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp
 
 kamratEvaluate: kamratEvaluate.cpp utils/column_info.cpp data_struct/seq_elem.cpp
 	g++ -o ../bin/kamratEvaluate kamratEvaluate.cpp utils/column_info.cpp data_struct/seq_elem.cpp
