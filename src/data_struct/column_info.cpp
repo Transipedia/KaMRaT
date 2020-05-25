@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <string>
+#include <map>
 
 #include "column_info.hpp"
 
@@ -60,12 +61,13 @@ inline size_t LoadSampleInfo(std::map<std::string, size_t> &sample_tag,
 }
 
 ColumnInfo::ColumnInfo()
-    : nb_condition_(0), nb_sample_(0), nb_value_(0)
+    : nb_condition_(0), nb_count_(0), nb_value_(0)
 {
 }
 
 void ColumnInfo::MakeColumnInfo(const std::string &header_line,
-                                const std::string &sample_info_path)
+                                const std::string &sample_info_path,
+                                const std::string &score_colname)
 {
     if (header_line.empty()) // quit if header line is empty
     {
@@ -81,19 +83,19 @@ void ColumnInfo::MakeColumnInfo(const std::string &header_line,
     std::string term;
     conv >> term; // the first term which is supposed to be always the tag/feature column
     colname_vect_.push_back(term);
-    colname2label_.insert({term, -2});
-    colname2serial_.insert({term, 0});
+    collabel_vect_.push_back(-3);
+    colserial_vect_.push_back(0);
 
-    if (sample_info_path.empty()) // if no sample info file provided => all next columns are samples
+    if (sample_info_path.empty()) // no sample info file provided => all next columns are samples
     {
         while (conv >> term)
         {
             colname_vect_.push_back(term);
-            colname2label_.insert({term, 0});
-            colname2serial_.insert({term, nb_sample_++});
+            collabel_vect_.push_back(0);
+            colserial_vect_.push_back(nb_count_++);
         }
     }
-    else // if a sample info file is provided => next columns may contain non-sample values
+    else // a sample info file is provided => next columns may contain non-sample values
     {
         while (conv >> term)
         {
@@ -101,17 +103,18 @@ void ColumnInfo::MakeColumnInfo(const std::string &header_line,
             auto iter = sample_tag.find(term);
             if (iter != sample_tag.cend())
             {
-                colname2label_.insert({term, iter->second}); // non-negative values for sample
-                colname2serial_.insert({term, nb_sample_++});
+                collabel_vect_.push_back(iter->second); // non-negative values for sample
+                colserial_vect_.push_back(nb_count_++);
             }
             else
             {
-                colname2label_.insert({term, -1}); // -1 for non-count value
-                colname2serial_.insert({term, nb_value_++});
+                int nat = (term == score_colname ? -2 : -1);
+                collabel_vect_.push_back(nat);
+                colserial_vect_.push_back(nb_value_++);
             }
         }
     }
-    if (nb_sample_ == 0)
+    if (nb_count_ == 0)
     {
         throw std::domain_error("no sample column found");
     }
@@ -122,39 +125,38 @@ const std::string ColumnInfo::GetColumnName(const size_t i_col) const
     return colname_vect_.at(i_col);
 }
 
-const int ColumnInfo::GetColumnLabel(const size_t i_col) const
+const int ColumnInfo::GetColLabel(const size_t i_col) const
 {
-    return colname2label_.find(colname_vect_.at(i_col))->second;
+    return collabel_vect_.at(i_col);
 }
 
-const char ColumnInfo::GetColumnNature(const size_t i_col) const
+const char ColumnInfo::GetColNature(const size_t i_col) const
 {
-    if (colname2label_.find(colname_vect_.at(i_col))->second >= 0)
+    if (collabel_vect_.at(i_col) >= 0)
     {
         return 's'; // sample-count column
     }
-    else if (colname2label_.find(colname_vect_.at(i_col))->second == -1)
+    else if (collabel_vect_.at(i_col) == -1)
     {
         return 'v'; // value column
     }
-    else if (colname2label_.find(colname_vect_.at(i_col))->second == -2)
+    else if (collabel_vect_.at(i_col) == -2)
+    {
+        return '+'; // special value column
+    }
+    else if (collabel_vect_.at(i_col) == -3)
     {
         return 'f'; // feature column
     }
     else
     {
-        throw std::domain_error("unknown column nature code " + std::to_string(colname2label_.find(colname_vect_.at(i_col))->second));
+        throw std::domain_error("unknown column nature code " + std::to_string(collabel_vect_.at(i_col)));
     }
 }
 
-const size_t ColumnInfo::GetColumnSerial(const std::string &colname) const
+const size_t ColumnInfo::GetColSerial(const size_t i_col) const
 {
-    auto iter = colname2serial_.find(colname);
-    if (iter == colname2serial_.cend())
-    {
-        throw std::domain_error("non-registered column name " + colname);
-    }
-    return iter->second;
+    return colserial_vect_.at(i_col);
 }
 
 const size_t ColumnInfo::GetNbCondition() const
@@ -162,9 +164,14 @@ const size_t ColumnInfo::GetNbCondition() const
     return nb_condition_;
 }
 
-const size_t ColumnInfo::GetNbSample() const
+const size_t ColumnInfo::GetNbValue() const
 {
-    return nb_sample_;
+    return nb_value_;
+}
+
+const size_t ColumnInfo::GetNbCount() const
+{
+    return nb_count_;
 }
 
 const size_t ColumnInfo::GetNbColumn() const

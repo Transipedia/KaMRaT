@@ -35,29 +35,24 @@ void ScanCountTable(ColumnInfo &column_info,
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::string line;
     std::getline(kmer_count_file, line);
-    column_info.MakeColumnInfo(line, sample_info_path);
+    column_info.MakeColumnInfo(line, sample_info_path, score_colname);
     //----- Dealing with Following k-mer Count Lines -----//
     std::ofstream count_index_file(count_index_path);
-    while (std::getline(kmer_count_file, line))
+    for (size_t kmer_serial(0); std::getline(kmer_count_file, line); ++kmer_serial)
     {
-        std::istringstream conv(line);
-        std::string seq;
-        conv >> seq; // first column as feature (string)
-        uint64_t kmer_code = Seq2Int(seq, seq.size(), stranded);
         float rep_val;
         if (kmer_count_tab.GetMode() == "inMem")
         {
-            rep_val = kmer_count_tab.AddKMerCountInMem(kmer_code, line, column_info, score_colname);
+            rep_val = kmer_count_tab.AddKMerCountInMem(line, column_info, score_colname);
         }
         else if (kmer_count_tab.GetMode() == "onDsk")
         {
-            rep_val = kmer_count_tab.AddKMerIndexOnDsk(kmer_code, line, column_info, score_colname, count_index_file);
+            rep_val = kmer_count_tab.AddKMerIndexOnDsk(line, column_info, score_colname, count_index_file);
         }
-        else
-        {
-            throw std::domain_error("unknown mode for constructing KMerCountTab");
-        }
-        if (!hashed_contig_list.insert({kmer_code, ContigElem(seq, rep_val, kmer_code)}).second)
+        std::istringstream conv(line);
+        std::string seq;
+        conv >> seq; // first column as feature (string)
+        if (!hashed_contig_list.insert({Seq2Int(seq, seq.size(), stranded), ContigElem(seq, rep_val, kmer_serial)}).second)
         {
             throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
         }
@@ -130,34 +125,30 @@ void PrintContigList(const ColumnInfo &column_info,
         std::vector<float> sample_count;
         if (quant_mode == "rep" && kmer_count_tab.GetMode() == "inMem")
         {
-            kmer_count_tab.GetCountInMem(sample_count, elem.first);
+            kmer_count_tab.GetCountInMem(sample_count, elem.second.GetRepSerial());
         }
         else if (quant_mode == "rep" && kmer_count_tab.GetMode() == "onDsk")
         {
-            kmer_count_tab.GetCountOnDsk(sample_count, elem.first, index_file, column_info.GetNbSample());
+            kmer_count_tab.GetCountOnDsk(sample_count, elem.second.GetRepSerial(), index_file);
         }
         else if (quant_mode == "mean" && kmer_count_tab.GetMode() == "inMem")
         {
-            kmer_count_tab.GetAvgCountInMem(sample_count, elem.second.GetMemberKMerSet());
+            kmer_count_tab.GetAvgCountInMem(sample_count, elem.second.GetKMerSerialSet());
         }
         else if (quant_mode == "mean" && kmer_count_tab.GetMode() == "onDsk")
         {
-            kmer_count_tab.GetAvgCountOnDsk(sample_count, elem.second.GetMemberKMerSet(), index_file, column_info.GetNbSample());
-        }
-        else
-        {
-            throw std::domain_error("unknown mode for quantification or query");
+            kmer_count_tab.GetAvgCountOnDsk(sample_count, elem.second.GetKMerSerialSet(), index_file);
         }
         for (size_t i(1); i < column_info.GetNbColumn(); ++i)
         {
-            size_t serial = column_info.GetColumnSerial(column_info.GetColumnName(i));
-            if (column_info.GetColumnNature(i) == 's')
+            size_t serial = column_info.GetColSerial(i);
+            if (column_info.GetColNature(i) == 's') // count column => output according to quant_mode
             {
                 std::cout << "\t" << sample_count.at(serial);
             }
-            else if (column_info.GetColumnNature(i) == 'v')
+            else if (column_info.GetColNature(i) == 'v' || column_info.GetColNature(i) == '+') // value column => output that related with rep. k-mer
             {
-                std::cout << "\t" << kmer_count_tab.GetValue(elem.first, serial);
+                std::cout << "\t" << kmer_count_tab.GetValue(elem.second.GetRepSerial(), serial);
             }
         }
         std::cout << std::endl;
@@ -200,17 +191,17 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
         if (interv_method != "none")
         {
             std::vector<float> pred_counts, succ_counts;
-            std::string left_kmer = (mk.second.IsPredRC() ? pred_iter->second.GetHeadKMer(k_len) : pred_iter->second.GetRearKMer(k_len)),
-                        right_kmer = (mk.second.IsSuccRC() ? succ_iter->second.GetRearKMer(k_len) : succ_iter->second.GetHeadKMer(k_len));
+            size_t left_serial = (mk.second.IsPredRC() ? pred_iter->second.GetHeadSerial() : pred_iter->second.GetRearSerial()),
+                   right_serial = (mk.second.IsSuccRC() ? succ_iter->second.GetRearSerial() : succ_iter->second.GetHeadSerial());
             if (kmer_count_tab.GetMode() == "onDsk")
             {
-                kmer_count_tab.GetCountOnDsk(pred_counts, Seq2Int(left_kmer, k_len, stranded), index_file, nb_sample);
-                kmer_count_tab.GetCountOnDsk(succ_counts, Seq2Int(right_kmer, k_len, stranded), index_file, nb_sample);
+                kmer_count_tab.GetCountOnDsk(pred_counts, left_serial, index_file);
+                kmer_count_tab.GetCountOnDsk(succ_counts, right_serial, index_file);
             }
             else
             {
-                kmer_count_tab.GetCountInMem(pred_counts, Seq2Int(left_kmer, k_len, stranded));
-                kmer_count_tab.GetCountInMem(succ_counts, Seq2Int(right_kmer, k_len, stranded));
+                kmer_count_tab.GetCountInMem(pred_counts, left_serial);
+                kmer_count_tab.GetCountInMem(succ_counts, right_serial);
             }
             if (interv_method == "pearson" && CalcPearsonCorrelation(pred_counts, succ_counts) < interv_thres)
             {
@@ -279,7 +270,7 @@ int main(int argc, char **argv)
             fix2knot_t hashed_mergeknot_list;
             MakeOverlapKnotDict(hashed_mergeknot_list, hashed_contig_list, stranded, n_overlap);
             has_new_extensions = DoExtension(hashed_contig_list, hashed_mergeknot_list, kmer_count_tab, k_len, stranded, n_overlap,
-                                             interv_method, interv_thres, column_info.GetNbSample(), quant_mode, index_file);
+                                             interv_method, interv_thres, column_info.GetNbCount(), quant_mode, index_file);
             for (auto iter = hashed_contig_list.begin(); iter != hashed_contig_list.end();)
             {
                 iter->second.IsUsed() ? (iter = hashed_contig_list.erase(iter)) : (++iter);

@@ -11,6 +11,7 @@
 const std::set<std::string> EVALU_METHOD_UNIV{"pearson", "spearman", "mac"};
 const std::set<std::string> EVALU_MODE_UNIV{"farthest", "worstAdj"};
 const std::set<std::string> INTERV_METHOD_UNIV{"none", "pearson", "spearman", "mac"};
+const std::set<std::string> QUANT_MODE_UNIV{"rep", "mean"};
 
 inline void SubCommandParser(std::string &command, std::string &sub_command)
 {

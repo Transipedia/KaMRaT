@@ -9,9 +9,6 @@ class SeqElem
 public:
     SeqElem(const std::string &seq);
     const std::string GetSeq() const;
-    const std::string GetHeadKMer(unsigned int k_len) const;
-    const std::string GetRearKMer(unsigned int k_len) const;
-    const void SelfReverseComplement();
 
 protected:
     std::string seq_;

@@ -125,23 +125,22 @@ inline void ParseOptions(int argc,
         }
         else
         {
-            std::cerr << "ERROR: unknown option " << argv[i_opt] << std::endl;
+            throw std::domain_error("unknown option " + arg);
             exit(EXIT_FAILURE);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
-        std::cerr << "ERROR: k-mer count table path is mandatory" << std::endl;
-        exit(EXIT_FAILURE);
+        throw std::domain_error("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
 
     // dealing quantification mode //
     SubCommandParser(quant_mode, rep_value_cname);
-    if (quant_mode != "rep" && quant_mode != "mean")
+    if (QUANT_MODE_UNIV.find(quant_mode) == QUANT_MODE_UNIV.cend())
     {
-        throw "unknown quant mode " + quant_mode;
+        throw std::domain_error("unknown quant mode " + quant_mode);
     }
 
     // dealing intervention method //
@@ -149,7 +148,7 @@ inline void ParseOptions(int argc,
     SubCommandParser(interv_method, threshold_str);
     if (INTERV_METHOD_UNIV.find(interv_method) == INTERV_METHOD_UNIV.cend())
     {
-        throw "unknown intervention method " + interv_method;
+        throw std::domain_error("unknown intervention method " + interv_method);
     }
     if (threshold_str.empty() && interv_method == "pearson")
     {
