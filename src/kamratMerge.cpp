@@ -68,10 +68,6 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
 {
     for (const auto &elem : hashed_contig_list)
     {
-        if (elem.second.IsUsed())
-        {
-            throw std::domain_error("used contig not deleted");
-        }
         std::string seq = elem.second.GetSeq();
         if (seq.size() <= n_overlap)
         {
@@ -181,11 +177,6 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
         const auto pred_iter = hashed_contig_list.find(pred_code), succ_iter = hashed_contig_list.find(succ_code);
         if (pred_iter == hashed_contig_list.cend() || succ_iter == hashed_contig_list.cend())
         {
-            // throw std::domain_error("predtig or succtig in merge knot not found in contig hash list");
-            continue;
-        }
-        if (pred_iter->second.IsUsed() || succ_iter->second.IsUsed())
-        {
             continue;
         }
         if (interv_method != "none")
@@ -287,10 +278,6 @@ int main(int argc, char **argv)
             MakeOverlapKnotDict(hashed_mergeknot_list, hashed_contig_list, stranded, n_overlap);
             has_new_extensions = DoExtension(hashed_contig_list, hashed_mergeknot_list, kmer_count_tab, k_len, stranded, n_overlap,
                                              interv_method, interv_thres, column_info.GetNbCount(), quant_mode, index_file);
-            // for (auto iter = hashed_contig_list.begin(); iter != hashed_contig_list.end();)
-            // {
-            //     iter->second.IsUsed() ? (iter = hashed_contig_list.erase(iter)) : (++iter);
-            // }
         }
     }
     PrintContigList(column_info, hashed_contig_list, kmer_count_tab, k_len, quant_mode, index_file);

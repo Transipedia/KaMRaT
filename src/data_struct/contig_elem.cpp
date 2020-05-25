@@ -33,16 +33,6 @@ ContigElem::ContigElem(const std::string &seq, const float rep_value, const size
     kmer_serial_set_.insert(init_serial);
 }
 
-const bool ContigElem::IsUsed() const
-{
-    return is_used_;
-}
-
-const void ContigElem::SetUsed()
-{
-    is_used_ = true;
-}
-
 const size_t ContigElem::GetHeadSerial() const
 {
     return head_serial_;

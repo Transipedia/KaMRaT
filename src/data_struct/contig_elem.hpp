@@ -12,8 +12,6 @@ class ContigElem : public SeqElem
 {
 public:
     ContigElem(const std::string &seq, float rep_value, size_t init_serial);
-    const bool IsUsed() const;
-    const void SetUsed();
     const size_t GetHeadSerial() const;
     const size_t GetRearSerial() const;
     const size_t GetRepSerial() const;
