@@ -20,8 +20,8 @@ public:
     const float GetRepValue() const;
     const std::set<size_t> &GetKMerSerialSet() const;
     const size_t GetNbMemberKMer() const;
-    const void LeftMerge(ContigElem &left_contig_elem, unsigned int n_overlap);
-    const void RightMerge(ContigElem &right_contig_elem, unsigned int n_overlap);
+    const void LeftMerge(const ContigElem &left_contig_elem, unsigned int n_overlap);
+    const void RightMerge(const ContigElem &right_contig_elem, unsigned int n_overlap);
     const void SelfReverseComplement();
 
 private:

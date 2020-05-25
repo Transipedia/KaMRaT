@@ -77,11 +77,12 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
         {
             throw std::domain_error("k-mer size less than or equal to k-length");
         }
-        uint64_t prefix(Seq2Int(seq, n_overlap, true)), suffix(Seq2Int(seq.substr(seq.size() - n_overlap), n_overlap, true));
+        uint64_t prefix = Seq2Int(seq, n_overlap, true),
+                 suffix = Seq2Int(seq.substr(seq.size() - n_overlap), n_overlap, true);
         bool is_prefix_rc(false), is_suffix_rc(false);
         if (!stranded)
         {
-            uint64_t prefix_rc(GetRC(prefix, n_overlap)), suffix_rc(GetRC(suffix, n_overlap));
+            uint64_t prefix_rc = GetRC(prefix, n_overlap), suffix_rc = GetRC(suffix, n_overlap);
             if (prefix_rc < prefix)
             {
                 prefix = prefix_rc;
@@ -95,11 +96,13 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
         }
         {
             auto iter = hashed_mergeknot_list.insert({prefix, MergeKnot()}).first;
-            is_prefix_rc ? (iter->second.AddContig(elem.first, true, "pred")) : (iter->second.AddContig(elem.first, false, "succ"));
+            std::string which_to_set = (is_prefix_rc ? "pred" : "succ");
+            iter->second.AddContig(elem.first, is_prefix_rc, which_to_set);
         }
         {
             auto iter = hashed_mergeknot_list.insert({suffix, MergeKnot()}).first;
-            is_suffix_rc ? (iter->second.AddContig(elem.first, true, "succ")) : (iter->second.AddContig(elem.first, false, "pred"));
+            std::string which_to_set = (is_suffix_rc ? "succ" : "pred");
+            iter->second.AddContig(elem.first, is_suffix_rc, which_to_set);
         }
     }
 }
@@ -178,21 +181,18 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
         const auto pred_iter = hashed_contig_list.find(pred_code), succ_iter = hashed_contig_list.find(succ_code);
         if (pred_iter == hashed_contig_list.cend() || succ_iter == hashed_contig_list.cend())
         {
-            throw std::domain_error("predtig or succtig in merge knot not found in contig hash list");
+            // throw std::domain_error("predtig or succtig in merge knot not found in contig hash list");
+            continue;
         }
         if (pred_iter->second.IsUsed() || succ_iter->second.IsUsed())
         {
             continue;
         }
-        if (pred_iter->second.GetSeq().size() <= n_overlap || succ_iter->second.GetSeq().size() <= n_overlap)
-        {
-            continue;
-        }
         if (interv_method != "none")
         {
-            std::vector<float> pred_counts, succ_counts;
             size_t left_serial = (mk.second.IsPredRC() ? pred_iter->second.GetHeadSerial() : pred_iter->second.GetRearSerial()),
                    right_serial = (mk.second.IsSuccRC() ? succ_iter->second.GetRearSerial() : succ_iter->second.GetHeadSerial());
+            std::vector<float> pred_counts, succ_counts;
             if (kmer_count_tab.GetMode() == "onDsk")
             {
                 kmer_count_tab.GetCountOnDsk(pred_counts, left_serial, index_file);
@@ -224,8 +224,24 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
         {
             succ_iter->second.SelfReverseComplement();
         }
-        (pred_iter->second.GetRepValue() < succ_iter->second.GetRepValue()) ? pred_iter->second.RightMerge(succ_iter->second, n_overlap)
-                                                                            : succ_iter->second.LeftMerge(pred_iter->second, n_overlap);
+        if (pred_iter->second.GetRepValue() < succ_iter->second.GetRepValue())
+        {
+            pred_iter->second.RightMerge(succ_iter->second, n_overlap);
+            hashed_contig_list.erase(succ_iter);
+            if (mk.second.IsPredRC())
+            {
+                pred_iter->second.SelfReverseComplement();
+            }
+        }
+        else
+        {
+            succ_iter->second.LeftMerge(pred_iter->second, n_overlap);
+            hashed_contig_list.erase(pred_iter);
+            if (mk.second.IsSuccRC())
+            {
+                succ_iter->second.SelfReverseComplement();
+            }
+        }
         has_new_extensions = true;
     }
     return has_new_extensions;
@@ -271,10 +287,10 @@ int main(int argc, char **argv)
             MakeOverlapKnotDict(hashed_mergeknot_list, hashed_contig_list, stranded, n_overlap);
             has_new_extensions = DoExtension(hashed_contig_list, hashed_mergeknot_list, kmer_count_tab, k_len, stranded, n_overlap,
                                              interv_method, interv_thres, column_info.GetNbCount(), quant_mode, index_file);
-            for (auto iter = hashed_contig_list.begin(); iter != hashed_contig_list.end();)
-            {
-                iter->second.IsUsed() ? (iter = hashed_contig_list.erase(iter)) : (++iter);
-            }
+            // for (auto iter = hashed_contig_list.begin(); iter != hashed_contig_list.end();)
+            // {
+            //     iter->second.IsUsed() ? (iter = hashed_contig_list.erase(iter)) : (++iter);
+            // }
         }
     }
     PrintContigList(column_info, hashed_contig_list, kmer_count_tab, k_len, quant_mode, index_file);

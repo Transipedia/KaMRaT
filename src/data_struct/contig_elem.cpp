@@ -73,22 +73,20 @@ const size_t ContigElem::GetNbMemberKMer() const
     return kmer_serial_set_.size();
 }
 
-const void ContigElem::LeftMerge(ContigElem &left_contig_elem, unsigned int n_overlap)
+const void ContigElem::LeftMerge(const ContigElem &left_contig_elem, unsigned int n_overlap)
 {
     auto left_seq = left_contig_elem.GetSeq();
     seq_ = left_seq + seq_.substr(n_overlap);
     kmer_serial_set_.insert(left_contig_elem.GetKMerSerialSet().begin(), left_contig_elem.GetKMerSerialSet().end());
     head_serial_ = left_contig_elem.GetHeadSerial();
-    left_contig_elem.SetUsed();
 }
 
-const void ContigElem::RightMerge(ContigElem &right_contig_elem, unsigned int n_overlap)
+const void ContigElem::RightMerge(const ContigElem &right_contig_elem, unsigned int n_overlap)
 {
     auto right_seq = right_contig_elem.GetSeq();
     seq_ = seq_ + right_seq.substr(n_overlap);
     kmer_serial_set_.insert(right_contig_elem.GetKMerSerialSet().begin(), right_contig_elem.GetKMerSerialSet().end());
     rear_serial_ = right_contig_elem.GetRearSerial();
-    right_contig_elem.SetUsed();
 }
 
 const void ContigElem::SelfReverseComplement()

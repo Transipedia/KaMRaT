@@ -29,7 +29,7 @@ void MergeKnot::AddContig(const uint64_t contig_code, const bool is_rc, const st
     }
     else
     {
-        throw "unknown argument which_to_set " + which_to_set;
+        throw std::domain_error("unknown argument which_to_set " + which_to_set);
     }
 }
 

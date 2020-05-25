@@ -9,7 +9,7 @@ class MergeKnot
 {
 public:
     MergeKnot();
-    void AddContig(uint64_t kmer_code, bool is_rc, const std::string &which_to_set); // representative k-mer code for contig calling
+    void AddContig(uint64_t kmer_code, bool is_rc, const std::string &which_to_set);
     const uint64_t GetPredCode() const;
     const uint64_t GetSuccCode() const;
     const bool IsPredRC() const;
