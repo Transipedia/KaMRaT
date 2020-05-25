@@ -21,7 +21,7 @@ const float ContigElem::GetRepValue() const
     return rep_value_;
 }
 
-const std::set<uint64_t> ContigElem::GetMemberKMerSet() const
+const std::set<uint64_t> &ContigElem::GetMemberKMerSet() const
 {
     return member_kmer_set_;
 }
@@ -31,28 +31,18 @@ const size_t ContigElem::GetNbMemberKMer() const
     return member_kmer_set_.size();
 }
 
-const bool ContigElem::LeftMerge(ContigElem &left_contig_elem, unsigned int n_overlap)
+const void ContigElem::LeftMerge(ContigElem &left_contig_elem, unsigned int n_overlap)
 {
     auto left_seq = left_contig_elem.GetSeq();
-    if (left_seq.size() < n_overlap || seq_.size() < n_overlap)
-    {
-        return false;
-    }
     seq_ = left_seq + seq_.substr(n_overlap);
     member_kmer_set_.insert(left_contig_elem.GetMemberKMerSet().begin(), left_contig_elem.GetMemberKMerSet().end());
     left_contig_elem.SetUsed();
-    return true;
 }
 
-const bool ContigElem::RightMerge(ContigElem &right_contig_elem, unsigned int n_overlap)
+const void ContigElem::RightMerge(ContigElem &right_contig_elem, unsigned int n_overlap)
 {
     auto right_seq = right_contig_elem.GetSeq();
-    if (seq_.size() < n_overlap || right_seq.size() < n_overlap)
-    {
-        return false;
-    }
     seq_ = seq_ + right_seq.substr(n_overlap);
     member_kmer_set_.insert(right_contig_elem.GetMemberKMerSet().begin(), right_contig_elem.GetMemberKMerSet().end());
     right_contig_elem.SetUsed();
-    return true;
 }

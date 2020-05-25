@@ -38,7 +38,7 @@ inline size_t LoadSampleInfo(std::map<std::string, size_t> &sample_tag,
     std::ifstream sample_info_file(sample_info_path);
     if (!sample_info_file.is_open())
     {
-        throw "meta data file " + sample_info_path + " was not found";
+        throw std::domain_error("meta data file " + sample_info_path + " was not found");
     }
     size_t nb_cond(1);
     std::map<std::string, size_t> cond_tag;
@@ -52,7 +52,7 @@ inline size_t LoadSampleInfo(std::map<std::string, size_t> &sample_tag,
         nb_cond = (nb_cond == i_tag) ? (i_tag + 1) : nb_cond; // cond_tag begins from 0, so nb_cond := max(i_tag) + 1
         if (!sample_tag.insert({sample, i_tag}).second)
         {
-            throw "sample-info file has duplicated sample name " + sample;
+            throw std::domain_error("sample-info file has duplicated sample name " + sample);
         }
     }
     sample_info_file.close();
@@ -69,7 +69,7 @@ void ColumnInfo::MakeColumnInfo(const std::string &header_line,
 {
     if (header_line.empty()) // quit if header line is empty
     {
-        throw "cannot make ColumnInfo object with an empty header line";
+        throw std::domain_error("cannot make ColumnInfo object with an empty header line");
     }
 
     //----- Create Sample-Tag Dictionary -----//
@@ -113,7 +113,7 @@ void ColumnInfo::MakeColumnInfo(const std::string &header_line,
     }
     if (nb_sample_ == 0)
     {
-        throw "no sample column found";
+        throw std::domain_error("no sample column found");
     }
 }
 
@@ -143,7 +143,7 @@ const char ColumnInfo::GetColumnNature(const size_t i_col) const
     }
     else
     {
-        throw "unknown column nature code " + std::to_string(colname2label_.find(colname_vect_.at(i_col))->second);
+        throw std::domain_error("unknown column nature code " + std::to_string(colname2label_.find(colname_vect_.at(i_col))->second));
     }
 }
 
@@ -152,7 +152,7 @@ const size_t ColumnInfo::GetColumnSerial(const std::string &colname) const
     auto iter = colname2serial_.find(colname);
     if (iter == colname2serial_.cend())
     {
-        throw "non-registered column name " + colname;
+        throw std::domain_error("non-registered column name " + colname);
     }
     return iter->second;
 }

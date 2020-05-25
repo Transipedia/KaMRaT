@@ -1,10 +1,10 @@
 #ifndef KAMRAT_DATASTRUCT_KMERCOUNTTAB_HPP
 #define KAMRAT_DATASTRUCT_KMERCOUNTTAB_HPP
 
-#include <map>
+#include <unordered_map>
 #include <vector>
-#include <set>
 #include <string>
+#include <set>
 #include <fstream>
 
 #include "column_info.hpp"
@@ -32,7 +32,8 @@ public:
 
 private:
     const std::string mode_;                    // inMem or onDsk
-    std::map<uint64_t, size_t> kmer_serial_;    // from k-mer unique code to line number in count table (inMem) or to position in index file (onDsk)
+    size_t nb_value_, nb_count_;                // number of value and count columns
+    std::unordered_map<uint64_t, size_t> kmer_serial_;    // from k-mer unique code to line number in count table (inMem) or to position in index file (onDsk)
     std::vector<std::vector<float>> value_tab_; // k-mer value vector ------ used both in inMem or onDsk
     std::vector<std::vector<float>> count_tab_; // k-mer count vector ------ only used in inMem
     std::vector<size_t> index_pos_;             // indexed position for k-mer count ------ only used in onDsk

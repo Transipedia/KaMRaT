@@ -7,6 +7,7 @@
 #include <sstream>
 #include <map>
 #include <ctime>
+#include <stdexcept>
 
 #include "utils/statistics.hpp"
 #include "utils/seq_coding.hpp"
@@ -29,7 +30,7 @@ void ScanCountTable(ColumnInfo &column_info,
     std::ifstream kmer_count_file(kmer_count_path);
     if (!kmer_count_file.is_open())
     {
-        throw "k-mer count file " + kmer_count_path + " was not found";
+        throw std::domain_error("k-mer count file " + kmer_count_path + " was not found");
     }
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::string line;
@@ -37,12 +38,11 @@ void ScanCountTable(ColumnInfo &column_info,
     column_info.MakeColumnInfo(line, sample_info_path);
     //----- Dealing with Following k-mer Count Lines -----//
     std::ofstream count_index_file(count_index_path);
-    for (size_t i_line(1); std::getline(kmer_count_file, line); ++i_line)
+    while (std::getline(kmer_count_file, line))
     {
         std::istringstream conv(line);
         std::string seq;
         conv >> seq; // first column as feature (string)
-        line = line.substr(line.find_first_of(" \t" + 1));
         uint64_t kmer_code = Seq2Int(seq, seq.size(), stranded);
         float rep_val;
         if (kmer_count_tab.GetMode() == "inMem")
@@ -55,11 +55,11 @@ void ScanCountTable(ColumnInfo &column_info,
         }
         else
         {
-            throw "unknown mode for constructing KMerCountTab";
+            throw std::domain_error("unknown mode for constructing KMerCountTab");
         }
         if (!hashed_contig_list.insert({kmer_code, ContigElem(seq, rep_val, kmer_code)}).second)
         {
-            throw "duplicate input (newly inserted k-mer already exists in k-mer hash list)";
+            throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
         }
     }
     count_index_file.close();
@@ -75,12 +75,12 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
     {
         if (elem.second.IsUsed())
         {
-            throw "used contig not deleted";
+            throw std::domain_error("used contig not deleted");
         }
         std::string seq = elem.second.GetSeq();
         if (seq.size() <= n_overlap)
         {
-            throw "k-mer size less than or equal to k-length";
+            throw std::domain_error("k-mer size less than or equal to k-length");
         }
         uint64_t prefix(Seq2Int(seq, n_overlap, true)), suffix(Seq2Int(seq.substr(seq.size() - n_overlap), n_overlap, true));
         bool is_prefix_rc(false), is_suffix_rc(false);
@@ -146,7 +146,7 @@ void PrintContigList(const ColumnInfo &column_info,
         }
         else
         {
-            throw "unknown mode for quantification or query";
+            throw std::domain_error("unknown mode for quantification or query");
         }
         for (size_t i(1); i < column_info.GetNbColumn(); ++i)
         {
@@ -187,9 +187,13 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
         const auto pred_iter = hashed_contig_list.find(pred_code), succ_iter = hashed_contig_list.find(succ_code);
         if (pred_iter == hashed_contig_list.cend() || succ_iter == hashed_contig_list.cend())
         {
-            throw "predtig or succtig in merge knot not found in contig hash list";
+            throw std::domain_error("predtig or succtig in merge knot not found in contig hash list");
         }
         if (pred_iter->second.IsUsed() || succ_iter->second.IsUsed())
+        {
+            continue;
+        }
+        if (pred_iter->second.GetSeq().size() <= n_overlap || succ_iter->second.GetSeq().size() <= n_overlap)
         {
             continue;
         }
@@ -229,8 +233,8 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
         {
             succ_iter->second.SelfReverseComplement();
         }
-        pred_iter->second.GetRepValue() < succ_iter->second.GetRepValue() ? pred_iter->second.RightMerge(succ_iter->second, n_overlap)
-                                                                          : succ_iter->second.LeftMerge(pred_iter->second, n_overlap);
+        (pred_iter->second.GetRepValue() < succ_iter->second.GetRepValue()) ? pred_iter->second.RightMerge(succ_iter->second, n_overlap)
+                                                                            : succ_iter->second.LeftMerge(pred_iter->second, n_overlap);
         has_new_extensions = true;
     }
     return has_new_extensions;
@@ -263,7 +267,7 @@ int main(int argc, char **argv)
     std::ifstream index_file(count_index_path);
     if (!index_file.is_open())
     {
-        throw "k-mer count index file " + count_index_path + " was not found";
+        throw std::domain_error("k-mer count index file " + count_index_path + " was not found");
     }
     for (size_t n_overlap(k_len - 1); n_overlap >= min_overlap; --n_overlap)
     {

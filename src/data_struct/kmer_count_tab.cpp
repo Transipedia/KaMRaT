@@ -53,7 +53,7 @@ inline void StrLine2ValueCountVects(std::vector<float> &value_vect,
 }
 
 KMerCountTab::KMerCountTab(const std::string &mode)
-    : mode_(mode)
+    : mode_(mode), nb_value_(0), nb_count_(0)
 {
 }
 
@@ -82,17 +82,22 @@ const float KMerCountTab::AddKMerCountInMem(const uint64_t kmer_code,
 {
     std::vector<float> count_vect, value_vect;
     StrLine2ValueCountVects(value_vect, count_vect, line_str, column_info);
-    if (!value_tab_.empty() && value_tab_.back().size() != value_vect.size())
+    if (value_tab_.empty() || count_tab_.empty())
     {
-        throw "newly inserted k-mer value vector not coherent with existing k-mer value table";
+        nb_value_ = value_vect.size();
+        nb_count_ = count_vect.size();
     }
-    if (!count_tab_.empty() && count_tab_.back().size() != count_vect.size())
+    if (nb_value_ != value_vect.size())
     {
-        throw "newly inserted k-mer count vector not coherent with existing k-mer count table";
+        throw std::domain_error("newly inserted k-mer value vector not coherent with existing k-mer value table");
+    }
+    if (nb_count_ != count_vect.size())
+    {
+        throw std::domain_error("newly inserted k-mer count vector not coherent with existing k-mer count table");
     }
     if (!kmer_serial_.insert({kmer_code, value_tab_.size()}).second)
     {
-        throw "duplicate input (newly inserted k-mer already exists in k-mer hash list)";
+        throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
     }
     value_tab_.emplace_back(value_vect);
     count_tab_.emplace_back(count_vect);
@@ -121,16 +126,25 @@ const float KMerCountTab::AddKMerIndexOnDsk(const uint64_t kmer_code,
 {
     std::vector<float> value_vect, count_vect;
     StrLine2ValueCountVects(value_vect, count_vect, line_str, column_info);
-    if (!value_tab_.empty() && value_tab_.back().size() != value_vect.size())
+    if (value_tab_.empty() || index_pos_.empty())
     {
-        throw "newly inserted k-mer value vector not coherent with existing k-mer value table";
+        nb_value_ = value_vect.size();
+        nb_count_ = count_vect.size();
+    }
+    if (nb_value_ != value_vect.size())
+    {
+        throw std::domain_error("newly inserted k-mer value vector not coherent with existing k-mer value table");
+    }
+    if (nb_count_ != count_vect.size())
+    {
+        throw std::domain_error("newly inserted k-mer count vector not coherent with existing k-mer count table");
     }
     if (!kmer_serial_.insert({kmer_code, value_tab_.size()}).second)
     {
-        throw "duplicate input (newly inserted k-mer already exists in k-mer hash list)";
+        throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
     }
     value_tab_.emplace_back(value_vect);
-    index_pos_.emplace_back(WriteCountToIndex(index_file, value_vect));
+    index_pos_.emplace_back(WriteCountToIndex(index_file, count_vect));
     return (score_colname.empty() ? value_tab_.size() : value_vect.at(column_info.GetColumnSerial(score_colname)));
 }
 
@@ -157,7 +171,7 @@ const float KMerCountTab::GetValue(const uint64_t kmer_code, const size_t i_valc
     auto iter_kmer = kmer_serial_.find(kmer_code);
     if (iter_kmer == kmer_serial_.cend())
     {
-        throw "non-registered k-mer code" + kmer_code;
+        throw std::domain_error("non-registered k-mer code" + std::to_string(kmer_code));
     }
     return value_tab_.at(iter_kmer->second).at(i_valcol);
 }
