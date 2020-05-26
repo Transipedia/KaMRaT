@@ -242,9 +242,12 @@ const float KMerCountTab::AddKMerCountInMem(const std::string &line_str)
     {
         throw std::domain_error("newly inserted k-mer count vector not coherent with existing k-mer count table");
     }
-    value_tab_.emplace_back(value_vect);
+    if (nb_value_ > 0)
+    {
+        value_tab_.emplace_back(value_vect);
+    }
     count_tab_.emplace_back(count_vect);
-    return (score_pos == 0 ? value_tab_.size() : value_vect.at(score_pos));
+    return (score_pos == 0 ? (count_tab_.size() - 1) : value_vect.at(score_pos));
 }
 
 const float KMerCountTab::AddKMerIndexOnDsk(const std::string &line_str, std::ofstream &index_file)
@@ -269,9 +272,12 @@ const float KMerCountTab::AddKMerIndexOnDsk(const std::string &line_str, std::of
     {
         throw std::domain_error("newly inserted k-mer count vector not coherent with existing k-mer count table");
     }
-    value_tab_.emplace_back(value_vect);
+    if (nb_value_ > 0)
+    {
+        value_tab_.emplace_back(value_vect);
+    }
     index_pos_.emplace_back(WriteCountToIndex(index_file, count_vect));
-    return (score_pos == 0 ? value_tab_.size() : value_vect.at(score_pos));
+    return (score_pos == 0 ? (count_tab_.size() - 1) : value_vect.at(score_pos));
 }
 
 const float KMerCountTab::GetValue(const size_t kmer_serial, const size_t valcol_serial) const
@@ -315,20 +321,20 @@ const size_t KMerCountTab::GetAvgCountInMem(std::vector<float> &count_avg_vect, 
 \* ------------------------------------------------------------------------------------------------------ */
 {
     size_t nb_kmer_found(0);
-    std::vector<float> count_sum_vect(nb_count_, 0);
+    count_avg_vect.assign(nb_count_, 0);
     for (auto kmer_serial : kmer_serial_set)
     {
         ++nb_kmer_found;
         for (unsigned int i(0); i < nb_count_; ++i)
         {
-            count_sum_vect.at(i) += count_tab_.at(kmer_serial).at(i);
+            count_avg_vect.at(i) += count_tab_.at(kmer_serial).at(i);
         }
     }
     if (nb_kmer_found > 0)
     {
         for (unsigned int i(0); i < nb_count_; ++i)
         {
-            count_sum_vect.at(i) /= nb_kmer_found;
+            count_avg_vect.at(i) /= nb_kmer_found;
         }
     }
     return nb_kmer_found;
@@ -345,18 +351,18 @@ const size_t KMerCountTab::GetAvgCountOnDsk(std::vector<float> &count_avg_vect,
     Func:   return the number of found k-mers and average counts of given k-mer list by searching memory
 \* ------------------------------------------------------------------------------------------------------ */
 {
-    std::vector<float> count_sum_vect(nb_count_, 0);
     size_t nb_kmer_found(0);
+    count_avg_vect.assign(nb_count_, 0);
     for (auto kmer_serial : kmer_serial_set)
     {
         ++nb_kmer_found;
-        AddCountFromIndex(count_sum_vect, index_file, index_pos_.at(kmer_serial), nb_count_);
+        AddCountFromIndex(count_avg_vect, index_file, index_pos_.at(kmer_serial), nb_count_);
     }
     if (nb_kmer_found > 0)
     {
         for (unsigned int i(0); i < nb_count_; ++i)
         {
-            count_sum_vect.at(i) /= nb_kmer_found;
+            count_avg_vect.at(i) /= nb_kmer_found;
         }
     }
     return nb_kmer_found;

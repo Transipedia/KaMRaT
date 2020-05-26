@@ -170,8 +170,8 @@ const void EvaluatePrintSeqElemWorstAdj(const std::string &tag,
         }
         if (start_pos2 + k_len <= seq.size())
         {
-            auto iter1 = code2serial.find(Seq2Int(kmer1, k_len, stranded)),
-                 iter2 = code2serial.find(Seq2Int(kmer2, k_len, stranded));
+            auto iter1 = code2serial.find(Seq2Int(kmer1_x, k_len, stranded)),
+                 iter2 = code2serial.find(Seq2Int(kmer2_x, k_len, stranded));
             std::vector<float> kmer1_count, kmer2_count;
             kmer_count_tab.GetCountInMem(kmer1_count, iter1->second);
             kmer_count_tab.GetCountInMem(kmer2_count, iter2->second);
