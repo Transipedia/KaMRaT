@@ -23,57 +23,45 @@
 \* ======================================================================================================================= */
 
 #include <iostream>
-#include <iomanip>
 #include <string>
 #include <vector>
-#include <tuple>
 #include <fstream>
+#include <sstream>
 #include <ctime>
 
-#include "utils/utils.hpp"
 #include "utils/statistics.hpp"
-#include "utils/column_info.hpp"
 #include "utils/seq_coding.hpp"
-#include "data_struct/kmer_count_tab_tmplt.hpp"
+#include "data_struct/kmer_count_tab.hpp"
 #include "data_struct/seq_elem.hpp"
 #include "run_info_parser/evaluate.hpp"
 
 const float MIN_DISTANCE = 0, MAX_DISTANCE = 1 - MIN_DISTANCE;
 
-template <typename countT>
-void ScanCountTable(KMerCountTab<countT> &kmer_count_tab,
-                    const std::string &kmer_count_path,
-                    const std::string &colname_list_path,
-                    const bool stranded)
+void ScanKMerCountTable(KMerCountTab &kmer_count_tab,
+                        code2serial_t &code2serial,
+                        const std::string &kmer_count_path,
+                        const std::string &colname_list_path,
+                        const bool stranded)
 {
     std::ifstream kmer_count_file(kmer_count_path);
-    ExitIf(!kmer_count_file.is_open(), "ERROR: k-mer count file " + kmer_count_path + " was not found");
-    ColumnInfo column_info;
+    if (!kmer_count_file.is_open())
+    {
+        throw std::domain_error("k-mer count file " + kmer_count_path + " was not found");
+    }
     std::string line;
     // dealing with the header line for parsing column names
     std::getline(kmer_count_file, line);
-    column_info.MakeColumnInfo(line, colname_list_path, "NULL");
+    kmer_count_tab.MakeColumnInfo(line, colname_list_path, "NULLFORNOSCORE");
     // dealing with the count lines
     while (std::getline(kmer_count_file, line))
     {
         std::istringstream conv(line);
         std::string term, seq;
-        std::vector<float> sample_counts;
-        for (size_t i(0); conv >> term; ++i)
+        conv >> seq; // first column is supposed to be the feature column
+        if (!code2serial.insert({Seq2Int(seq, seq.size(), stranded), static_cast<size_t>(kmer_count_tab.AddKMerCountInMem(line) + 0.5)}).second)
         {
-            char col_nat = column_info.GetColumnNature(i);
-            if (col_nat == 'f')
-            {
-                seq = term;
-            }
-            else if (col_nat == 's')
-            {
-                sample_counts.push_back(std::stof(term));
-            }
+            throw std::domain_error("duplicated k-mer " + seq);
         }
-        ExitIf(!kmer_count_tab.AddKMerCountInMem(Seq2Int(seq, seq.size(), stranded),
-                                                 sample_counts),
-               "ERROR: duplicated k-mer " + seq);
     }
     kmer_count_file.close();
 }
@@ -82,8 +70,10 @@ void EstablishSeqListFromMultilineFasta(tag2seq_t &tag_seq_dict,
                                         const std::string &contig_fasta_path)
 {
     std::ifstream contig_list_file(contig_fasta_path);
-    ExitIf(!contig_list_file.is_open(), "ERROR: contig fasta file " + contig_fasta_path + "was not found.");
-
+    if (!contig_list_file.is_open())
+    {
+        throw std::domain_error("contig fasta file " + contig_fasta_path + "was not found");
+    }
     std::string seq_tag, seq, line;
     size_t nline(0);
     while (true)
@@ -114,23 +104,22 @@ void EstablishSeqListFromMultilineFasta(tag2seq_t &tag_seq_dict,
     contig_list_file.close();
 }
 
-template <typename countT>
 const void EvaluatePrintSeqElemFarthest(const std::string &tag,
                                         const std::string &seq,
                                         const std::string &eval_method,
                                         const bool stranded,
                                         const unsigned int k_len,
-                                        const KMerCountTab<countT> &kmer_count_tab)
+                                        const KMerCountTab &kmer_count_tab,
+                                        const code2serial_t &code2serial)
 {
     size_t start_pos1 = 0, start_pos2 = seq.size() - k_len;
     std::string kmer1 = seq.substr(start_pos1, k_len), kmer2 = seq.substr(start_pos2, k_len);
-    std::vector<countT> kmer1_count, kmer2_count;
-    while (start_pos1 < start_pos2 && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1, k_len, stranded)))
+    while (start_pos1 < start_pos2 && code2serial.find(Seq2Int(kmer1, k_len, stranded)) == code2serial.cend())
     {
         ++start_pos1;
         kmer1 = seq.substr(start_pos1, k_len);
     }
-    while (start_pos1 < start_pos2 && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2, k_len, stranded)))
+    while (start_pos1 < start_pos2 && code2serial.find(Seq2Int(kmer2, k_len, stranded)) == code2serial.cend())
     {
         --start_pos2;
         kmer2 = seq.substr(start_pos2, k_len);
@@ -141,27 +130,31 @@ const void EvaluatePrintSeqElemFarthest(const std::string &tag,
     }
     else
     {
+        auto iter1 = code2serial.find(Seq2Int(kmer1, k_len, stranded)),
+             iter2 = code2serial.find(Seq2Int(kmer2, k_len, stranded));
+        std::vector<float> kmer1_count, kmer2_count;
+        kmer_count_tab.GetCountInMem(kmer1_count, iter1->second);
+        kmer_count_tab.GetCountInMem(kmer2_count, iter2->second);
         std::cout << tag << "\t" << seq << "\t" << CalcDistance(kmer1_count, kmer2_count, eval_method) << "\t" << kmer1 << "\t" << kmer2 << std::endl;
     }
 }
 
-template <typename countT>
 const void EvaluatePrintSeqElemWorstAdj(const std::string &tag,
                                         const std::string &seq,
                                         const std::string &eval_method,
                                         const bool stranded,
                                         const unsigned int k_len,
-                                        const KMerCountTab<countT> &kmer_count_tab)
+                                        const KMerCountTab &kmer_count_tab,
+                                        const code2serial_t &code2serial)
 {
     std::string kmer1, kmer2;
-    std::vector<countT> kmer1_count, kmer2_count;
     float dist = MIN_DISTANCE - 1;
     size_t start_pos1 = 0, start_pos2;
     while (start_pos1 + k_len < seq.size())
     {
         float dist_x = dist;
         std::string kmer1_x = seq.substr(start_pos1, k_len);
-        while (start_pos1 + k_len <= seq.size() && !kmer_count_tab.GetCountInMem(kmer1_count, Seq2Int(kmer1_x, k_len, stranded)))
+        while (start_pos1 + k_len <= seq.size() && code2serial.find(Seq2Int(kmer1_x, k_len, stranded)) == code2serial.cend())
         {
             ++start_pos1;
             kmer1_x.erase(0, 1);
@@ -169,7 +162,7 @@ const void EvaluatePrintSeqElemWorstAdj(const std::string &tag,
         }
         start_pos2 = start_pos1 + 1;
         std::string kmer2_x = seq.substr(start_pos2, k_len);
-        while (start_pos2 + k_len <= seq.size() && !kmer_count_tab.GetCountInMem(kmer2_count, Seq2Int(kmer2_x, k_len, stranded)))
+        while (start_pos2 + k_len <= seq.size() && code2serial.find(Seq2Int(kmer2_x, k_len, stranded)) == code2serial.cend())
         {
             ++start_pos2;
             kmer2_x.erase(0, 1);
@@ -177,6 +170,11 @@ const void EvaluatePrintSeqElemWorstAdj(const std::string &tag,
         }
         if (start_pos2 + k_len <= seq.size())
         {
+            auto iter1 = code2serial.find(Seq2Int(kmer1, k_len, stranded)),
+                 iter2 = code2serial.find(Seq2Int(kmer2, k_len, stranded));
+            std::vector<float> kmer1_count, kmer2_count;
+            kmer_count_tab.GetCountInMem(kmer1_count, iter1->second);
+            kmer_count_tab.GetCountInMem(kmer2_count, iter2->second);
             dist_x = CalcDistance(kmer1_count, kmer2_count, eval_method);
             if (dist_x > dist)
             {
@@ -204,15 +202,18 @@ int main(int argc, char **argv)
     unsigned int k_len(31);
     bool stranded(true);
 
-    ExitIf(!ParseOptions(argc, argv, contig_fasta_path, eval_method, eval_mode, stranded, k_len, colname_list_path, kmer_count_path),
-           "ERROR: option parsing interrupted, please check kamratEvaluate -h");
+    if (!ParseOptions(argc, argv, contig_fasta_path, eval_method, eval_mode, stranded, k_len, colname_list_path, kmer_count_path))
+    {
+        throw std::domain_error("option parsing interrupted, please check kamratEvaluate -h");
+    }
     PrintRunInfo(contig_fasta_path, eval_method, eval_mode, stranded, k_len, colname_list_path, kmer_count_path);
 
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    KMerCountTab<float> kmer_count_tab("inMem");
-    ScanCountTable(kmer_count_tab, kmer_count_path, colname_list_path, stranded);
+    KMerCountTab kmer_count_tab("inMem");
+    code2serial_t code2serial;
+    ScanKMerCountTable(kmer_count_tab, code2serial, kmer_count_path, colname_list_path, stranded);
 
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
@@ -225,7 +226,7 @@ int main(int argc, char **argv)
     for (const auto &ns_pair : tag_seq_dict)
     {
         auto tag = ns_pair.first, seq = ns_pair.second.GetSeq();
-        if (seq.size() == k_len && kmer_count_tab.IsKMerExist(Seq2Int(seq, k_len, stranded))) // if seq has only one k-mer and is in k-mer count table
+        if (seq.size() == k_len && code2serial.find(Seq2Int(seq, k_len, stranded)) != code2serial.cend()) // if seq has only one k-mer and is in k-mer count table
         {
             std::cout << tag << "\t" << seq << "\t" << MIN_DISTANCE << "\t" << seq << "\t" << seq << std::endl;
         }
@@ -235,11 +236,11 @@ int main(int argc, char **argv)
         }
         else if (eval_mode == "farthest") // if seq has multiple k-mers, and evaluation mode is "farthest"
         {
-            EvaluatePrintSeqElemFarthest(tag, seq, eval_method, stranded, k_len, kmer_count_tab);
+            EvaluatePrintSeqElemFarthest(tag, seq, eval_method, stranded, k_len, kmer_count_tab, code2serial);
         }
         else if (eval_mode == "worstAdj")
         {
-            EvaluatePrintSeqElemWorstAdj(tag, seq, eval_method, stranded, k_len, kmer_count_tab);
+            EvaluatePrintSeqElemWorstAdj(tag, seq, eval_method, stranded, k_len, kmer_count_tab, code2serial);
         }
     }
 

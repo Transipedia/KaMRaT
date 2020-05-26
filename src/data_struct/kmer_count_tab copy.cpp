@@ -32,80 +32,27 @@ inline void GetStringLineFromDisk(std::string &str_line, std::ifstream &index_fi
     std::getline(index_file, str_line);
 }
 
-/* ------------------------------------------------------------------------------------------------ *\ 
-    Args:   condition-tag dictionary (to modify), a condition string, the current condition number
-    Value:  number of condition registered
-    Func:   if condition does not exist in cond_tag, insert it
-            return corresponding tag of the condition 
-\* ------------------------------------------------------------------------------------------------ */
-inline size_t SetConditionTag(std::map<std::string, size_t> &cond_tag,
-                              const std::string &condition,
-                              const size_t nb_cond)
-{
-    auto iter = cond_tag.find(condition);
-    if (iter == cond_tag.cend())
-    {
-        cond_tag.insert({condition, nb_cond});
-        return nb_cond;
-    }
-    else
-    {
-        return iter->second;
-    }
-}
-
-/* ------------------------------------------------------------------ *\
-    Args:   sample-tag dictionary (to modify), sample-info file path 
-    Value:  total number of registed conditions
-\* ------------------------------------------------------------------ */
-inline size_t LoadSampleInfo(std::map<std::string, size_t> &sample_tag,
-                             const std::string &sample_info_path)
-
-{
-    std::ifstream sample_info_file(sample_info_path);
-    if (!sample_info_file.is_open())
-    {
-        throw std::domain_error("meta data file " + sample_info_path + " was not found");
-    }
-    size_t nb_cond(1);
-    std::map<std::string, size_t> cond_tag;
-    std::string sample_info_line;
-    while (std::getline(sample_info_file, sample_info_line))
-    {
-        std::istringstream conv(sample_info_line);
-        std::string sample, condition;
-        conv >> sample >> condition;
-        size_t i_tag = (!conv.fail()) ? SetConditionTag(cond_tag, condition, nb_cond) : 0;
-        nb_cond = (nb_cond == i_tag) ? (i_tag + 1) : nb_cond; // cond_tag begins from 0, so nb_cond := max(i_tag) + 1
-        if (!sample_tag.insert({sample, i_tag}).second)
-        {
-            throw std::domain_error("sample-info file has duplicated sample name " + sample);
-        }
-    }
-    sample_info_file.close();
-    return nb_cond;
-}
-
 inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
                                       std::vector<float> &count_vect,
                                       const std::string &line_str,
-                                      const std::vector<char> &colnature_vect)
+                                      const ColumnInfo &col_info,
+                                      const std::string &score_colname)
 {
     std::istringstream conv(line_str);
     std::string term;
     size_t score_pos(0); // ASSUMPTION: score value never appears at the first column !!!
     for (unsigned int i(0); conv >> term; ++i)
     {
-        if (colnature_vect.at(i) == 'v')
+        if (col_info.GetColNature(i) == 'v')
         {
             value_vect.push_back(std::stof(term));
         }
-        else if (colnature_vect.at(i) == '+')
+        else if (col_info.GetColNature(i) == '+')
         {
             score_pos = i;
             value_vect.push_back(std::stof(term));
         }
-        else if (colnature_vect.at(i) == 's')
+        else if (col_info.GetColNature(i) == 's')
         {
             count_vect.push_back(std::stof(term));
         }
@@ -114,7 +61,7 @@ inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
 }
 
 KMerCountTab::KMerCountTab(const std::string &mode)
-    : mode_(mode), nb_cond_(0), nb_count_(0), nb_value_(0)
+    : mode_(mode), nb_count_(0), nb_value_(0)
 {
 }
 
@@ -123,108 +70,13 @@ const std::string KMerCountTab::GetMode() const
     return mode_;
 }
 
-const void KMerCountTab::MakeColumnInfo(const std::string &header_line,
-                                        const std::string &sample_info_path,
-                                        const std::string &score_colname)
-{
-    if (header_line.empty()) // quit if header line is empty
-    {
-        throw std::domain_error("cannot make ColumnInfo object with an empty header line");
-    }
-
-    //----- Create Sample-Tag Dictionary -----//
-    std::map<std::string, size_t> sample_tag;
-    nb_cond_ = (!sample_info_path.empty()) ? LoadSampleInfo(sample_tag, sample_info_path) : 1;
-
-    //----- Make ColumnInfo Object -----//
-    std::istringstream conv(header_line);
-    std::string term;
-    // first term is supposed to be feature //
-    conv >> term;
-    colname_vect_.push_back(term);
-    colnature_vect_.push_back('f');
-    colserial_vect_.push_back(0);
-    // following columns //
-    if (sample_info_path.empty()) // sample info file NOT provided => all next columns are samples
-    {
-        while (conv >> term)
-        {
-            colname_vect_.push_back(term);
-            colnature_vect_.push_back('s');
-            smplabel_vect_.push_back(0);
-            colserial_vect_.push_back(nb_count_++);
-        }
-    }
-    else // sample info file provided => next columns may contain non-sample values
-    {
-        while (conv >> term)
-        {
-            colname_vect_.push_back(term);
-            auto iter = sample_tag.find(term);
-            if (iter != sample_tag.cend())
-            {
-                colnature_vect_.push_back('s');
-                smplabel_vect_.push_back(iter->second); // non-negative values for sample
-                colserial_vect_.push_back(nb_count_++);
-            }
-            else
-            {
-                char nat = (term == score_colname ? '+' : 'v');
-                colnature_vect_.push_back(nat);
-                colserial_vect_.push_back(nb_value_++);
-            }
-        }
-    }
-    if (nb_count_ == 0)
-    {
-        throw std::domain_error("no sample column found");
-    }
-}
-
-const std::string KMerCountTab::GetColName(const size_t i_col) const
-{
-    return colname_vect_.at(i_col);
-}
-
-const char KMerCountTab::GetColNature(const size_t i_col) const
-{
-    return colnature_vect_.at(i_col);
-}
-
-const size_t KMerCountTab::GetColSerial(const size_t i_col) const
-{
-    return colserial_vect_.at(i_col);
-}
-
-const int KMerCountTab::GetSmpLabel(const size_t i_col) const
-{
-    return smplabel_vect_.at(i_col);
-}
-
-const size_t KMerCountTab::GetNbCondition() const
-{
-    return nb_cond_;
-}
-
-const size_t KMerCountTab::GetNbValue() const
-{
-    return nb_value_;
-}
-
-const size_t KMerCountTab::GetNbCount() const
-{
-    return nb_count_;
-}
-
-const size_t KMerCountTab::GetNbColumn() const
-{
-    return colname_vect_.size();
-}
-
-const float KMerCountTab::AddKMerCountInMem(const std::string &line_str)
+const float KMerCountTab::AddKMerCountInMem(const std::string &line_str,
+                                            const ColumnInfo &column_info,
+                                            const std::string &score_colname)
 /* ------------------------------------------------------------------------------------------- *\
     Arg:    1. string of input k-mer table line
-            2. column name for score
+            2. ColumnInfo object
+            3. column name for score
     Value:  inserted k-mer score (a certain column's value or the input serial number)
     Func:   1. check whether the value & count vectors to insert are coherent with the tables
             2. parse the line string
@@ -233,7 +85,12 @@ const float KMerCountTab::AddKMerCountInMem(const std::string &line_str)
 \* ------------------------------------------------------------------------------------------- */
 {
     std::vector<float> count_vect, value_vect;
-    size_t score_pos = StrLine2ValueCountVects(value_vect, count_vect, line_str, colnature_vect_);
+    size_t score_pos = StrLine2ValueCountVects(value_vect, count_vect, line_str, column_info, score_colname);
+    if (count_tab_.empty())
+    {
+        nb_count_ = column_info.GetNbCount();
+        nb_value_ = column_info.GetNbValue();
+    }
     if (nb_value_ != value_vect.size())
     {
         throw std::domain_error("newly inserted k-mer value vector not coherent with existing k-mer value table");
@@ -247,11 +104,15 @@ const float KMerCountTab::AddKMerCountInMem(const std::string &line_str)
     return (score_pos == 0 ? value_tab_.size() : value_vect.at(score_pos));
 }
 
-const float KMerCountTab::AddKMerIndexOnDsk(const std::string &line_str, std::ofstream &index_file)
+const float KMerCountTab::AddKMerIndexOnDsk(const std::string &line_str,
+                                            const ColumnInfo &column_info,
+                                            const std::string &score_colname,
+                                            std::ofstream &index_file)
 /* -------------------------------------------------------------------------------------------------- *\
     Arg:    1. string of input k-mer table line
-            2. column name for score
-            3. indexing file stream reference
+            2. ColumnInfo object
+            3. column name for score
+            4. indexing file stream reference
     Value:  inserted k-mer score (a certain column's value or the input serial number)
     Func:   1. check whether the value & count vectors to insert are coherent with the tables
             2. parse the line string
@@ -260,7 +121,12 @@ const float KMerCountTab::AddKMerIndexOnDsk(const std::string &line_str, std::of
 \* -------------------------------------------------------------------------------------------------- */
 {
     std::vector<float> value_vect, count_vect;
-    size_t score_pos = StrLine2ValueCountVects(value_vect, count_vect, line_str, colnature_vect_);
+    size_t score_pos = StrLine2ValueCountVects(value_vect, count_vect, line_str, column_info, score_colname);
+    if (count_tab_.empty())
+    {
+        nb_count_ = column_info.GetNbCount();
+        nb_value_ = column_info.GetNbValue();
+    }
     if (nb_value_ != value_vect.size())
     {
         throw std::domain_error("newly inserted k-mer value vector not coherent with existing k-mer value table");

@@ -13,13 +13,11 @@
 #include "utils/seq_coding.hpp"
 #include "data_struct/kmer_count_tab.hpp"
 #include "data_struct/contig_elem.hpp"
-#include "data_struct/column_info.hpp"
 #include "data_struct/merge_knot.hpp"
 #include "run_info_parser/merge.hpp"
 #include "run_info_parser/utils.hpp"
 
-void ScanCountTable(ColumnInfo &column_info,
-                    KMerCountTab &kmer_count_tab,
+void ScanCountTable(KMerCountTab &kmer_count_tab,
                     code2contig_t &hashed_contig_list,
                     const std::string &kmer_count_path,
                     const std::string &score_colname,
@@ -35,7 +33,7 @@ void ScanCountTable(ColumnInfo &column_info,
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::string line;
     std::getline(kmer_count_file, line);
-    column_info.MakeColumnInfo(line, sample_info_path, score_colname);
+    kmer_count_tab.MakeColumnInfo(line, sample_info_path, score_colname);
     //----- Dealing with Following k-mer Count Lines -----//
     std::ofstream count_index_file(count_index_path);
     for (size_t kmer_serial(0); std::getline(kmer_count_file, line); ++kmer_serial)
@@ -43,11 +41,11 @@ void ScanCountTable(ColumnInfo &column_info,
         float rep_val;
         if (kmer_count_tab.GetMode() == "inMem")
         {
-            rep_val = kmer_count_tab.AddKMerCountInMem(line, column_info, score_colname);
+            rep_val = kmer_count_tab.AddKMerCountInMem(line);
         }
         else if (kmer_count_tab.GetMode() == "onDsk")
         {
-            rep_val = kmer_count_tab.AddKMerIndexOnDsk(line, column_info, score_colname, count_index_file);
+            rep_val = kmer_count_tab.AddKMerIndexOnDsk(line, count_index_file);
         }
         std::istringstream conv(line);
         std::string seq;
@@ -103,17 +101,16 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
     }
 }
 
-void PrintContigList(const ColumnInfo &column_info,
-                     const code2contig_t &hashed_contig_list,
+void PrintContigList(const code2contig_t &hashed_contig_list,
                      const KMerCountTab &kmer_count_tab,
                      const size_t k_len,
                      const std::string &quant_mode,
                      std::ifstream &index_file)
 {
     std::cout << "contig\tnb_merged_kmers";
-    for (size_t i(0); i < column_info.GetNbColumn(); ++i)
+    for (size_t i(0); i < kmer_count_tab.GetNbColumn(); ++i)
     {
-        std::cout << "\t" << column_info.GetColumnName(i);
+        std::cout << "\t" << kmer_count_tab.GetColName(i);
     }
     std::cout << std::endl;
     for (const auto &elem : hashed_contig_list)
@@ -138,14 +135,14 @@ void PrintContigList(const ColumnInfo &column_info,
         {
             kmer_count_tab.GetAvgCountOnDsk(sample_count, elem.second.GetKMerSerialSet(), index_file);
         }
-        for (size_t i(1); i < column_info.GetNbColumn(); ++i)
+        for (size_t i(1); i < kmer_count_tab.GetNbColumn(); ++i)
         {
-            size_t serial = column_info.GetColSerial(i);
-            if (column_info.GetColNature(i) == 's') // count column => output according to quant_mode
+            size_t serial = kmer_count_tab.GetColSerial(i);
+            if (kmer_count_tab.GetColNature(i) == 's') // count column => output according to quant_mode
             {
                 std::cout << "\t" << sample_count.at(serial);
             }
-            else if (column_info.GetColNature(i) == 'v' || column_info.GetColNature(i) == '+') // value column => output that related with rep. k-mer
+            else if (kmer_count_tab.GetColNature(i) == 'v' || kmer_count_tab.GetColNature(i) == '+') // value column => output that related with rep-k-mer
             {
                 std::cout << "\t" << kmer_count_tab.GetValue(elem.second.GetRepSerial(), serial);
             }
@@ -157,13 +154,9 @@ void PrintContigList(const ColumnInfo &column_info,
 const bool DoExtension(code2contig_t &hashed_contig_list,
                        const fix2knot_t &hashed_mergeknot_list,
                        const KMerCountTab &kmer_count_tab,
-                       const size_t k_len,
-                       const bool stranded,
                        const size_t n_overlap,
                        const std::string &interv_method,
                        const float interv_thres,
-                       const size_t nb_sample,
-                       const std::string &quant_mode,
                        std::ifstream &index_file)
 {
     bool has_new_extensions(false);
@@ -254,10 +247,9 @@ int main(int argc, char **argv)
     inter_time = clock();
 
     code2contig_t hashed_contig_list;
-    ColumnInfo column_info;
     KMerCountTab kmer_count_tab((disk_mode ? "onDsk" : "inMem"));
     std::string count_index_path = tmp_dir + "counts.idx";
-    ScanCountTable(column_info, kmer_count_tab, hashed_contig_list, kmer_count_path, rep_colname, sample_info_path, count_index_path, stranded);
+    ScanCountTable(kmer_count_tab, hashed_contig_list, kmer_count_path, rep_colname, sample_info_path, count_index_path, stranded);
 
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
@@ -276,11 +268,10 @@ int main(int argc, char **argv)
             std::cerr << "\tcontig list size: " << hashed_contig_list.size() << std::endl;
             fix2knot_t hashed_mergeknot_list;
             MakeOverlapKnotDict(hashed_mergeknot_list, hashed_contig_list, stranded, n_overlap);
-            has_new_extensions = DoExtension(hashed_contig_list, hashed_mergeknot_list, kmer_count_tab, k_len, stranded, n_overlap,
-                                             interv_method, interv_thres, column_info.GetNbCount(), quant_mode, index_file);
+            has_new_extensions = DoExtension(hashed_contig_list, hashed_mergeknot_list, kmer_count_tab, n_overlap, interv_method, interv_thres, index_file);
         }
     }
-    PrintContigList(column_info, hashed_contig_list, kmer_count_tab, k_len, quant_mode, index_file);
+    PrintContigList(hashed_contig_list, kmer_count_tab, k_len, quant_mode, index_file);
     index_file.close();
 
     std::cerr << "Contig extension finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
