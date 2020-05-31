@@ -60,8 +60,13 @@ inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
 }
 
 CountTab::CountTab(const std::string &mode)
-    : CountTabHeader(mode)
+    : mode_(mode)
 {
+}
+
+const std::string CountTab::GetMode() const
+{
+    return mode_;
 }
 
 const float CountTab::AddCountInMem(const std::string &line_str)
@@ -184,8 +189,8 @@ const size_t CountTab::GetAvgCountInMem(std::vector<float> &count_avg_vect, cons
 }
 
 const size_t CountTab::GetAvgCountOnDsk(std::vector<float> &count_avg_vect,
-                                            const std::set<size_t> kmer_serial_set,
-                                            std::ifstream &index_file) const
+                                        const std::set<size_t> kmer_serial_set,
+                                        std::ifstream &index_file) const
 /* ------------------------------------------------------------------------------------------------------ *\
     Arg:    1. k-mer serial set
             2. indexing file stream reference

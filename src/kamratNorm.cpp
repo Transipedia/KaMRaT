@@ -9,41 +9,10 @@
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include "run_info_parser/norm.hpp"
+#include "data_struct/count_tab_header.hpp"
+#include "data_struct/sample_info.hpp"
 
-class SampleSum
-{
-public:
-    SampleSum(const std::string &sample_name);
-    void AddCount(double count);
-    double GetCount() const;
-    void Print(std::ostream &out_s) const;
-
-private:
-    std::string sample_name_;
-    double sum_count_;
-};
-
-SampleSum::SampleSum(const std::string &sample_name)
-    : sample_name_(sample_name), sum_count_(0)
-{
-}
-
-void SampleSum::AddCount(const double count)
-{
-    sum_count_ += count;
-}
-
-void SampleSum::Print(std::ostream &out_s) const
-{
-    out_s << sample_name_ << "\t" << sum_count_ << std::endl;
-}
-
-double SampleSum::GetCount() const
-{
-    return sum_count_;
-}
-
-void CalcSum(std::vector<SampleSum> &sum_counts, const std::string &raw_counts_path)
+void CalcSum(sampleInfoVect_t &sample_info_vect, const std::string &sample_info_path, const std::string &raw_counts_path)
 {
     std::ifstream raw_counts_file(raw_counts_path);
     if (!raw_counts_file.is_open())
@@ -62,33 +31,39 @@ void CalcSum(std::vector<SampleSum> &sum_counts, const std::string &raw_counts_p
 
     std::string line, str_x;
     std::getline(kmer_count_instream, line);
+    CountTabHeader count_tab_header;
+    count_tab_header.MakeColumnInfo(line, sample_info_path, "NULLFORNOSCORE");
+    for (int i(0); i < count_tab_header.GetNbColumn(); ++i)
     {
-        std::istringstream conv(line);
-        conv >> str_x; // feature column
-        while (conv >> str_x)
+        if (count_tab_header.GetColNature(i) == 's')
         {
-            sum_counts.push_back(SampleSum(str_x));
+            sample_info_vect.push_back(SampleInfo(count_tab_header.GetColName(i)));
         }
     }
-    std::cerr << "\tParsed sample name: " << sum_counts.size() << std::endl;
+    std::cerr << "\t => Number of sample parsed: " << sample_info_vect.size() << std::endl;
 
     while (std::getline(kmer_count_instream, line))
     {
         std::istringstream conv(line);
-        size_t ns(0);
-        conv >> str_x; // feature column
-        while (conv >> str_x)
+        for (int i(0); conv >> str_x; ++i)
         {
-            sum_counts[ns].AddCount(std::stod(str_x));
-            ns++;
+            if (count_tab_header.GetColNature(i) == 's')
+            {
+                sample_info_vect.at(count_tab_header.GetColSerial(i)).AddCount(std::stod(str_x));
+            }
         }
     }
     raw_counts_file.close();
 }
 
-void PrintNorm(const std::vector<SampleSum> &sum_counts, const std::string &raw_counts_path, const size_t baseN)
+void PrintNorm(sampleInfoVect_t &sample_info_vect,
+               const std::string &sample_info_path,
+               const std::string &raw_counts_path,
+               const size_t baseN,
+               const std::string &trans_mode)
 {
     std::ifstream raw_counts_file(raw_counts_path);
+
     size_t pos = raw_counts_path.find_last_of(".");
     boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
     if (pos != std::string::npos && raw_counts_path.substr(pos + 1) == "gz")
@@ -101,18 +76,33 @@ void PrintNorm(const std::vector<SampleSum> &sum_counts, const std::string &raw_
     // Parsing header line to get sample number //
     std::string line, str_x;
     std::getline(kmer_count_instream, line);
-    std::cout << line << std::endl;
+    std::cout << line << std::endl; // header line
+    CountTabHeader count_tab_header;
+    count_tab_header.MakeColumnInfo(line, sample_info_path, "NULLFORNOSCORE");
+
     size_t n_line(0);
     while (std::getline(kmer_count_instream, line))
     {
         std::istringstream conv(line);
-        size_t ns(0);
-        conv >> str_x;
-        std::cout << str_x;
-        while (conv >> str_x)
+        for (int i(0); conv >> str_x; ++i)
         {
-            std::cout << "\t" << baseN / sum_counts.at(ns).GetCount() * std::stod(str_x);
-            ns++;
+            if (i > 0)
+            {
+                std::cout << "\t";
+            }
+            if (count_tab_header.GetColNature(i) == 's')
+            {
+                double out_count = baseN / sample_info_vect.at(count_tab_header.GetColSerial(i)).GetCount() * std::stod(str_x);
+                if (trans_mode == "log")
+                {
+                    out_count = log(out_count);
+                }
+                std::cout << out_count;
+            }
+            else
+            {
+                std::cout << str_x;
+            }
         }
         std::cout << std::endl;
         n_line++;
@@ -132,10 +122,10 @@ int main(int argc, char **argv)
     ParseOptions(argc, argv, baseN, sample_info_path, trans_mode, raw_counts_path);
     PrintRunInfo(baseN, sample_info_path, trans_mode, raw_counts_path);
 
-    std::vector<SampleSum> sum_counts;
-    CalcSum(sum_counts, raw_counts_path);
+    sampleInfoVect_t sample_info_vect;
+    CalcSum(sample_info_vect, sample_info_path, raw_counts_path);
 
-    PrintNorm(sum_counts, raw_counts_path, baseN);
+    PrintNorm(sample_info_vect, sample_info_path, raw_counts_path, baseN, trans_mode);
 
     return EXIT_SUCCESS;
 }

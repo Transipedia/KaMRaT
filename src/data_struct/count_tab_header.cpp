@@ -56,14 +56,9 @@ inline size_t LoadSampleInfo(std::map<std::string, size_t> &sample_tag,
     return nb_cond;
 }
 
-CountTabHeader::CountTabHeader(const std::string &mode)
-    : mode_(mode), nb_cond_(0), nb_count_(0), nb_value_(0), nb_str_(0)
+CountTabHeader::CountTabHeader()
+    : nb_cond_(0), nb_count_(0), nb_value_(0), nb_str_(0)
 {
-}
-
-const std::string CountTabHeader::GetMode() const
-{
-    return mode_;
 }
 
 const void CountTabHeader::MakeColumnInfo(const std::string &header_line,

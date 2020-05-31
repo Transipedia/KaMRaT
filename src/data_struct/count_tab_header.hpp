@@ -10,7 +10,7 @@
 class CountTabHeader
 {
 public:
-    CountTabHeader(const std::string &mode);
+    CountTabHeader();
     const std::string GetMode() const;
     //----- header info -----//
     const void MakeColumnInfo(const std::string &header_line, const std::string &sample_info_path, const std::string &score_colname);
@@ -24,7 +24,6 @@ public:
     const size_t GetNbColumn() const;
 
 protected:
-    const std::string mode_; // inMem or onDsk
     //----- header info -----//
     size_t nb_cond_, nb_value_, nb_count_, nb_str_; // number of conditions and value/count/string columns
     std::vector<std::string> colname_vect_;         // column name vector parsed from the header line

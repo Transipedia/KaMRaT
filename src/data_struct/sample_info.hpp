@@ -17,6 +17,6 @@ private:
     size_t sample_label_;
 };
 
-using sampleinfoVect_t = std::vector<SampleInfo>;
+using sampleInfoVect_t = std::vector<SampleInfo>;
 
 #endif //KAMRAT_DATASTRUCT_SAMPLEINFO_HPP

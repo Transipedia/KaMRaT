@@ -13,6 +13,7 @@ class CountTab : public CountTabHeader
 {
 public:
     CountTab(const std::string &mode);
+    const std::string GetMode() const;
     //----- value-count info -----//
     const float AddCountInMem(const std::string &line_str);
     const float AddIndexOnDsk(const std::string &line_str, std::ofstream &index_file);
@@ -23,6 +24,7 @@ public:
     const size_t GetAvgCountOnDsk(std::vector<float> &count_avg_vect, const std::set<size_t> kmer_serial_set, std::ifstream &index_file) const;
 
 private:
+    const std::string mode_; // inMem or onDsk
     //----- value-count info -----//
     std::vector<std::vector<float>> value_tab_; // k-mer value vector ------ used both in inMem or onDsk
     std::vector<std::vector<float>> count_tab_; // k-mer count vector ------ only used in inMem
