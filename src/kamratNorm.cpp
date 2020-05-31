@@ -8,7 +8,7 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-#define NORM_BASE 1E9
+#include "run_info_parser/norm.hpp"
 
 class SampleSum
 {
@@ -48,8 +48,7 @@ void CalcSum(std::vector<SampleSum> &sum_counts, const std::string &raw_counts_p
     std::ifstream raw_counts_file(raw_counts_path);
     if (!raw_counts_file.is_open())
     {
-        std::cerr << "ERROR: k-mer count file " << raw_counts_path << " was not found..." << std::endl;
-        exit(EXIT_FAILURE);
+        throw std::domain_error("count table " + raw_counts_path + " was not found");
     }
 
     size_t pos = raw_counts_path.find_last_of(".");
@@ -71,7 +70,7 @@ void CalcSum(std::vector<SampleSum> &sum_counts, const std::string &raw_counts_p
             sum_counts.push_back(SampleSum(str_x));
         }
     }
-    std::cerr << "Parsed sample name: " << sum_counts.size() << std::endl;
+    std::cerr << "\tParsed sample name: " << sum_counts.size() << std::endl;
 
     while (std::getline(kmer_count_instream, line))
     {
@@ -84,14 +83,10 @@ void CalcSum(std::vector<SampleSum> &sum_counts, const std::string &raw_counts_p
             ns++;
         }
     }
-
-    if (raw_counts_file.is_open())
-    {
-        raw_counts_file.close();
-    }
+    raw_counts_file.close();
 }
 
-void PrintNorm(const std::vector<SampleSum> &sum_counts, const std::string &raw_counts_path)
+void PrintNorm(const std::vector<SampleSum> &sum_counts, const std::string &raw_counts_path, const size_t baseN)
 {
     std::ifstream raw_counts_file(raw_counts_path);
     size_t pos = raw_counts_path.find_last_of(".");
@@ -109,13 +104,14 @@ void PrintNorm(const std::vector<SampleSum> &sum_counts, const std::string &raw_
     std::cout << line << std::endl;
     size_t n_line(0);
     while (std::getline(kmer_count_instream, line))
-    {   std::istringstream conv(line);
+    {
+        std::istringstream conv(line);
         size_t ns(0);
         conv >> str_x;
         std::cout << str_x;
         while (conv >> str_x)
         {
-            std::cout << "\t" << NORM_BASE / sum_counts[ns].GetCount() * std::stod(str_x);
+            std::cout << "\t" << baseN / sum_counts.at(ns).GetCount() * std::stod(str_x);
             ns++;
         }
         std::cout << std::endl;
@@ -130,23 +126,16 @@ void PrintNorm(const std::vector<SampleSum> &sum_counts, const std::string &raw_
 
 int main(int argc, char **argv)
 {
-    if (argc == 1)
-    {
-        std::cerr << "ERROR: raw counts matrix path is required!" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    std::string raw_counts_path(argv[1]);
-    std::cerr << "Raw-counts table path: " << raw_counts_path << std::endl;
+    size_t baseN(0);
+    std::string sample_info_path, trans_mode, raw_counts_path;
 
-    std::ofstream fout("sum_counts.tsv");
+    ParseOptions(argc, argv, baseN, sample_info_path, trans_mode, raw_counts_path);
+    PrintRunInfo(baseN, sample_info_path, trans_mode, raw_counts_path);
+
     std::vector<SampleSum> sum_counts;
     CalcSum(sum_counts, raw_counts_path);
-    for (const auto &x : sum_counts)
-    {
-        x.Print(fout);
-    }
-    fout.close();
-    PrintNorm(sum_counts, raw_counts_path);
+
+    PrintNorm(sum_counts, raw_counts_path, baseN);
 
     return EXIT_SUCCESS;
 }

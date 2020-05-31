@@ -9,7 +9,7 @@
 inline void PrintHelper()
 {
     std::cerr << "========= kamratEvaluate helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratEvaluate -l STRING -e STRING [-n] [-k INT] [-d STRING] [-T STRING] STRING" << std::endl
+    std::cerr << "[Usage]    kamratEvaluate -l STRING -e STRING [-n] [-k INT] [-d STRING] STRING" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h         Print the helper" << std::endl;
     std::cerr << "            -l STRING  Contig list file path (MANDATORY)" << std::endl
