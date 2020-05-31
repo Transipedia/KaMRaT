@@ -10,13 +10,13 @@
 
 #include "utils/statistics.hpp"
 #include "utils/seq_coding.hpp"
-#include "data_struct/kmer_count_tab.hpp"
+#include "data_struct/count_tab.hpp"
 #include "data_struct/contig_elem.hpp"
 #include "data_struct/merge_knot.hpp"
 #include "run_info_parser/merge.hpp"
 #include "run_info_parser/utils.hpp"
 
-void ScanCountTable(KMerCountTab &kmer_count_tab,
+void ScanCountTable(CountTab &kmer_count_tab,
                     code2contig_t &hashed_contig_list,
                     const std::string &kmer_count_path,
                     const std::string &score_colname,
@@ -40,11 +40,11 @@ void ScanCountTable(KMerCountTab &kmer_count_tab,
         float rep_val;
         if (kmer_count_tab.GetMode() == "inMem")
         {
-            rep_val = kmer_count_tab.AddKMerCountInMem(line);
+            rep_val = kmer_count_tab.AddCountInMem(line);
         }
         else if (kmer_count_tab.GetMode() == "onDsk")
         {
-            rep_val = kmer_count_tab.AddKMerIndexOnDsk(line, count_index_file);
+            rep_val = kmer_count_tab.AddIndexOnDsk(line, count_index_file);
         }
         std::istringstream conv(line);
         std::string seq;
@@ -101,7 +101,7 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
 }
 
 void PrintContigList(const code2contig_t &hashed_contig_list,
-                     const KMerCountTab &kmer_count_tab,
+                     const CountTab &kmer_count_tab,
                      const size_t k_len,
                      const std::string &quant_mode,
                      std::ifstream &index_file)
@@ -152,7 +152,7 @@ void PrintContigList(const code2contig_t &hashed_contig_list,
 
 const bool DoExtension(code2contig_t &hashed_contig_list,
                        const fix2knot_t &hashed_mergeknot_list,
-                       const KMerCountTab &kmer_count_tab,
+                       const CountTab &kmer_count_tab,
                        const size_t n_overlap,
                        const std::string &interv_method,
                        const float interv_thres,
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
     inter_time = clock();
 
     code2contig_t hashed_contig_list;
-    KMerCountTab kmer_count_tab((disk_mode ? "onDsk" : "inMem"));
+    CountTab kmer_count_tab((disk_mode ? "onDsk" : "inMem"));
     std::string count_index_path = tmp_dir + "counts.idx";
     ScanCountTable(kmer_count_tab, hashed_contig_list, kmer_count_path, rep_colname, sample_info_path, count_index_path, stranded);
 
