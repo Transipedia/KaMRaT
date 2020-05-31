@@ -56,35 +56,8 @@ inline size_t LoadSampleInfo(std::map<std::string, size_t> &sample_tag,
     return nb_cond;
 }
 
-inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
-                                      std::vector<float> &count_vect,
-                                      const std::string &line_str,
-                                      const std::vector<char> &colnature_vect)
-{
-    std::istringstream conv(line_str);
-    std::string term;
-    size_t score_pos(0); // ASSUMPTION: score value never appears at the first column !!!
-    for (unsigned int i(0); conv >> term; ++i)
-    {
-        if (colnature_vect.at(i) == 'v')
-        {
-            value_vect.push_back(std::stof(term));
-        }
-        else if (colnature_vect.at(i) == '+')
-        {
-            score_pos = i;
-            value_vect.push_back(std::stof(term));
-        }
-        else if (colnature_vect.at(i) == 's')
-        {
-            count_vect.push_back(std::stof(term));
-        }
-    }
-    return score_pos;
-}
-
 CountTabHeader::CountTabHeader(const std::string &mode)
-    : mode_(mode), nb_cond_(0), nb_count_(0), nb_value_(0)
+    : mode_(mode), nb_cond_(0), nb_count_(0), nb_value_(0), nb_str_(0)
 {
 }
 
@@ -113,7 +86,7 @@ const void CountTabHeader::MakeColumnInfo(const std::string &header_line,
     conv >> term;
     colname_vect_.push_back(term);
     colnature_vect_.push_back('f');
-    colserial_vect_.push_back(0);
+    colserial_vect_.push_back(nb_str_++);
     // following columns //
     if (sample_info_path.empty()) // sample info file NOT provided => all next columns are samples
     {
@@ -136,6 +109,11 @@ const void CountTabHeader::MakeColumnInfo(const std::string &header_line,
                 colnature_vect_.push_back('s');
                 smplabel_vect_.push_back(iter->second); // non-negative values for sample
                 colserial_vect_.push_back(nb_count_++);
+            }
+            else if (term == "tag" || term == "feature") // specially for kamratNorm and kamratReduce
+            {
+                colnature_vect_.push_back('f');
+                colserial_vect_.push_back(nb_str_++);
             }
             else
             {

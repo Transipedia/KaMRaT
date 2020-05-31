@@ -26,11 +26,11 @@ public:
 protected:
     const std::string mode_; // inMem or onDsk
     //----- header info -----//
-    size_t nb_cond_, nb_value_, nb_count_;  // number of conditions and value/count columns
-    std::vector<std::string> colname_vect_; // column name vector parsed from the header line
-    std::vector<char> colnature_vect_;      // column nature vector, f=feature s=sample v=value +=score_value
-    std::vector<size_t> colserial_vect_;    // column serial vector, serial number is assigned SEPARATELY to count or to value
-    std::vector<size_t> smplabel_vect_;     // sample label vector parsed from the header line and sample-info file
+    size_t nb_cond_, nb_value_, nb_count_, nb_str_; // number of conditions and value/count/string columns
+    std::vector<std::string> colname_vect_;         // column name vector parsed from the header line
+    std::vector<char> colnature_vect_;              // column nature vector, f=feature s=sample v=value +=score_value
+    std::vector<size_t> colserial_vect_;            // column serial vector, serial number is assigned SEPARATELY to count or to value
+    std::vector<size_t> smplabel_vect_;             // sample label vector parsed from the header line and sample-info file
 };
 
 #endif //KAMRAT_DATASTRUCT_COUNTTABHEADER_HPP
