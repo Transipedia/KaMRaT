@@ -73,6 +73,23 @@ none: without any intervention, only consider overlap for extension
 mac: mean absolute contrast, mac(k1, k2) = mean(abs(k1-k2)./(k1+k2)), where k1, k2 are count vectors of two k-mers and './' means division for each components.
 ```
 
+## kamratNorm
+
+### Norm Usage
+
+```text
+kamratNorm -b CHAR [-d STRING] [-T STRING] STRING
+```
+
+### Norm Parameters
+
+```text
+-h         Print the helper
+-b CHAR    BASE for normalization: count per BASE (MANDATORY, could be B, M, or K)
+-d STRING  Sample-info path, if absent, all columns will be printed
+-T STRING  Transformation before evaluation (e.g. log)"
+```
+
 ## kamratReduce
 
 ### Reduce Usage

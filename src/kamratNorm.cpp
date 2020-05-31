@@ -93,7 +93,7 @@ void PrintNorm(sampleInfoVect_t &sample_info_vect,
             }
             if (count_tab_header.GetColNature(i) == 's')
             {
-		double sum_count = sample_info_vect.at(count_tab_header.GetColSerial(i)).GetCount(),
+                double sum_count = sample_info_vect.at(count_tab_header.GetColSerial(i)).GetCount(),
                        out_count = (sum_count == 0) ? 0 : (baseN / sum_count * std::stod(str_x));
                 if (trans_mode == "log")
                 {
