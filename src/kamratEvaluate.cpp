@@ -38,10 +38,10 @@
 const float MIN_DISTANCE = 0, MAX_DISTANCE = 1 - MIN_DISTANCE;
 
 void ScanCountTable(CountTab &kmer_count_tab,
-                        code2serial_t &code2serial,
-                        const std::string &kmer_count_path,
-                        const std::string &colname_list_path,
-                        const bool stranded)
+                    code2serial_t &code2serial,
+                    const std::string &kmer_count_path,
+                    const std::string &colname_list_path,
+                    const bool stranded)
 {
     std::ifstream kmer_count_file(kmer_count_path);
     if (!kmer_count_file.is_open())

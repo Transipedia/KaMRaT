@@ -44,28 +44,13 @@ template <typename countT>
 inline double CalcPearsonCorrelation(const std::vector<countT> &x, const std::vector<countT> &y)
 {
     double mean_x = CalcVectMean(x), mean_y = CalcVectMean(y), prod_sum(0), t1_sqsum(0), t2_sqsum(0);
-
-    // for (countT xx : x)
-    // {
-    //     std::cout << xx << "\t";
-    // }
-    // std::cout << "=>\t" << mean_x << std::endl;
-
-    // for (countT yy : y)
-    // {
-    //     std::cout << yy << "\t";
-    // }
-    // std::cout << "=>\t" << mean_y << std::endl;
-
     for (size_t i(0); i < x.size(); ++i)
     {
         double t1 = x.at(i) - mean_x, t2 = y.at(i) - mean_y;
-        // std::cout << "\t" << t1 << "," << t2;
         prod_sum += (t1 * t2);
         t1_sqsum += (t1 * t1);
         t2_sqsum += (t2 * t2);
     }
-    // std::cout << "\t=>\t" << prod_sum << "," << t1_sqsum << "," << t2_sqsum << "\t=>\t" << prod_sum / sqrt(t1_sqsum * t2_sqsum) << std::endl;
     return (prod_sum / sqrt(t1_sqsum * t2_sqsum));
 }
 
@@ -126,10 +111,15 @@ inline float CalcDistance(const std::vector<countT> &x, const std::vector<countT
     {
         return CalcPearsonDistance(x, y);
     }
-    else
+    else if (eval_method == "spearman")
     {
         return CalcSpearmanDistance(x, y);
     }
+    else
+    {
+        return -1;
+    }
+    
 }
 
 #endif //KAMRAT_UTILS_STATISTICS_HPP
