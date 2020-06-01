@@ -30,12 +30,12 @@ template <typename countT>
 inline void CalcVectRank(std::vector<float> &x_rk, const std::vector<countT> &x)
 {
     std::map<countT, size_t> x_rec;
-    for (const auto num : num_vect)
+    for (const auto x_i : x)
     {
-        x.rec.insert({num, 0}).first->second++;
+        x_rec.insert({x_i, 0}).first->second++;
     }
     int rk(1);
-    for (const auto &elem : num_rank)
+    for (const auto &elem : x_rec)
     {
         x_rk.push_back((2 * rk + elem.second - 1) / 2.0);
         rk += elem.second;
