@@ -9,12 +9,12 @@
 inline void PrintHelper()
 {
     std::cerr << "========= kamratEvaluate helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratEvaluate -l STRING -e STRING [-n] [-k INT] [-d STRING] STRING" << std::endl
+    std::cerr << "[Usage]    kamratEvaluate -l STRING -m STRING [-n] [-k INT] [-d STRING] STRING" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h         Print the helper" << std::endl;
     std::cerr << "            -l STRING  Contig list file path (MANDATORY)" << std::endl
               << "                       could be fasta, list, or table with contig sequences as the first column" << std::endl;
-    std::cerr << "            -e STRING  Evaluate method:mode string (MANDATORY)" << std::endl
+    std::cerr << "            -m STRING  Evaluate method:mode string (MANDATORY)" << std::endl
               << "                       method could be pearson, spearman, or mac" << std::endl
               << "                       mode could be farthest or worstAdj" << std::endl;
     std::cerr << "            -n         If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
@@ -69,7 +69,7 @@ inline bool ParseOptions(int argc,
         {
             contig_fasta_path = argv[++i_opt];
         }
-        else if (arg == "-e" && i_opt + 1 < argc)
+        else if (arg == "-m" && i_opt + 1 < argc)
         {
             eval_method = argv[++i_opt];
             SubCommandParser(eval_method, eval_mode);
