@@ -5,6 +5,7 @@
 #include <numeric>
 #include <cmath>
 #include <algorithm>
+#include <map>
 
 template <typename countT>
 inline countT GetMaxInPair(countT x, countT y)
@@ -26,18 +27,19 @@ inline double CalcVectMean(const std::vector<countT> &x)
 }
 
 template <typename countT>
-inline void CalcVectRank(std::vector<size_t> &x_rk, const std::vector<countT> &x)
+inline void CalcVectRank(std::vector<float> &x_rk, const std::vector<countT> &x)
 {
-    std::vector<size_t> x_idx(x.size());
-    std::iota(x_idx.begin(), x_idx.end(), 0);
-    std::stable_sort(x_idx.begin(),
-                     x_idx.end(),
-                     [&x](const size_t i, const size_t j) { return x.at(i) < x.at(j); });
-    x_rk.resize(x.size());
-    std::iota(x_rk.begin(), x_rk.end(), 0);
-    std::stable_sort(x_rk.begin(),
-                     x_rk.end(),
-                     [&x_idx](const size_t i, const size_t j) { return x_idx.at(i) < x_idx.at(j); });
+    std::map<countT, size_t> x_rec;
+    for (const auto num : num_vect)
+    {
+        x.rec.insert({num, 0}).first->second++;
+    }
+    int rk(1);
+    for (const auto &elem : num_rank)
+    {
+        x_rk.push_back((2 * rk + elem.second - 1) / 2.0);
+        rk += elem.second;
+    }
 }
 
 template <typename countT>
@@ -57,7 +59,7 @@ inline double CalcPearsonCorrelation(const std::vector<countT> &x, const std::ve
 template <typename countT>
 inline double CalcSpearmanCorrelation(const std::vector<countT> &x, const std::vector<countT> &y)
 {
-    std::vector<size_t> x_rk, y_rk;
+    std::vector<float> x_rk, y_rk;
     CalcVectRank(x_rk, x);
     CalcVectRank(y_rk, y);
     return CalcPearsonCorrelation(x_rk, y_rk);
@@ -119,7 +121,6 @@ inline float CalcDistance(const std::vector<countT> &x, const std::vector<countT
     {
         return -1;
     }
-    
 }
 
 #endif //KAMRAT_UTILS_STATISTICS_HPP
