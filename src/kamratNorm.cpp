@@ -97,7 +97,7 @@ void PrintNorm(sampleInfoVect_t &sample_info_vect,
                        out_count = (sum_count == 0) ? 0 : (baseN / sum_count * std::stod(str_x));
                 if (trans_mode == "log")
                 {
-                    out_count = (out_count == 0) ? 0 : log(out_count);
+                    out_count = log(out_count + 1);
                 }
                 std::cout << out_count;
             }
