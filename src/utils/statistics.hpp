@@ -6,6 +6,7 @@
 #include <cmath>
 #include <algorithm>
 #include <map>
+#include <iterator>
 
 template <typename countT>
 inline countT GetMaxInPair(countT x, countT y)
@@ -29,16 +30,21 @@ inline double CalcVectMean(const std::vector<countT> &x)
 template <typename countT>
 inline void CalcVectRank(std::vector<float> &x_rk, const std::vector<countT> &x)
 {
-    std::map<countT, size_t> x_rec;
-    for (const auto x_i : x)
+    x_rk.resize(x.size());
+    std::multimap<float, size_t> x_pos; // utilize map's automatic orderign
+    for (size_t i(0); i < x.size(); ++i)
     {
-        x_rec.insert({x_i, 0}).first->second++;
+        x_pos.insert({x.at(i), i});
     }
-    int rk(1);
-    for (const auto &elem : x_rec)
+    int rk = 1;
+    for (auto iter_x_pos = x_pos.cbegin(); iter_x_pos != x_pos.cend(); iter_x_pos = x_pos.upper_bound(iter_x_pos->first))
     {
-        x_rk.push_back((2 * rk + elem.second - 1) / 2.0);
-        rk += elem.second;
+        size_t c = x_pos.count(iter_x_pos->first);
+        for (auto iter_range = x_pos.equal_range(iter_x_pos->first).first; iter_range != x_pos.equal_range(iter_x_pos->first).second; ++iter_range)
+        {
+            x_rk.at(iter_range->second) = (2 * rk + c - 1) / 2.0;
+        }
+        rk += c;
     }
 }
 
