@@ -55,11 +55,11 @@ inline void PrintRunInfo(const bool stranded,
     std::cerr << "Quantification mode:           " << quant_mode << std::endl;
     if (!rep_value_cname.empty())
     {
-        std::cerr << "Representative value:    " << rep_value_cname << std::endl;
+        std::cerr << "Representative value:          " << rep_value_cname << std::endl;
     }
     else if (quant_mode != "mean")
     {
-        std::cerr << "Representative value:    input order" << std::endl;
+        std::cerr << "Representative value:          input order" << std::endl;
     }
     std::cerr << "Disk mode:                     " << (disk_mode ? "On" : "Off") << std::endl;
     if (!tmp_dir.empty())

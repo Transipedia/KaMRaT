@@ -43,27 +43,24 @@ If not provided, all columns apart from the first one in the k-mer count matrix 
 ### Merge Usage
 
 ```text
-kamratMerge [-h] [-k k_length] [-m min_overlap] [-nxj] [-d sample_info] [-i interv_method] [-q quant_mode] [-t tmp_dir] kmer_count_path
+kamratMerge [-k k_length] [-m min_overlap] [-n] [-d sample_info] [-i interv_method] [-q quant_mode] [-R rep_colname] [-x] [-t tmp_dir] kmer_count_path
 ```
 
 ### Merge Parameters
 
 ```text
--h         Print the helper
--n         If the k-mers are generated from non-stranded RNA-seq data
--k INT     k-mer length (max_value: 32) [31]
--m INT     Min assembly overlap (max_value: k) [15]
--d STRING  Sample-info path, either list or table with sample names as the first column
-           if absent, all columns except the first one in k-mer count table are taken as samples
--i STRING  Intervention method (none, mac:0.25) [none]
-           the threshold can be precised after a ':' symbol
--q STRING  Quantification mode (rep, mean) [rep]
-           the column name for selecting representative k-mer can be precised after ':' symbol, e.g. rep:pvalue
-           if no column name precised, the firstly input k-mer of a contig will be taken as representative k-mer
--j         Adjacent k-mer comparison (valid only with intervention) [false]
-           if absent, the counts of representative k-mers or mean counts are taken according to quantification mode
--x         Query on disk [false]
--t STRING  Temporary directory [./]
+    -h         Print the helper
+    -n         If the k-mers are generated from non-stranded RNA-seq data
+    -k INT     k-mer length (max_value: 32) [31]
+    -m INT     Min assembly overlap (max_value: k) [15]
+    -d STRING  Sample-info path, either list or table with sample names as the first column
+               if absent, all columns except the first one in k-mer count table are taken as samples
+    -i STRING  Intervention method (none, pearson, spearman, mac) [none]
+               the threshold can be precised after a ':' symbol
+    -q STRING  Quantification mode (rep, mean) [rep]
+    -R STRING  Representative value column name, k-mer input order as rep-val by default
+    -x         Query on disk [false]
+    -t STRING  Temporary directory [./]
 ```
 
 ### Intervention Method
