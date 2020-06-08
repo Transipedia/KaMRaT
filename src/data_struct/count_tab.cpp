@@ -80,7 +80,7 @@ const float CountTab::AddCountInMem(const std::string &line_str)
             4. return k-mer's corresponded score value
 \* ------------------------------------------------------------------------------------------- */
 {
-    std::vector<float> count_vect, value_vect;
+    std::vector<float> value_vect, count_vect;
     size_t score_pos = StrLine2ValueCountVects(value_vect, count_vect, line_str, colnature_vect_);
     if (nb_value_ != value_vect.size())
     {
@@ -95,7 +95,7 @@ const float CountTab::AddCountInMem(const std::string &line_str)
         value_tab_.emplace_back(value_vect);
     }
     count_tab_.emplace_back(count_vect);
-    return (score_pos == 0 ? (count_tab_.size() - 1) : value_vect.at(score_pos));
+    return (score_pos == 0 ? count_tab_.size() : value_vect[colserial_vect_[score_pos]]);
 }
 
 const float CountTab::AddIndexOnDsk(const std::string &line_str, std::ofstream &index_file)
@@ -125,7 +125,7 @@ const float CountTab::AddIndexOnDsk(const std::string &line_str, std::ofstream &
         value_tab_.emplace_back(value_vect);
     }
     index_pos_.emplace_back(WriteCountToIndex(index_file, count_vect));
-    return (score_pos == 0 ? (count_tab_.size() - 1) : value_vect.at(score_pos));
+    return (score_pos == 0 ? index_pos_.size() : value_vect[colserial_vect_[score_pos]]);
 }
 
 const float CountTab::GetValue(const size_t kmer_serial, const size_t valcol_serial) const

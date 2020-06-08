@@ -115,16 +115,17 @@ void PrintContigList(const code2contig_t &hashed_contig_list,
     for (const auto &elem : hashed_contig_list)
     {
         std::string rep_kmer_seq;
+        size_t rep_serial = elem.second.GetRepSerial();
         Int2Seq(rep_kmer_seq, elem.first, k_len);
         std::cout << elem.second.GetSeq() << "\t" << elem.second.GetNbMemberKMer() << "\t" << rep_kmer_seq;
         std::vector<float> sample_count;
         if (quant_mode == "rep" && kmer_count_tab.GetMode() == "inMem")
         {
-            kmer_count_tab.GetCountInMem(sample_count, elem.second.GetRepSerial());
+            kmer_count_tab.GetCountInMem(sample_count, rep_serial);
         }
         else if (quant_mode == "rep" && kmer_count_tab.GetMode() == "onDsk")
         {
-            kmer_count_tab.GetCountOnDsk(sample_count, elem.second.GetRepSerial(), index_file);
+            kmer_count_tab.GetCountOnDsk(sample_count, rep_serial, index_file);
         }
         else if (quant_mode == "mean" && kmer_count_tab.GetMode() == "inMem")
         {
@@ -143,7 +144,7 @@ void PrintContigList(const code2contig_t &hashed_contig_list,
             }
             else if (kmer_count_tab.GetColNature(i) == 'v' || kmer_count_tab.GetColNature(i) == '+') // value column => output that related with rep-k-mer
             {
-                std::cout << "\t" << kmer_count_tab.GetValue(elem.second.GetRepSerial(), serial);
+                std::cout << "\t" << kmer_count_tab.GetValue(rep_serial, serial);
             }
         }
         std::cout << std::endl;
@@ -207,7 +208,7 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
         {
             succ_iter->second.SelfReverseComplement();
         }
-        if (pred_iter->second.GetRepValue() < succ_iter->second.GetRepValue())
+        if (pred_iter->second.GetRepValue() <= succ_iter->second.GetRepValue())
         {
             pred_iter->second.RightMerge(succ_iter->second, n_overlap);
             hashed_contig_list.erase(succ_iter);
@@ -216,7 +217,7 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
                 pred_iter->second.SelfReverseComplement();
             }
         }
-        else
+        else // pred_iter->second.GetRepValue() > succ_iter->second.GetRepValue()
         {
             succ_iter->second.LeftMerge(pred_iter->second, n_overlap);
             hashed_contig_list.erase(pred_iter);
