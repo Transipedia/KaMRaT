@@ -9,7 +9,7 @@
 inline void PrintHelper(const size_t k_length, const size_t min_overlap)
 {
     std::cerr << "========= kamratMerge helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratMerge [-k k_length] [-m min_overlap] [-n] [-x] [-d sample_info] [-i interv_method] [-q quant_mode] [-t tmp_dir] kmer_count_path" << std::endl
+    std::cerr << "[Usage]    kamratMerge [-k k_length] [-m min_overlap] [-n] [-d sample_info] [-i interv_method] [-q quant_mode] [-R rep_colname] [-x] [-t tmp_dir] kmer_count_path" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h         Print the helper" << std::endl;
     std::cerr << "            -n         If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
@@ -20,6 +20,7 @@ inline void PrintHelper(const size_t k_length, const size_t min_overlap)
     std::cerr << "            -i STRING  Intervention method (none, pearson, spearman, mac) [none]" << std::endl
               << "                       the threshold can be precised after a ':' symbol" << std::endl;
     std::cerr << "            -q STRING  Quantification mode (rep, mean) [rep]" << std::endl;
+    std::cerr << "            -R STRING  Representative value column name, k-mer input order as rep-val by default" << std::endl;
     std::cerr << "            -x         Query on disk [false]" << std::endl;
     std::cerr << "            -t STRING  Temporary directory [./]" << std::endl
               << std::endl;
@@ -54,11 +55,11 @@ inline void PrintRunInfo(const bool stranded,
     std::cerr << "Quantification mode:           " << quant_mode << std::endl;
     if (!rep_value_cname.empty())
     {
-        std::cerr << "Representative column name:    " << rep_value_cname << std::endl;
+        std::cerr << "Representative value:    " << rep_value_cname << std::endl;
     }
     else if (quant_mode != "mean")
     {
-        std::cerr << "Representative column name:    input order" << std::endl;
+        std::cerr << "Representative value:    input order" << std::endl;
     }
     std::cerr << "Disk mode:                     " << (disk_mode ? "On" : "Off") << std::endl;
     if (!tmp_dir.empty())
@@ -115,6 +116,10 @@ inline void ParseOptions(int argc,
         {
             quant_mode = argv[++i_opt];
         }
+        else if (arg == "-R" && i_opt + 1 < argc)
+        {
+            rep_value_cname = argv[++i_opt];
+        }
         else if (arg == "-x")
         {
             disk_mode = true;
@@ -135,13 +140,6 @@ inline void ParseOptions(int argc,
         throw std::domain_error("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
-
-    // dealing quantification mode //
-    SubCommandParser(quant_mode, rep_value_cname);
-    if (QUANT_MODE_UNIV.find(quant_mode) == QUANT_MODE_UNIV.cend())
-    {
-        throw std::domain_error("unknown quant mode " + quant_mode);
-    }
 
     // dealing intervention method //
     std::string threshold_str;
