@@ -5,7 +5,7 @@
 #include <numeric>
 #include <cmath>
 #include <algorithm>
-#include <map>
+#include <set>
 #include <iterator>
 
 template <typename countT>
@@ -21,40 +21,46 @@ inline countT GetMinInPair(countT x, countT y)
 }
 
 template <typename countT>
-inline double CalcVectMean(const std::vector<countT> &x)
+inline float CalcVectMean(const std::vector<countT> &x)
 {
-    double sum = std::accumulate(x.cbegin(), x.cend(), 0.0);
+    float sum = std::accumulate(x.cbegin(), x.cend(), 0.0);
     return (sum / x.size());
 }
 
 template <typename countT>
 inline void CalcVectRank(std::vector<float> &x_rk, const std::vector<countT> &x)
 {
-    x_rk.resize(x.size());
-    std::multimap<float, size_t> x_pos; // utilize map's automatic orderign
-    for (size_t i(0); i < x.size(); ++i)
+    size_t n = x.size();
+    std::vector<size_t> r(n, 1), s(n, 1); // r for rank number, s for same number
+    for (size_t i(0); i < n; ++i)
     {
-        x_pos.insert({x.at(i), i});
-    }
-    int rk = 1;
-    for (auto iter_x_pos = x_pos.cbegin(); iter_x_pos != x_pos.cend(); iter_x_pos = x_pos.upper_bound(iter_x_pos->first))
-    {
-        size_t c = x_pos.count(iter_x_pos->first);
-        for (auto iter_range = x_pos.equal_range(iter_x_pos->first).first; iter_range != x_pos.equal_range(iter_x_pos->first).second; ++iter_range)
+        for (size_t j(i + 1); j < n; ++j)
         {
-            x_rk.at(iter_range->second) = (2 * rk + c - 1) / 2.0;
+            if (x[i] == x[j])
+            {
+                ++s[i];
+                ++s[j];
+            }
+            else if (x[i] < x[j])
+            {
+                ++r[j];
+            }
+            else // x[i] > x[j]
+            {
+                ++r[i];
+            }
         }
-        rk += c;
+        x_rk.push_back(r[i] + 0.5 * (s[i] - 1));
     }
 }
 
 template <typename countT>
-inline double CalcPearsonCorrelation(const std::vector<countT> &x, const std::vector<countT> &y)
+inline float CalcPearsonCorrelation(const std::vector<countT> &x, const std::vector<countT> &y)
 {
-    double mean_x = CalcVectMean(x), mean_y = CalcVectMean(y), prod_sum(0), t1_sqsum(0), t2_sqsum(0);
+    float mean_x = CalcVectMean(x), mean_y = CalcVectMean(y), prod_sum(0), t1_sqsum(0), t2_sqsum(0);
     for (size_t i(0); i < x.size(); ++i)
     {
-        double t1 = x.at(i) - mean_x, t2 = y.at(i) - mean_y;
+        float t1 = x[i] - mean_x, t2 = y[i] - mean_y;
         prod_sum += (t1 * t2);
         t1_sqsum += (t1 * t1);
         t2_sqsum += (t2 * t2);
@@ -63,7 +69,7 @@ inline double CalcPearsonCorrelation(const std::vector<countT> &x, const std::ve
 }
 
 template <typename countT>
-inline double CalcSpearmanCorrelation(const std::vector<countT> &x, const std::vector<countT> &y)
+inline float CalcSpearmanCorrelation(const std::vector<countT> &x, const std::vector<countT> &y)
 {
     std::vector<float> x_rk, y_rk;
     CalcVectRank(x_rk, x);
@@ -72,19 +78,19 @@ inline double CalcSpearmanCorrelation(const std::vector<countT> &x, const std::v
 }
 
 template <typename countT>
-inline double CalcMeanAbsoluteContrast(const std::vector<countT> &x, const std::vector<countT> &y)
+inline float CalcMeanAbsoluteContrast(const std::vector<countT> &x, const std::vector<countT> &y)
 {
     const size_t nb_sample(x.size());
-    std::vector<double> ctrst(nb_sample);
+    std::vector<float> ctrst(nb_sample);
     for (size_t i(0); i < nb_sample; ++i)
     {
-        if (x.at(i) == y.at(i)) // including the case when x[i] = y[i] = 0
+        if (x[i] == y[i]) // including the case when x[i] = y[i] = 0
         {
-            ctrst.at(i) = 0.0;
+            ctrst[i] = 0.0;
         }
         else
         {
-            ctrst.at(i) = fabs(static_cast<double>(x.at(i) - y.at(i))) / (x.at(i) + y.at(i));
+            ctrst[i] = fabs(static_cast<float>(x[i] - y[i])) / (x[i] + y[i]);
         }
     }
     return (CalcVectMean(ctrst));
@@ -111,6 +117,10 @@ inline float CalcMACDistance(const std::vector<countT> &x, const std::vector<cou
 template <typename countT>
 inline float CalcDistance(const std::vector<countT> &x, const std::vector<countT> &y, const std::string &eval_method)
 {
+    if (x.size() != y.size())
+    {
+        throw std::domain_error("two vectors have different size");
+    }
     if (eval_method == "mac")
     {
         return CalcMACDistance(x, y);
