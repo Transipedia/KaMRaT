@@ -1,4 +1,4 @@
-target: kamratMerge kamratReduce kamratEvaluate kamratNorm
+target: kamratMerge kamratReduce kamratEvaluate kamratNorm kamratMask
 
 # kamratQuery: kamratQuery.cpp query/contig_sample_info.cpp
 # 	g++ -o ../bin/kamratQuery kamratQuery.cpp query/contig_sample_info.cpp
@@ -14,3 +14,6 @@ kamratMerge: kamratMerge.cpp data_struct/count_tab_header.cpp data_struct/count_
 
 kamratEvaluate: kamratEvaluate.cpp data_struct/seq_elem.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp
 	g++ -o ../bin/kamratEvaluate kamratEvaluate.cpp data_struct/seq_elem.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp
+
+kamratMask: kamratMask.cpp data_struct/seq_elem.cpp
+	g++ -o ../bin/kamratMask kamratMask.cpp data_struct/seq_elem.cpp
