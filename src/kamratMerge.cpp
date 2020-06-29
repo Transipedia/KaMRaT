@@ -46,6 +46,10 @@ void ScanCountTable(CountTab &kmer_count_tab,
         {
             rep_val = kmer_count_tab.AddIndexOnDsk(line, count_index_file);
         }
+        if (rep_val == -1) // if no representative k-mer column
+        {
+            rep_val = kmer_serial;
+        }
         std::istringstream conv(line);
         std::string seq;
         conv >> seq; // first column as feature (string)

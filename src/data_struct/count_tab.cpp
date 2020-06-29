@@ -73,7 +73,7 @@ const float CountTab::AddCountInMem(const std::string &line_str)
 /* ------------------------------------------------------------------------------------------- *\
     Arg:    1. string of input k-mer table line
             2. column name for score
-    Value:  inserted k-mer score (a certain column's value or the input serial number)
+    Value:  inserted k-mer score (a certain column's value or -1)
     Func:   1. check whether the value & count vectors to insert are coherent with the tables
             2. parse the line string
             3. insert the k-mer value & count vector to k-mer value & count table
@@ -95,7 +95,7 @@ const float CountTab::AddCountInMem(const std::string &line_str)
         value_tab_.emplace_back(value_vect);
     }
     count_tab_.emplace_back(count_vect);
-    return (score_pos == 0 ? count_tab_.size() : value_vect[colserial_vect_[score_pos]]);
+    return (score_pos == 0 ? -1 : value_vect[colserial_vect_[score_pos]]);
 }
 
 const float CountTab::AddIndexOnDsk(const std::string &line_str, std::ofstream &index_file)
@@ -103,7 +103,7 @@ const float CountTab::AddIndexOnDsk(const std::string &line_str, std::ofstream &
     Arg:    1. string of input k-mer table line
             2. column name for score
             3. indexing file stream reference
-    Value:  inserted k-mer score (a certain column's value or the input serial number)
+    Value:  inserted k-mer score (a certain column's value or -1)
     Func:   1. check whether the value & count vectors to insert are coherent with the tables
             2. parse the line string
             3. index the k-mer count vector in the index file and insert value vector to value table
@@ -125,7 +125,7 @@ const float CountTab::AddIndexOnDsk(const std::string &line_str, std::ofstream &
         value_tab_.emplace_back(value_vect);
     }
     index_pos_.emplace_back(WriteCountToIndex(index_file, count_vect));
-    return (score_pos == 0 ? index_pos_.size() : value_vect[colserial_vect_[score_pos]]);
+    return (score_pos == 0 ? -1 : value_vect[colserial_vect_[score_pos]]);
 }
 
 const float CountTab::GetValue(const size_t kmer_serial, const size_t valcol_serial) const
