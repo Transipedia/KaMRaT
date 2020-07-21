@@ -19,8 +19,10 @@ void MakeMask(std::unordered_set<uint64_t> &kmer_mask,
         throw std::domain_error("contig fasta file " + mask_file_path + "was not found");
     }
     std::string seq, line;
-    for (std::getline(contig_list_file, line); std::getline(contig_list_file, line); true) // ignore the first header line
+    // std::getline(contig_list_file, line); // ignore the first header line
+    while (true) 
     {
+        std::getline(contig_list_file, line);
         if (line[0] == '>' || contig_list_file.eof()) // reading the last line
         {
             for (size_t start_pos(0); start_pos + k_length <= seq.size(); ++start_pos)
@@ -81,10 +83,11 @@ int main(int argc, char **argv)
 {
     std::string mask_file_path, count_tab_path;
     bool stranded(true), reverse_mask(false);
-    size_t k_length;
+    size_t k_length(31);
 
     ParseOptions(argc, argv, mask_file_path, stranded, k_length, reverse_mask, count_tab_path);
-    
+    PrintRunInfo(mask_file_path, stranded, k_length, reverse_mask);
+
     std::unordered_set<uint64_t> kmer_mask;
     MakeMask(kmer_mask, mask_file_path, k_length, stranded);
     MaskOutput(std::move(count_tab_path), kmer_mask, k_length, stranded, reverse_mask);
