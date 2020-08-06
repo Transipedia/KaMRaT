@@ -23,10 +23,8 @@ inline void ToComplement(std::string &seq)
 }
 
 ContigElem::ContigElem(const std::string &seq, const float rep_value, const size_t init_serial)
-    : SeqElem(seq),
+    : SeqElem(seq, init_serial, rep_value),
       is_used_(false),
-      rep_value_(rep_value),
-      rep_serial_(init_serial),
       head_serial_(init_serial),
       rear_serial_(init_serial)
 {
@@ -45,12 +43,7 @@ const size_t ContigElem::GetRearSerial() const
 
 const size_t ContigElem::GetRepSerial() const
 {
-    return rep_serial_;
-}
-
-const float ContigElem::GetRepValue() const
-{
-    return rep_value_;
+    return serial_;
 }
 
 const std::set<size_t> &ContigElem::GetKMerSerialSet() const

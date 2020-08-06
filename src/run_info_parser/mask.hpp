@@ -26,7 +26,7 @@ inline void PrintRunInfo(const std::string &mask_file_path,
     std::cerr << "Mask sequence file:            " << mask_file_path << std::endl;
     std::cerr << "Stranded mode:                 " << (stranded ? "On" : "Off") << std::endl;
     std::cerr << "k-mer length:                  " << k_length << std::endl;
-    std::cerr << "Select k-mer in mask:          " << (reverse_mask ? "True" : "Off") << std::endl;
+    std::cerr << "Select k-mer in mask:          " << (reverse_mask ? "True" : "False") << std::endl;
 }
 
 inline void ParseOptions(int argc,

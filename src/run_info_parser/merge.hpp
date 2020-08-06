@@ -144,7 +144,7 @@ inline void ParseOptions(int argc,
     // dealing intervention method //
     std::string threshold_str;
     SubCommandParser(interv_method, threshold_str);
-    if (INTERV_METHOD_UNIV.find(interv_method) == INTERV_METHOD_UNIV.cend())
+    if (interv_method != "none" && INTERV_METHOD_UNIV.find(interv_method) == INTERV_METHOD_UNIV.cend())
     {
         throw std::domain_error("unknown intervention method " + interv_method);
     }

@@ -6,6 +6,9 @@ target: kamratMerge kamratReduce kamratEvaluate kamratNorm kamratMask
 kamratReduce: kamratReduce.cpp utils/sample_info.cpp reduce/model_info.cpp
 	g++ -o ../bin/kamratReduce kamratReduce.cpp utils/sample_info.cpp reduce/model_info.cpp -fopenmp -L/home/haoliang.xue/.conda/envs/mlpack/lib -lmlpack -larmadillo -I/home/haoliang.xue/.conda/envs/mlpack/include
 
+kamratRank: kamratRank.cpp utils/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp data_struct/seq_elem.cpp
+	g++ -o ../bin/kamratRank kamratRank.cpp utils/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp data_struct/seq_elem.cpp -fopenmp -L/home/haoliang.xue/.conda/envs/mlpack/lib -lmlpack -larmadillo -I/home/haoliang.xue/.conda/envs/mlpack/include
+
 kamratNorm: kamratNorm.cpp data_struct/count_tab_header.cpp data_struct/sample_info.cpp 
 	g++ -o ../bin/kamratNorm kamratNorm.cpp data_struct/count_tab_header.cpp data_struct/sample_info.cpp -lboost_iostreams
 

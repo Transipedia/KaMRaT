@@ -212,7 +212,7 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
         {
             succ_iter->second.SelfReverseComplement();
         }
-        if (pred_iter->second.GetRepValue() <= succ_iter->second.GetRepValue())
+        if (pred_iter->second.GetScore("origin") <= succ_iter->second.GetScore("origin"))
         {
             pred_iter->second.RightMerge(succ_iter->second, n_overlap);
             hashed_contig_list.erase(succ_iter);

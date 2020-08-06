@@ -1,4 +1,5 @@
 #include <sstream>
+#include <iostream>
 
 #include "count_tab.hpp"
 
@@ -24,12 +25,6 @@ inline void AddCountFromIndex(std::vector<float> &sum, std::ifstream &index_file
     {
         sum.at(i) += counts.at(i);
     }
-}
-
-inline void GetStringLineFromDisk(std::string &str_line, std::ifstream &index_file, const size_t disk_pos)
-{
-    index_file.seekg(disk_pos);
-    std::getline(index_file, str_line);
 }
 
 inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
@@ -128,6 +123,40 @@ const float CountTab::AddIndexOnDsk(const std::string &line_str, std::ofstream &
     return (score_pos == 0 ? -1 : value_vect[colserial_vect_[score_pos]]);
 }
 
+const bool CountTab::IndexWithString(float &score_value, std::vector<float> &count_vect, const std::string &line_str, const size_t idx_pos)
+/* ------------------------------------------------------------------------------------------- *\
+    Arg:    1. string of input k-mer table line
+            2. column name for score
+    Value:  inserted k-mer score (a certain column's value or -1)
+    Func:   1. check whether the value & count vectors to insert are coherent with the tables
+            2. parse the line string
+            3. insert the k-mer value & count vector to k-mer value & count table
+            4. return k-mer's corresponded score value
+\* ------------------------------------------------------------------------------------------- */
+{
+    std::vector<float> value_vect;
+    size_t score_pos = StrLine2ValueCountVects(value_vect, count_vect, line_str, colnature_vect_);
+    if (nb_value_ != value_vect.size())
+    {
+        throw std::domain_error("newly inserted k-mer value vector not coherent with existing k-mer value table");
+    }
+    if (nb_count_ != count_vect.size())
+    {
+        throw std::domain_error("newly inserted k-mer count vector not coherent with existing k-mer count table");
+    }
+    index_pos_.emplace_back(idx_pos);
+    if (score_pos == 0)
+    {
+        score_value = 0;
+        return false;
+    }
+    else
+    {
+        score_value = value_vect[colserial_vect_[score_pos]];
+        return true;
+    }
+}
+
 const float CountTab::GetValue(const size_t kmer_serial, const size_t valcol_serial) const
 /* ------------------------------------------------------------------------------ *\
     Arg:    1. k-mer serial
@@ -214,4 +243,20 @@ const size_t CountTab::GetAvgCountOnDsk(std::vector<float> &count_avg_vect,
         }
     }
     return nb_kmer_found;
+}
+
+const void CountTab::PrintFromIndex(const size_t row_serial, std::ifstream &index_file, const bool with_first_col) const
+{
+    size_t disk_pos = index_pos_.at(row_serial);
+    std::string str_line;
+    index_file.seekg(disk_pos);
+    std::getline(index_file, str_line);
+    if (with_first_col)
+    {
+        std::cout << str_line << std::endl;
+    }
+    else
+    {
+        std::cout << str_line.substr(str_line.find_first_of(" \t") + 1) << std::endl;
+    }
 }

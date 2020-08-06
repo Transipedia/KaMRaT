@@ -15,7 +15,6 @@ public:
     const size_t GetHeadSerial() const;
     const size_t GetRearSerial() const;
     const size_t GetRepSerial() const;
-    const float GetRepValue() const;
     const std::set<size_t> &GetKMerSerialSet() const;
     const size_t GetNbMemberKMer() const;
     const void LeftMerge(const ContigElem &left_contig_elem, unsigned int n_overlap);
@@ -24,9 +23,7 @@ public:
 
 private:
     bool is_used_;
-    const size_t rep_serial_;
     size_t head_serial_, rear_serial_;
-    const float rep_value_;
     std::set<size_t> kmer_serial_set_;
 };
 
