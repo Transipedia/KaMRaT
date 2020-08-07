@@ -1,4 +1,4 @@
-target: kamratMerge kamratReduce kamratEvaluate kamratNorm kamratMask
+target: kamratMerge kamratReduce kamratEvaluate kamratNorm kamratMask kamratRank
 
 # kamratQuery: kamratQuery.cpp query/contig_sample_info.cpp
 # 	g++ -o ../bin/kamratQuery kamratQuery.cpp query/contig_sample_info.cpp

@@ -70,7 +70,7 @@ void SortScore(seqVect_t &feature_vect, const std::string &sort_mode)
     }
     else
     {
-        throw std::domain_error("unknown sort mode " + sort_mode);
+        throw std::domain_error("unknown sort mode: " + sort_mode);
     }
 }
 
@@ -115,17 +115,17 @@ void ModelPrint(const seqVect_t &feature_vect, const std::string &count_tab_path
 int main(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
-    std::string count_tab_path, sample_info_path, score_method("sd"), score_cmd, sort_mode;
+    std::string count_tab_path, sample_info_path, score_method, score_cmd, sort_mode;
     size_t nb_sel(0);
 
     ParseOptions(argc, argv, sample_info_path, score_method, score_cmd, sort_mode, nb_sel, count_tab_path);
     Scorer scorer(score_method, score_cmd, sort_mode);
-    PrintRunInfo(count_tab_path, sample_info_path, score_method, score_cmd, sort_mode, scorer.GetNbFold(), nb_sel);
+    PrintRunInfo(count_tab_path, sample_info_path, scorer.GetScoreMethod(), scorer.GetScoreCmd(), scorer.GetSortMode(), scorer.GetNbFold(), nb_sel);
     CountTab count_tab("onDsk");
     seqVect_t feature_vect;
 
     EvalScore(count_tab, feature_vect, count_tab_path, sample_info_path, scorer);
-    SortScore(feature_vect, sort_mode);
+    SortScore(feature_vect, scorer.GetSortMode());
     if (scorer.GetScoreMethod() == "ttest")
     {
         PValueAdjustmentBH(feature_vect);

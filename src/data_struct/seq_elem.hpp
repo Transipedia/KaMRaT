@@ -16,8 +16,8 @@ public:
 
 protected:
     std::string seq_;
-    const size_t serial_;
-    const float score_;
+    size_t serial_;
+    float score_;
     float final_score_; // a modifiable score for p-value adjustement
 };
 

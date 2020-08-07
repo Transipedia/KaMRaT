@@ -19,8 +19,8 @@ inline void PrintHelper()
               << std::endl;
     std::cerr << "[EVAL. METHOD]  sd           Standard deviation" << std::endl;
     std::cerr << "                rsd          Relative standard deviation" << std::endl;
-    std::cerr << "                nb:n_fold    Naive Bayes classification between conditions, default n_fold = 2" << std::endl;
-    std::cerr << "                lr:n_fold    Logistic regression (slower than Naive Bayes) between conditions, default n_fold = 2" << std::endl;
+    std::cerr << "                nb:n_fold    Naive Bayes classification, default n_fold = 2" << std::endl;
+    std::cerr << "                sr:n_fold    Softmax regression, default n_fold = 2" << std::endl;
     std::cerr << "                ttest        T-test between conditions" << std::endl;
     std::cerr << "                es           Effect size between conditions" << std::endl;
     std::cerr << "                lfc:mean     Log2 fold change by group mean" << std::endl;
@@ -105,7 +105,7 @@ inline void ParseOptions(int argc,
         }
         else
         {
-            throw std::domain_error("unknown option " + arg);
+            throw std::domain_error("unknown option: " + arg);
         }
         ++i_opt;
     }
@@ -114,9 +114,9 @@ inline void ParseOptions(int argc,
         throw std::domain_error("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
-    if (SORT_MODE_UNIV.find(sort_mode) == SORT_MODE_UNIV.cend())
+    if (!sort_mode.empty() && SORT_MODE_UNIV.find(sort_mode) == SORT_MODE_UNIV.cend())
     {
-        throw std::domain_error("unknown sort mode " + sort_mode);
+        throw std::domain_error("unknown sort mode: " + sort_mode);
     }
 }
 

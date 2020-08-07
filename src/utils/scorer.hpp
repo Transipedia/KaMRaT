@@ -28,7 +28,7 @@ private:
     const std::string score_method_;  // nb, lr, sd, rsd, ttest, es, lfc, user
     const std::string sort_mode_;     // dec, dec::abs, inc, inc::abs
     const std::string score_cmd_;     // to nb_fold_ if nb or lr; else for mean or median in lfc or for score colname in user
-    size_t nb_fold_;                  // for naive Bayes and logistic regression
+    const size_t nb_fold_;            // for naive Bayes and logistic regression
     size_t nb_class_;                 // number of conditions
     arma::Row<size_t> sample_labels_; // sample labels
 };

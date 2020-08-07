@@ -86,13 +86,13 @@ void EstablishSeqListFromMultilineFasta(tag2seq_t &tag_seq_dict,
         }
         else if (line[0] == '>') // reading in middle of the file
         {
-            tag_seq_dict.insert({seq_tag, SeqElem(seq)});
+            tag_seq_dict.insert({seq_tag, SeqElem(seq, 0, 0)});
             seq_tag = line.substr(1);
             seq.clear();
         }
         else if (contig_list_file.eof()) // reading the last line
         {
-            tag_seq_dict.insert({seq_tag, SeqElem(seq)});
+            tag_seq_dict.insert({seq_tag, SeqElem(seq, 0, 0)});
             seq.clear();
             break;
         }
