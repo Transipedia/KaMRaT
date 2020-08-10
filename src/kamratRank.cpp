@@ -12,7 +12,11 @@
 #include "data_struct/seq_elem.hpp"
 #include "run_info_parser/rank.hpp"
 
-void EvalScore(CountTab &feature_count_tab, seqVect_t &feature_vect, const std::string &count_tab_path, const std::string &sample_info_path, const Scorer scorer)
+void EvalScore(CountTab &feature_count_tab,
+               seqVect_t &feature_vect,
+               const std::string &count_tab_path,
+               const std::string &sample_info_path,
+               Scorer scorer)
 {
     std::ifstream count_tab_file(count_tab_path);
     if (!count_tab_file.is_open())
@@ -23,10 +27,11 @@ void EvalScore(CountTab &feature_count_tab, seqVect_t &feature_vect, const std::
     std::string line;
     std::getline(count_tab_file, line);
     feature_count_tab.MakeColumnInfo(line, sample_info_path, scorer.GetScoreCmd());
+    scorer.LoadSampleLabel(feature_count_tab.GetSmpLabels(), feature_count_tab.GetNbCondition());
     //----- Dealing with Following k-mer Count Lines -----//
     for (size_t feature_serial(0), idx_pos(count_tab_file.tellg());
-        std::getline(count_tab_file, line);
-        ++feature_serial, idx_pos = count_tab_file.tellg())
+         std::getline(count_tab_file, line);
+         ++feature_serial, idx_pos = count_tab_file.tellg())
     {
         float feature_score;
         std::vector<float> count_vect;

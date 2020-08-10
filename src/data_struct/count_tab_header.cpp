@@ -37,7 +37,7 @@ inline size_t LoadSampleInfo(std::map<std::string, size_t> &sample_tag,
     {
         throw std::domain_error("meta data file " + sample_info_path + " was not found");
     }
-    size_t nb_cond(1);
+    size_t nb_cond(0);
     std::map<std::string, size_t> cond_tag;
     std::string sample_info_line;
     while (std::getline(sample_info_file, sample_info_line))
@@ -139,9 +139,14 @@ const size_t CountTabHeader::GetColSerial(const size_t i_col) const
     return colserial_vect_.at(i_col);
 }
 
-const int CountTabHeader::GetSmpLabel(const size_t i_col) const
+const size_t CountTabHeader::GetSmpLabel(const size_t i_col) const
 {
     return smplabel_vect_.at(i_col);
+}
+
+const std::vector<size_t> &CountTabHeader::GetSmpLabels() const
+{
+    return smplabel_vect_;
 }
 
 const size_t CountTabHeader::GetNbCondition() const

@@ -25,15 +25,15 @@ inline float sd_scoring(const arma::mat &sample_counts)
 inline float relatsd_scoring(const arma::mat &sample_counts)
 {
     float sd = sd_scoring(sample_counts),
-        mean = calc_mean(sample_counts),
-        score = (mean <= 1 ? sd : sd / mean);
+          mean = calc_mean(sample_counts),
+          score = (mean <= 1 ? sd : sd / mean);
     return ((isnan(score) || isinf(score)) ? 0.0 : score);
 }
 
 inline double naivebayes_scoring(const arma::mat &sample_counts,
-    const arma::Row<size_t> &sample_labels,
-    const size_t nb_fold,
-    const size_t nb_class)
+                                 const arma::Row<size_t> &sample_labels,
+                                 const size_t nb_fold,
+                                 const size_t nb_class)
 {
     mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Micro>>
         score_data(nb_fold, sample_counts, sample_labels, nb_class);
@@ -48,9 +48,9 @@ inline double naivebayes_scoring(const arma::mat &sample_counts,
 }
 
 inline double softmaxreg_scoring(const arma::mat &sample_counts,
-    const arma::Row<size_t> &sample_labels,
-    const size_t nb_fold,
-    const size_t nb_class)
+                                 const arma::Row<size_t> &sample_labels,
+                                 const size_t nb_fold,
+                                 const size_t nb_class)
 {
     mlpack::cv::KFoldCV<mlpack::regression::SoftmaxRegression, mlpack::cv::F1<mlpack::cv::Micro>>
         score_data(nb_fold, sample_counts, sample_labels, nb_class);
@@ -65,10 +65,10 @@ inline double softmaxreg_scoring(const arma::mat &sample_counts,
 }
 
 inline double ttest_scoring(const arma::mat &sample_counts,
-    const arma::Row<size_t> &sample_labels) // mean, std, slightly different from dekupl ttestFilter, but same with R
+                            const arma::Row<size_t> &sample_labels) // mean, std, slightly different from dekupl ttestFilter, but same with R
 {
     arma::mat cond1_counts = sample_counts.elem(arma::find(sample_labels == 0)),
-        cond2_counts = sample_counts.elem(arma::find(sample_labels == 1));
+              cond2_counts = sample_counts.elem(arma::find(sample_labels == 1));
     for (size_t i = 0; i < cond1_counts.size(); ++i)
     {
         cond1_counts(i, 0) = log(cond1_counts(i, 0) + 1);
@@ -79,7 +79,7 @@ inline double ttest_scoring(const arma::mat &sample_counts,
     }
     size_t cond1_num = cond1_counts.size(), cond2_num = cond2_counts.size();
     double cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts),
-        cond1_sd = sd_scoring(cond1_counts), cond2_sd = sd_scoring(cond2_counts);
+           cond1_sd = sd_scoring(cond1_counts), cond2_sd = sd_scoring(cond2_counts);
     double pvalue;
     if (cond1_sd == 0 && cond2_sd == 0)
     {
@@ -88,9 +88,9 @@ inline double ttest_scoring(const arma::mat &sample_counts,
     else
     {
         double t1 = cond1_sd * cond1_sd / cond1_num,
-            t2 = cond2_sd * cond2_sd / cond2_num,
-            df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (cond1_num - 1) + t2 * t2 / (cond2_num - 1)),
-            t_stat = (cond1_mean - cond2_mean) / sqrt(t1 + t2);
+               t2 = cond2_sd * cond2_sd / cond2_num,
+               df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (cond1_num - 1) + t2 * t2 / (cond2_num - 1)),
+               t_stat = (cond1_mean - cond2_mean) / sqrt(t1 + t2);
         boost::math::students_t dist(df);
         pvalue = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
     }
@@ -98,39 +98,39 @@ inline double ttest_scoring(const arma::mat &sample_counts,
 }
 
 inline double effectsize_scoring(const arma::mat &sample_counts,
-    const arma::Row<size_t> &sample_labels)
+                                 const arma::Row<size_t> &sample_labels)
 {
     arma::mat cond1_counts = sample_counts.elem(arma::find(sample_labels == 0)),
-        cond2_counts = sample_counts.elem(arma::find(sample_labels == 1));
+              cond2_counts = sample_counts.elem(arma::find(sample_labels == 1));
     double cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts),
-        cond1_sd = sd_scoring(cond1_counts), cond2_sd = sd_scoring(cond2_counts),
-        score = (cond2_mean - cond1_mean) / (cond1_sd + cond2_sd);
+           cond1_sd = sd_scoring(cond1_counts), cond2_sd = sd_scoring(cond2_counts),
+           score = (cond2_mean - cond1_mean) / (cond1_sd + cond2_sd);
     return ((isnan(score) || isinf(score)) ? 0.0 : score);
 }
 
 inline double lfcmean_scoring(const arma::mat &sample_counts,
-    const arma::Row<size_t> &sample_labels)
+                              const arma::Row<size_t> &sample_labels)
 {
     arma::mat cond1_counts = sample_counts.elem(arma::find(sample_labels == 0)),
-        cond2_counts = sample_counts.elem(arma::find(sample_labels == 1));
+              cond2_counts = sample_counts.elem(arma::find(sample_labels == 1));
     double cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts),
-        score = log2(cond2_mean / cond1_mean);
+           score = log2(cond2_mean / cond1_mean);
     return ((isnan(score) || isinf(score)) ? 0.0 : score);
 }
 
 inline double lfcmedian_scoring(const arma::mat &sample_counts,
-    const arma::Row<size_t> &sample_labels)
+                                const arma::Row<size_t> &sample_labels)
 {
     arma::mat cond1_counts = sample_counts.elem(arma::find(sample_labels == 0)),
-        cond2_counts = sample_counts.elem(arma::find(sample_labels == 1));
+              cond2_counts = sample_counts.elem(arma::find(sample_labels == 1));
     double cond1_median = calc_median(cond1_counts), cond2_median = calc_median(cond2_counts),
-        score = log2(cond2_median / cond1_median);
+           score = log2(cond2_median / cond1_median);
     return ((isnan(score) || isinf(score)) ? 0.0 : score);
 }
 
 inline double lfc_scoring(const arma::mat &sample_counts,
-    const arma::Row<size_t> &sample_labels,
-    const std::string &lfc_cmd)
+                          const arma::Row<size_t> &sample_labels,
+                          const std::string &lfc_cmd)
 {
     if (lfc_cmd == "mean")
     {
@@ -142,7 +142,7 @@ inline double lfc_scoring(const arma::mat &sample_counts,
     }
     else
     {
-        std::domain_error("unknown log2FC command" + lfc_cmd);
+        throw std::domain_error("unknown log2FC command" + lfc_cmd);
     }
 }
 
@@ -188,27 +188,26 @@ const std::string InferSortMode(const std::string &score_method, const std::stri
 
 const size_t InferNbFold(const std::string &score_method, const std::string &score_cmd)
 {
-    if (score_method == "nb" || score_method == "lr")
+    if (score_method == "nb" || score_method == "sr")
     {
-        return(score_cmd.empty() ? 2 : std::stoi(score_cmd));
+        return (score_cmd.empty() ? 2 : std::stoi(score_cmd));
     }
     else
     {
         return 0;
     }
-    
 }
 
 Scorer::Scorer(const std::string &score_method, const std::string &score_cmd, const std::string &sort_mode)
     : score_method_((score_method.empty() ? "sd" : score_method)),
-    sort_mode_(InferSortMode(score_method_, sort_mode)),
-    score_cmd_(score_cmd),
-    nb_fold_(InferNbFold(score_method_, score_cmd_)),
-    nb_class_(0)
+      sort_mode_(InferSortMode(score_method_, sort_mode)),
+      score_cmd_(score_cmd),
+      nb_fold_(InferNbFold(score_method_, score_cmd_)),
+      nb_class_(0)
 {
 }
 
-void Scorer::LoadSampleLabel(const std::vector<int> &label_vect, const size_t nb_class)
+void Scorer::LoadSampleLabel(const std::vector<size_t> &label_vect, const size_t nb_class)
 {
     if (nb_class != 2 && (score_method_ == "ttest" || score_method_ == "es" || score_method_ == "lfc"))
     {

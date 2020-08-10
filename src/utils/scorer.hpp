@@ -16,7 +16,7 @@ class Scorer
 {
 public:
     Scorer(const std::string &score_method, const std::string &score_cmd, const std::string &sort_mode);
-    void LoadSampleLabel(const std::vector<int> &label_vect, const size_t nb_class);
+    void LoadSampleLabel(const std::vector<size_t> &label_vect, const size_t nb_class);
     const std::string &GetScoreMethod() const;
     const std::string &GetSortMode() const;
     const std::string &GetScoreCmd() const;

@@ -17,7 +17,8 @@ public:
     const std::string GetColName(size_t i_col) const;
     const char GetColNature(size_t i_col) const;
     const size_t GetColSerial(size_t i_col) const;
-    const int GetSmpLabel(size_t i_col) const;
+    const size_t GetSmpLabel(size_t i_col) const;
+    const std::vector<size_t> &GetSmpLabels() const;
     const size_t GetNbCondition() const;
     const size_t GetNbValue() const;
     const size_t GetNbCount() const;
