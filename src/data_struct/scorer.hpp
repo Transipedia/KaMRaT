@@ -36,50 +36,58 @@ protected:
 
 class SDScorer : public Scorer
 {
+public:
     SDScorer(const std::string &sort_mode);
     const float CalcScore(const std::vector<float> &sample_counts) const override;
-}
+};
 
 class RelatSDScorer : public Scorer
 {
+public:
     RelatSDScorer(const std::string &sort_mode);
     const float CalcScore(const std::vector<float> &sample_counts) const override;
-}
+};
 
 class TtestScorer : public Scorer
 {
+public:
     TtestScorer(const std::string &sort_mode);
     const float CalcScore(const std::vector<float> &sample_counts) const override;
-}
+};
 
 class EffectSizeScorer : public Scorer
 {
+public:
     EffectSizeScorer(const std::string &sort_mode);
     const float CalcScore(const std::vector<float> &sample_counts) const override;
-}
+};
 
 class LFCScorer : public Scorer
 {
+public:
     LFCScorer(const std::string &score_cmd, const std::string &sort_mode);
     const float CalcScore(const std::vector<float> &sample_counts) const override;
-}
+};
 
 class NaiveBayesScorer : public Scorer
 {
+public:
     NaiveBayesScorer(const std::string &sort_mode, size_t nb_fold);
     const float CalcScore(const std::vector<float> &sample_counts) const override;
-}
+};
 
 class RegressionScorer : public Scorer
 {
+public:
     RegressionScorer(const std::string &sort_mode, size_t nb_fold);
     const float CalcScore(const std::vector<float> &sample_counts) const override;
-}
+};
 
 class UserScorer : public Scorer
 {
+public:
     UserScorer(const std::string &sort_mode);
     // const float CalcScore(const std::vector<float> &sample_counts) const override;
-}
+};
 
 #endif //KAMRAT_DATASTRUCT_SCORER_HPP

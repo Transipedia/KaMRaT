@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <ctime>
 
-#include "utils/scorer.hpp"
+#include "data_struct/scorer.hpp"
 #include "data_struct/count_tab.hpp"
 #include "data_struct/seq_elem.hpp"
 #include "run_info_parser/rank.hpp"
@@ -16,7 +16,7 @@ void EvalScore(CountTab &feature_count_tab,
                seqVect_t &feature_vect,
                const std::string &count_tab_path,
                const std::string &sample_info_path,
-               Scorer scorer)
+               Scorer *scorer)
 {
     std::ifstream count_tab_file(count_tab_path);
     if (!count_tab_file.is_open())
@@ -26,8 +26,8 @@ void EvalScore(CountTab &feature_count_tab,
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::string line;
     std::getline(count_tab_file, line);
-    feature_count_tab.MakeColumnInfo(line, sample_info_path, scorer.GetScoreCmd());
-    scorer.LoadSampleLabel(feature_count_tab.GetSmpLabels(), feature_count_tab.GetNbCondition());
+    feature_count_tab.MakeColumnInfo(line, sample_info_path, scorer->GetScoreCmd());
+    scorer->LoadSampleLabel(feature_count_tab.GetSmpLabels(), feature_count_tab.GetNbCondition());
     //----- Dealing with Following k-mer Count Lines -----//
     for (size_t feature_serial(0), idx_pos(count_tab_file.tellg());
          std::getline(count_tab_file, line);
@@ -35,13 +35,13 @@ void EvalScore(CountTab &feature_count_tab,
     {
         float feature_score;
         std::vector<float> count_vect;
-        if (!feature_count_tab.IndexWithString(feature_score, count_vect, line, idx_pos) && scorer.GetScoreMethod() == "user")
+        if (!feature_count_tab.IndexWithString(feature_score, count_vect, line, idx_pos) && scorer->GetScoreMethod() == "user")
         {
-            throw std::domain_error("user score column not found:" + scorer.GetScoreCmd());
+            throw std::domain_error("user score column not found:" + scorer->GetScoreCmd());
         }
-        else if (scorer.GetScoreMethod() != "user")
+        else if (scorer->GetScoreMethod() != "user")
         {
-            feature_score = scorer.CalcScore(count_vect);
+            feature_score = scorer->CalcScore(count_vect);
         }
         std::istringstream conv(line);
         std::string feature_seq;
@@ -124,18 +124,66 @@ int main(int argc, char *argv[])
     size_t nb_sel(0);
 
     ParseOptions(argc, argv, sample_info_path, score_method, score_cmd, sort_mode, nb_sel, count_tab_path);
-    Scorer scorer(score_method, score_cmd, sort_mode);
-    PrintRunInfo(count_tab_path, sample_info_path, scorer.GetScoreMethod(), scorer.GetScoreCmd(), scorer.GetSortMode(), scorer.GetNbFold(), nb_sel);
+    Scorer *scorer;
+    if (score_method == "sd")
+    {
+        scorer = new SDScorer(sort_mode);
+    }
+    else if (score_method == "rsd")
+    {
+        scorer = new RelatSDScorer(sort_mode);
+    }
+    else if (score_method == "ttest")
+    {
+        scorer = new TtestScorer(sort_mode);
+    }
+    else if (score_method == "es")
+    {
+        scorer = new EffectSizeScorer(sort_mode);
+    }
+    else if (score_method == "lfc")
+    {
+        if (score_cmd.empty())
+        {
+            scorer = new LFCScorer("mean", sort_mode);
+        }
+        else
+        {
+            scorer = new LFCScorer(score_cmd, sort_mode);
+        }
+    }
+    else if (score_method == "nb")
+    {
+        size_t nb_fold = (score_cmd.empty() ? 2 : std::stoi(score_cmd));
+        scorer = new NaiveBayesScorer(sort_mode, nb_fold);
+    }
+    else if (score_method == "rg")
+    {
+        size_t nb_fold = (score_cmd.empty() ? 2 : std::stoi(score_cmd));
+        scorer = new RegressionScorer(sort_mode, nb_fold);
+    }
+    else if (score_method == "user")
+    {
+        scorer = new UserScorer(sort_mode);
+    }
+    else
+    {
+        throw std::invalid_argument("unknown scoring method: " + score_method);
+    }
+    
+    PrintRunInfo(count_tab_path, sample_info_path, scorer->GetScoreMethod(), scorer->GetScoreCmd(), scorer->GetSortMode(), scorer->GetNbFold(), nb_sel);
     CountTab count_tab("onDsk");
     seqVect_t feature_vect;
 
     EvalScore(count_tab, feature_vect, count_tab_path, sample_info_path, scorer);
-    SortScore(feature_vect, scorer.GetSortMode());
-    if (scorer.GetScoreMethod() == "ttest")
+    SortScore(feature_vect, scorer->GetSortMode());
+    if (scorer->GetScoreMethod() == "ttest")
     {
         PValueAdjustmentBH(feature_vect);
     }
     ModelPrint(feature_vect, count_tab_path, nb_sel, count_tab);
+
+    delete scorer;
 
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
     return EXIT_SUCCESS;

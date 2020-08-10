@@ -19,12 +19,14 @@ inline void PrintHelper()
               << std::endl;
     std::cerr << "[EVAL. METHOD]  sd           Standard deviation" << std::endl;
     std::cerr << "                rsd          Relative standard deviation" << std::endl;
-    std::cerr << "                nb:n_fold    Naive Bayes classification, default n_fold = 2" << std::endl;
-    std::cerr << "                sr:n_fold    Softmax regression, default n_fold = 2" << std::endl;
     std::cerr << "                ttest        T-test between conditions" << std::endl;
     std::cerr << "                es           Effect size between conditions" << std::endl;
-    std::cerr << "                lfc:mean     Log2 fold change by group mean" << std::endl;
+    std::cerr << "                lfc:mean     Log2 fold change by group mean, 'mean' can be omitted by default" << std::endl;
     std::cerr << "                lfc:median   Log2 fold change by group median" << std::endl;
+    std::cerr << "                nb:n_fold    Naive Bayes classification, default n_fold = 2" << std::endl;
+    std::cerr << "                rg:n_fold    Classification by regression, default n_fold = 2" << std::endl
+              << "                                 if nb_condition = 2, logistic regression is used" << std::endl
+              << "                                 if nb_condition > 2, softmax regression is used" << std::endl;
     std::cerr << "                user:name    User-defined method, where name indicates a column in the k-mer count table" << std::endl
               << std::endl;
     std::cerr << "[SORT MODE]     dec          Sorting by decreasing order                              (as default for sd, rsd, nb, lr, user:name)" << std::endl;
@@ -74,7 +76,7 @@ inline void ParseOptions(int argc,
                          std::string &score_method,
                          std::string &score_cmd,
                          std::string &sort_mode,
-                         size_t &top_num,
+                         size_t &nb_sel,
                          std::string &kmer_count_path)
 {
     int i_opt(1);
@@ -101,7 +103,7 @@ inline void ParseOptions(int argc,
         }
         else if (arg == "-N" && i_opt + 1 < argc)
         {
-            top_num = atoi(argv[++i_opt]);
+            nb_sel = atoi(argv[++i_opt]);
         }
         else
         {
