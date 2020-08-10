@@ -11,7 +11,6 @@ class CountTabHeader
 {
 public:
     CountTabHeader();
-    const std::string GetMode() const;
     //----- header info -----//
     const void MakeColumnInfo(const std::string &header_line, const std::string &sample_info_path, const std::string &score_colname);
     const std::string GetColName(size_t i_col) const;
