@@ -87,7 +87,6 @@ class UserScorer : public Scorer
 {
 public:
     UserScorer(const std::string &sort_mode);
-    // const float CalcScore(const std::vector<float> &sample_counts) const override;
 };
 
 #endif //KAMRAT_DATASTRUCT_SCORER_HPP

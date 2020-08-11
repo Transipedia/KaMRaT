@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 
     ParseOptions(argc, argv, sample_info_path, score_method, score_cmd, sort_mode, nb_sel, count_tab_path);
     Scorer *scorer;
-    if (score_method == "sd")
+    if (score_method.empty() || score_method == "sd")
     {
         scorer = new SDScorer(sort_mode);
     }

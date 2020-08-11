@@ -61,7 +61,7 @@ void Scorer::LoadSampleLabel(const std::vector<size_t> &label_vect, const size_t
     }
     nb_class_ = nb_class;
     sample_labels_ = arma::conv_to<arma::Row<size_t>>::from(label_vect); // each column is an observation
-    sample_labels_.print("Sample labels: ");
+    // sample_labels_.print("Sample labels: ");
 }
 
 const std::string &Scorer::GetScoreMethod() const
@@ -87,6 +87,11 @@ const size_t Scorer::GetNbFold() const
 const size_t Scorer::GetNbClass() const
 {
     return nb_class_;
+}
+
+const float Scorer::CalcScore(const std::vector<float> &sample_counts) const // no implement, but virtual method must be defined
+{
+    return 0;
 }
 
 // =====> Standard Deviation Scoring <===== //
@@ -237,7 +242,7 @@ const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts)
     if (isnan(score) || isinf(score))
     {
         arma_sample_counts.print("Sample counts: ");
-        arma_sample_counts.print("Sample labels: ");
+        sample_labels_.print("Sample labels: ");
         throw std::domain_error("F1 score is NaN or Inf in naive Bayes model");
     }
     return score;
@@ -273,7 +278,7 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts)
     if (isnan(score) || isinf(score))
     {
         arma_sample_counts.print("Sample counts: ");
-        arma_sample_counts.print("Sample labels: ");
+        sample_labels_.print("Sample labels: ");
         throw std::domain_error("F1 score is NaN or Inf in regression model");
     }
     return score;
@@ -284,10 +289,5 @@ UserScorer::UserScorer(const std::string &sort_mode)
     : Scorer("user", "", (sort_mode.empty() ? "dec" : sort_mode), 0)
 {
 }
-
-// const float UserScorer::CalcScore(const std::vector<float> &sample_counts) const override // no implement, 
-// {
-//     return 0;
-// }
 
 #endif //KMEREVALUATE_EVALMETHODS_H

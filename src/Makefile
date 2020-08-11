@@ -1,4 +1,4 @@
-target: kamratMerge kamratReduce kamratEvaluate kamratNorm kamratMask kamratRank
+target: kamratReduce kamratRank kamratNorm kamratMerge kamratEvaluate kamratMask
 
 # kamratQuery: kamratQuery.cpp query/contig_sample_info.cpp
 # 	g++ -o ../bin/kamratQuery kamratQuery.cpp query/contig_sample_info.cpp
@@ -6,8 +6,8 @@ target: kamratMerge kamratReduce kamratEvaluate kamratNorm kamratMask kamratRank
 kamratReduce: kamratReduce.cpp utils/sample_info.cpp reduce/model_info.cpp
 	g++ -o ../bin/kamratReduce kamratReduce.cpp utils/sample_info.cpp reduce/model_info.cpp -fopenmp -lmlpack -larmadillo
 
-kamratRank: kamratRank.cpp utils/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp data_struct/seq_elem.cpp
-	g++ -o ../bin/kamratRank kamratRank.cpp utils/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp data_struct/seq_elem.cpp -fopenmp -lmlpack -larmadillo
+kamratRank: kamratRank.cpp data_struct/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp data_struct/seq_elem.cpp
+	g++ -o ../bin/kamratRank kamratRank.cpp data_struct/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp data_struct/seq_elem.cpp -fopenmp -lmlpack -larmadillo
 
 kamratNorm: kamratNorm.cpp data_struct/count_tab_header.cpp data_struct/sample_info.cpp 
 	g++ -o ../bin/kamratNorm kamratNorm.cpp data_struct/count_tab_header.cpp data_struct/sample_info.cpp -lboost_iostreams
