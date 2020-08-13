@@ -46,10 +46,10 @@ const size_t InferNbFold(const std::string &score_method, const std::string &sco
 
 Scorer::Scorer(const std::string &score_method, const std::string &score_cmd, const std::string &sort_mode, const size_t nb_fold)
     : score_method_(score_method),
-    sort_mode_(sort_mode),
-    score_cmd_(score_cmd),
-    nb_fold_(nb_fold),
-    nb_class_(0)
+      sort_mode_(sort_mode),
+      score_cmd_(score_cmd),
+      nb_fold_(nb_fold),
+      nb_class_(0)
 {
 }
 
@@ -119,8 +119,8 @@ const float RelatSDScorer::CalcScore(const std::vector<float> &sample_counts) co
     arma::mat arma_sample_counts;
     Conv2Arma(arma_sample_counts, sample_counts);
     float sd = calc_sd(arma_sample_counts),
-        mean = calc_mean(arma_sample_counts),
-        score = (mean <= 1 ? sd : sd / mean);
+          mean = calc_mean(arma_sample_counts),
+          score = (mean <= 1 ? sd : sd / mean);
     return ((isnan(score) || isinf(score)) ? 0.0 : score);
 }
 
@@ -135,7 +135,7 @@ const float TtestScorer::CalcScore(const std::vector<float> &sample_counts) cons
     arma::mat arma_sample_counts;
     Conv2Arma(arma_sample_counts, sample_counts);
     arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
-        cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
+              cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
     for (size_t i = 0; i < cond1_counts.size(); ++i)
     {
         cond1_counts(i, 0) = log(cond1_counts(i, 0) + 1);
@@ -146,8 +146,8 @@ const float TtestScorer::CalcScore(const std::vector<float> &sample_counts) cons
     }
     size_t cond1_num = cond1_counts.size(), cond2_num = cond2_counts.size();
     float cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts),
-        cond1_sd = calc_sd(cond1_counts), cond2_sd = calc_sd(cond2_counts),
-        pvalue;
+          cond1_sd = calc_sd(cond1_counts), cond2_sd = calc_sd(cond2_counts),
+          pvalue;
     if (cond1_sd == 0 && cond2_sd == 0)
     {
         pvalue = 1;
@@ -155,9 +155,9 @@ const float TtestScorer::CalcScore(const std::vector<float> &sample_counts) cons
     else
     {
         float t1 = cond1_sd * cond1_sd / cond1_num,
-            t2 = cond2_sd * cond2_sd / cond2_num,
-            df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (cond1_num - 1) + t2 * t2 / (cond2_num - 1)),
-            t_stat = (cond1_mean - cond2_mean) / sqrt(t1 + t2);
+              t2 = cond2_sd * cond2_sd / cond2_num,
+              df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (cond1_num - 1) + t2 * t2 / (cond2_num - 1)),
+              t_stat = (cond1_mean - cond2_mean) / sqrt(t1 + t2);
         boost::math::students_t dist(df);
         pvalue = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
     }
@@ -175,10 +175,10 @@ const float EffectSizeScorer::CalcScore(const std::vector<float> &sample_counts)
     arma::mat arma_sample_counts;
     Conv2Arma(arma_sample_counts, sample_counts);
     arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
-        cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
+              cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
     float cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts),
-        cond1_sd = calc_sd(cond1_counts), cond2_sd = calc_sd(cond2_counts),
-        score = (cond2_mean - cond1_mean) / (cond1_sd + cond2_sd);
+          cond1_sd = calc_sd(cond1_counts), cond2_sd = calc_sd(cond2_counts),
+          score = (cond2_mean - cond1_mean) / (cond1_sd + cond2_sd);
     return ((isnan(score) || isinf(score)) ? 0.0 : score);
 }
 
@@ -193,7 +193,7 @@ const float LFCScorer::CalcScore(const std::vector<float> &sample_counts) const
     arma::mat arma_sample_counts;
     Conv2Arma(arma_sample_counts, sample_counts);
     arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
-        cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
+              cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
     float score;
     if (score_cmd_ == "mean")
     {
@@ -228,12 +228,20 @@ const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts)
         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Binary>>
             score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
         score = score_data.Evaluate();
+	if (isnan(score))
+	{
+	    score = 0;
+	}
     }
     else if (nb_class_ > 2)
     {
         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Micro>>
             score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
         score = score_data.Evaluate();
+	if (isnan(score))
+	{
+	    score = 0;
+	}
     }
     else
     {
@@ -241,6 +249,7 @@ const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts)
     }
     if (isnan(score) || isinf(score))
     {
+        std::cout << score << std::endl;
         arma_sample_counts.print("Sample counts: ");
         sample_labels_.print("Sample labels: ");
         throw std::domain_error("F1 score is NaN or Inf in naive Bayes model");
@@ -265,12 +274,12 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts)
             score_data(nb_fold_, arma_sample_counts, sample_labels_);
         score = score_data.Evaluate();
     }
-    else if (nb_class_ > 2)
-    {
-        mlpack::cv::KFoldCV<mlpack::regression::SoftmaxRegression, mlpack::cv::F1<mlpack::cv::Micro>>
-            score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
-        score = score_data.Evaluate();
-    }
+    // else if (nb_class_ > 2)
+    // {
+    //     mlpack::cv::KFoldCV<mlpack::regression::SoftmaxRegression, mlpack::cv::F1<mlpack::cv::Micro>>
+    //         score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
+    //     score = score_data.Evaluate();
+    // }
     else
     {
         throw std::invalid_argument("nb_class should be at least 2 for regression classifier (nb_class = " + std::to_string(nb_class_) + ")");
