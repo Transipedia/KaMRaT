@@ -13,7 +13,8 @@ inline void PrintHelper()
     std::cerr << "            -b CHAR    BASE for normalization: count per BASE (MANDATORY, could be B, M, or K)" << std::endl;
     std::cerr << "            -d STRING  Sample-info path" << std::endl
               << "                       if absent, all columns will be printed" << std::endl;
-    std::cerr << "            -T STRING  Transformation before evaluation (e.g. log)" << std::endl
+    std::cerr << "            -T STRING  Transformation before evaluation (e.g. log)" << std::endl;
+    std::cerr << "            -s STRING  Sample sum path" << std::endl
               << std::endl;
     exit(EXIT_SUCCESS);
 }
@@ -21,6 +22,7 @@ inline void PrintHelper()
 inline void PrintRunInfo(const size_t &baseN,
                          const std::string &sample_info_path,
                          const std::string &trans_mode,
+                         const std::string &sample_sum_path,
                          const std::string &count_tab_path)
 {
     std::cerr << std::endl;
@@ -33,6 +35,7 @@ inline void PrintRunInfo(const size_t &baseN,
     {
         std::cerr << "Transformation mode:    " << trans_mode << std::endl;
     }
+    std::cerr << "Sample sum path:        " << sample_sum_path << std::endl;
     std::cerr << "k-mer count path:       " << count_tab_path << std::endl
               << std::endl;
 }
@@ -42,6 +45,7 @@ inline void ParseOptions(int argc,
                          size_t &baseN,
                          std::string &sample_info_path,
                          std::string &trans_mode,
+                         std::string &sample_sum_path,
                          std::string &count_tab_path)
 {
     int i_opt = 1;
@@ -77,6 +81,10 @@ inline void ParseOptions(int argc,
         else if (arg == "-T" && i_opt + 1 < argc)
         {
             trans_mode = argv[++i_opt];
+        }
+        else if (arg == "-s" && i_opt + 1 < argc)
+        {
+            sample_sum_path = argv[++i_opt];
         }
         else
         {

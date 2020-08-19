@@ -33,10 +33,11 @@ void CalcSum(sampleInfoVect_t &sample_info_vect, const std::string &sample_info_
     std::string line, str_x;
     std::getline(kmer_count_instream, line);
     CountTabHeader count_tab_header;
-    count_tab_header.MakeColumnInfo(line, sample_info_path, "NULLFORNOSCORE");
+    count_tab_header.MakeSmpCond(sample_info_path);
+    count_tab_header.MakeColumnInfo(line, "NULLFORNOSCORE");
     for (int i(0); i < count_tab_header.GetNbColumn(); ++i)
     {
-        if (count_tab_header.GetColNature(i) == 's')
+        if (count_tab_header.IsSample(i))
         {
             sample_info_vect.push_back(SampleInfo(count_tab_header.GetColName(i)));
         }
@@ -46,15 +47,30 @@ void CalcSum(sampleInfoVect_t &sample_info_vect, const std::string &sample_info_
     while (std::getline(kmer_count_instream, line))
     {
         std::istringstream conv(line);
-        for (int i(0); conv >> str_x; ++i)
+        for (int i(0); conv >> str_x && i < count_tab_header.GetNbColumn(); ++i)
         {
-            if (count_tab_header.GetColNature(i) == 's')
+            if (count_tab_header.IsSample(i))
             {
                 sample_info_vect.at(count_tab_header.GetColSerial(i)).AddCount(std::stod(str_x));
+            }
+            if (conv.fail() || i >= count_tab_header.GetNbColumn())
+            {
+                throw std::domain_error("count line string not coherent with header");
             }
         }
     }
     raw_counts_file.close();
+}
+
+void PrintSum(const std::string &sample_sum_outpath,
+              const sampleInfoVect_t &sample_info_vect)
+{
+    std::ofstream sum_out(sample_sum_outpath);
+    for (const auto &elem : sample_info_vect)
+    {
+        sum_out << elem.GetName() << "\t" << elem.GetCount() << std::endl;
+    }
+    sum_out.close();
 }
 
 void PrintNorm(sampleInfoVect_t &sample_info_vect,
@@ -79,7 +95,8 @@ void PrintNorm(sampleInfoVect_t &sample_info_vect,
     std::getline(kmer_count_instream, line);
     std::cout << line << std::endl; // header line
     CountTabHeader count_tab_header;
-    count_tab_header.MakeColumnInfo(line, sample_info_path, "NULLFORNOSCORE");
+    count_tab_header.MakeSmpCond(sample_info_path);
+    count_tab_header.MakeColumnInfo(line, "NULLFORNOSCORE");
 
     size_t n_line(0);
     while (std::getline(kmer_count_instream, line))
@@ -91,7 +108,7 @@ void PrintNorm(sampleInfoVect_t &sample_info_vect,
             {
                 std::cout << "\t";
             }
-            if (count_tab_header.GetColNature(i) == 's')
+            if (count_tab_header.IsSample(i))
             {
                 double sum_count = sample_info_vect.at(count_tab_header.GetColSerial(i)).GetCount(),
                        out_count = (sum_count == 0) ? 0 : (baseN / sum_count * std::stod(str_x));
@@ -119,13 +136,14 @@ void PrintNorm(sampleInfoVect_t &sample_info_vect,
 int main(int argc, char **argv)
 {
     size_t baseN(0);
-    std::string sample_info_path, trans_mode, raw_counts_path;
+    std::string sample_info_path, trans_mode, raw_counts_path, sample_sum_path("sample_sum.tsv");
 
-    ParseOptions(argc, argv, baseN, sample_info_path, trans_mode, raw_counts_path);
-    PrintRunInfo(baseN, sample_info_path, trans_mode, raw_counts_path);
+    ParseOptions(argc, argv, baseN, sample_info_path, trans_mode, sample_sum_path, raw_counts_path);
+    PrintRunInfo(baseN, sample_info_path, trans_mode, sample_sum_path, raw_counts_path);
 
     sampleInfoVect_t sample_info_vect;
     CalcSum(sample_info_vect, sample_info_path, raw_counts_path);
+    PrintSum(sample_sum_path, sample_info_vect);
 
     PrintNorm(sample_info_vect, sample_info_path, raw_counts_path, baseN, trans_mode);
 

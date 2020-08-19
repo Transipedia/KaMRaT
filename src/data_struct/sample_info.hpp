@@ -8,6 +8,7 @@ class SampleInfo
 {
 public:
     SampleInfo(const std::string &sample_name);
+    const std::string GetName() const;
     const void AddCount(double count);
     const double GetCount() const;
 

@@ -104,7 +104,7 @@ const void CountTabHeader::MakeColumnInfo(const std::string &header_line,
     // first term is supposed to be feature //
     conv >> term;
     colname_vect_.push_back(term);
-    colnature_vect_.push_back('f');
+    colnature_vect_.push_back(-3);
     colserial_vect_.push_back(nb_str_++);
     ++nb_col_;
     // following columns //

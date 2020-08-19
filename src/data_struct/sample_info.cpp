@@ -7,6 +7,11 @@ SampleInfo::SampleInfo(const std::string &sample_name)
 {
 }
 
+const std::string SampleInfo::GetName() const
+{
+    return sample_name_;
+}
+
 const void SampleInfo::AddCount(const double count)
 {
     sample_count_ += count;
