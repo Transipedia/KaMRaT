@@ -31,13 +31,13 @@
 
 #include "utils/statistics.hpp"
 #include "utils/seq_coding.hpp"
-#include "data_struct/count_tab.hpp"
+#include "data_struct/count_tab_by_fields.hpp"
 #include "data_struct/seq_elem.hpp"
 #include "run_info_parser/evaluate.hpp"
 
 const float MIN_DISTANCE = 0, MAX_DISTANCE = 1 - MIN_DISTANCE;
 
-void ScanCountTable(CountTab &kmer_count_tab,
+void ScanCountTable(CountTabByFields &kmer_count_tab,
                     code2serial_t &code2serial,
                     const std::string &kmer_count_path,
                     const std::string &colname_list_path,
@@ -51,7 +51,8 @@ void ScanCountTable(CountTab &kmer_count_tab,
     std::string line;
     // dealing with the header line for parsing column names
     std::getline(kmer_count_file, line);
-    kmer_count_tab.MakeColumnInfo(line, colname_list_path, "NULLFORNOSCORE");
+    kmer_count_tab.MakeSmpCond(colname_list_path);
+    kmer_count_tab.MakeColumnInfo(line, "NULLFORNOSCORE");
     // dealing with the count lines
     for (size_t i(0); std::getline(kmer_count_file, line); ++i)
     {
@@ -62,7 +63,8 @@ void ScanCountTable(CountTab &kmer_count_tab,
         {
             throw std::domain_error("duplicated k-mer " + seq);
         }
-        kmer_count_tab.AddCountInMem(line);
+        float _;
+        kmer_count_tab.AddCountInMem(_, line);
     }
     kmer_count_file.close();
 }
@@ -110,7 +112,7 @@ const void EvaluatePrintSeqElemFarthest(const std::string &tag,
                                         const std::string &eval_method,
                                         const bool stranded,
                                         const unsigned int k_len,
-                                        const CountTab &kmer_count_tab,
+                                        const CountTabByFields &kmer_count_tab,
                                         const code2serial_t &code2serial)
 {
     size_t start_pos1 = 0, start_pos2 = seq.size() - k_len;
@@ -145,7 +147,7 @@ const void EvaluatePrintSeqElemWorstAdj(const std::string &tag,
                                         const std::string &eval_method,
                                         const bool stranded,
                                         const unsigned int k_len,
-                                        const CountTab &kmer_count_tab,
+                                        const CountTabByFields &kmer_count_tab,
                                         const code2serial_t &code2serial)
 {
     size_t seq_size = seq.size(), start_pos1 = 0, start_pos2;
@@ -218,7 +220,7 @@ int main(int argc, char **argv)
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    CountTab kmer_count_tab("inMem");
+    CountTabByFields kmer_count_tab("inMem");
     code2serial_t code2serial;
     ScanCountTable(kmer_count_tab, code2serial, kmer_count_path, colname_list_path, stranded);
 

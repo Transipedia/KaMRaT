@@ -27,33 +27,6 @@ inline void AddCountFromIndex(std::vector<float> &sum, std::ifstream &index_file
     }
 }
 
-inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
-                                      std::vector<float> &count_vect,
-                                      const std::string &line_str,
-                                      const std::vector<char> &colnature_vect)
-{
-    std::istringstream conv(line_str);
-    std::string term;
-    size_t score_pos(0); // ASSUMPTION: score value never appears at the first column !!!
-    for (unsigned int i(0); conv >> term; ++i)
-    {
-        if (colnature_vect.at(i) == 'v')
-        {
-            value_vect.push_back(std::stof(term));
-        }
-        else if (colnature_vect.at(i) == '+')
-        {
-            score_pos = i;
-            value_vect.push_back(std::stof(term));
-        }
-        else if (colnature_vect.at(i) == 's')
-        {
-            count_vect.push_back(std::stof(term));
-        }
-    }
-    return score_pos;
-}
-
 CountTab::CountTab(const std::string &mode)
     : mode_(mode)
 {
@@ -76,15 +49,7 @@ const float CountTab::AddCountInMem(const std::string &line_str)
 \* ------------------------------------------------------------------------------------------- */
 {
     std::vector<float> value_vect, count_vect;
-    size_t score_pos = StrLine2ValueCountVects(value_vect, count_vect, line_str, colnature_vect_);
-    if (nb_value_ != value_vect.size())
-    {
-        throw std::domain_error("newly inserted k-mer value vector not coherent with existing k-mer value table");
-    }
-    if (nb_count_ != count_vect.size())
-    {
-        throw std::domain_error("newly inserted k-mer count vector not coherent with existing k-mer count table");
-    }
+    size_t score_pos = ParseLineStr(value_vect, count_vect, line_str);
     if (nb_value_ > 0)
     {
         value_tab_.emplace_back(value_vect);
@@ -106,15 +71,7 @@ const float CountTab::AddIndexOnDsk(const std::string &line_str, std::ofstream &
 \* -------------------------------------------------------------------------------------------------- */
 {
     std::vector<float> value_vect, count_vect;
-    size_t score_pos = StrLine2ValueCountVects(value_vect, count_vect, line_str, colnature_vect_);
-    if (nb_value_ != value_vect.size())
-    {
-        throw std::domain_error("newly inserted k-mer value vector not coherent with existing k-mer value table");
-    }
-    if (nb_count_ != count_vect.size())
-    {
-        throw std::domain_error("newly inserted k-mer count vector not coherent with existing k-mer count table");
-    }
+    size_t score_pos = ParseLineStr(value_vect, count_vect, line_str);
     if (nb_value_ > 0)
     {
         value_tab_.emplace_back(value_vect);
@@ -135,15 +92,7 @@ const bool CountTab::IndexWithString(float &score_value, std::vector<float> &cou
 \* ------------------------------------------------------------------------------------------- */
 {
     std::vector<float> value_vect;
-    size_t score_pos = StrLine2ValueCountVects(value_vect, count_vect, line_str, colnature_vect_);
-    if (nb_value_ != value_vect.size())
-    {
-        throw std::domain_error("newly inserted k-mer value vector not coherent with existing k-mer value table");
-    }
-    if (nb_count_ != count_vect.size())
-    {
-        throw std::domain_error("newly inserted k-mer count vector not coherent with existing k-mer count table");
-    }
+    size_t score_pos = ParseLineStr(value_vect, count_vect, line_str);
     index_pos_.emplace_back(idx_pos);
     if (score_pos == 0)
     {

@@ -8,11 +8,11 @@
 #include <ctime>
 
 #include "data_struct/scorer.hpp"
-#include "data_struct/count_tab.hpp"
+#include "data_struct/count_tab_by_string.hpp"
 #include "data_struct/seq_elem.hpp"
 #include "run_info_parser/rank.hpp"
 
-void EvalScore(CountTab &feature_count_tab,
+void EvalScore(CountTabByString &feature_count_tab,
                seqVect_t &feature_vect,
                const std::string &count_tab_path,
                const std::string &sample_info_path,
@@ -26,8 +26,11 @@ void EvalScore(CountTab &feature_count_tab,
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::string line;
     std::getline(count_tab_file, line);
-    feature_count_tab.MakeColumnInfo(line, sample_info_path, scorer->GetScoreCmd());
-    scorer->LoadSampleLabel(feature_count_tab.GetSmpLabels(), feature_count_tab.GetNbCondition());
+    feature_count_tab.MakeSmpCond(sample_info_path);
+    feature_count_tab.MakeColumnInfo(line, scorer->GetScoreCmd());
+    std::vector<size_t> smp_labels;
+    feature_count_tab.GetSmpLabels(smp_labels);
+    scorer->LoadSampleLabel(smp_labels, feature_count_tab.GetNbCondition());
     //----- Dealing with Following k-mer Count Lines -----//
     for (size_t feature_serial(0), idx_pos(count_tab_file.tellg());
          std::getline(count_tab_file, line);
@@ -97,7 +100,7 @@ void PValueAdjustmentBH(seqVect_t &feature_vect)
     }
 }
 
-void ModelPrint(const seqVect_t &feature_vect, const std::string &count_tab_path, const size_t top_num, const CountTab &count_tab)
+void ModelPrint(const seqVect_t &feature_vect, const std::string &count_tab_path, const size_t top_num, const CountTabByString &count_tab)
 {
     size_t parsed_top_num = (top_num == 0) ? feature_vect.size() : top_num;
     std::ifstream count_tab_file(count_tab_path);
@@ -111,8 +114,7 @@ void ModelPrint(const seqVect_t &feature_vect, const std::string &count_tab_path
     std::cout << line.substr(0, first_delim + 1) << "score" << line.substr(first_delim) << std::endl;
     for (size_t i(0); i < parsed_top_num; ++i)
     {
-        std::cout << feature_vect[i].GetSeq() << "\t" << feature_vect[i].GetScore("final") << "\t";
-        count_tab.PrintFromIndex(feature_vect[i].GetSerial(), count_tab_file, false);
+        count_tab.PrintFromInput(feature_vect[i].GetSerial(), count_tab_file, std::to_string(feature_vect[i].GetScore("final")));
     }
     count_tab_file.close();
 }
@@ -172,7 +174,7 @@ int main(int argc, char *argv[])
     }
     
     PrintRunInfo(count_tab_path, sample_info_path, scorer->GetScoreMethod(), scorer->GetScoreCmd(), scorer->GetSortMode(), scorer->GetNbFold(), nb_sel);
-    CountTab count_tab("onDsk");
+    CountTabByString count_tab;
     seqVect_t feature_vect;
 
     EvalScore(count_tab, feature_vect, count_tab_path, sample_info_path, scorer);

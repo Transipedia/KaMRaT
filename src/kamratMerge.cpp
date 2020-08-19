@@ -10,13 +10,13 @@
 
 #include "utils/statistics.hpp"
 #include "utils/seq_coding.hpp"
-#include "data_struct/count_tab.hpp"
+#include "data_struct/count_tab_by_fields.hpp"
 #include "data_struct/contig_elem.hpp"
 #include "data_struct/merge_knot.hpp"
 #include "run_info_parser/merge.hpp"
 #include "run_info_parser/utils.hpp"
 
-void ScanCountTable(CountTab &kmer_count_tab,
+void ScanCountTable(CountTabByFields &kmer_count_tab,
                     code2contig_t &hashed_contig_list,
                     const std::string &kmer_count_path,
                     const std::string &score_colname,
@@ -32,21 +32,23 @@ void ScanCountTable(CountTab &kmer_count_tab,
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::string line;
     std::getline(kmer_count_file, line);
-    kmer_count_tab.MakeColumnInfo(line, sample_info_path, score_colname);
+    kmer_count_tab.MakeSmpCond(sample_info_path);
+    kmer_count_tab.MakeColumnInfo(line, score_colname);
     //----- Dealing with Following k-mer Count Lines -----//
     std::ofstream count_index_file(count_index_path);
     for (size_t kmer_serial(0); std::getline(kmer_count_file, line); ++kmer_serial)
     {
         float rep_val;
+        bool has_rep_val;
         if (kmer_count_tab.GetMode() == "inMem")
         {
-            rep_val = kmer_count_tab.AddCountInMem(line);
+            has_rep_val = kmer_count_tab.AddCountInMem(rep_val, line);
         }
         else if (kmer_count_tab.GetMode() == "onDsk")
         {
-            rep_val = kmer_count_tab.AddIndexOnDsk(line, count_index_file);
+            has_rep_val = kmer_count_tab.AddIndexOnDsk(rep_val, line, count_index_file);
         }
-        if (rep_val == -1) // if no representative k-mer column
+        if (!has_rep_val) // if no representative k-mer column
         {
             rep_val = kmer_serial;
         }
@@ -105,7 +107,7 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
 }
 
 void PrintContigList(const code2contig_t &hashed_contig_list,
-                     const CountTab &kmer_count_tab,
+                     const CountTabByFields &kmer_count_tab,
                      const size_t k_len,
                      const std::string &quant_mode,
                      std::ifstream &index_file)
@@ -157,7 +159,7 @@ void PrintContigList(const code2contig_t &hashed_contig_list,
 
 const bool DoExtension(code2contig_t &hashed_contig_list,
                        const fix2knot_t &hashed_mergeknot_list,
-                       const CountTab &kmer_count_tab,
+                       const CountTabByFields &kmer_count_tab,
                        const size_t n_overlap,
                        const std::string &interv_method,
                        const float interv_thres,
@@ -251,7 +253,7 @@ int main(int argc, char **argv)
     inter_time = clock();
 
     code2contig_t hashed_contig_list;
-    CountTab kmer_count_tab((disk_mode ? "onDsk" : "inMem"));
+    CountTabByFields kmer_count_tab((disk_mode ? "onDsk" : "inMem"));
     std::string count_index_path = tmp_dir + "counts.idx";
     ScanCountTable(kmer_count_tab, hashed_contig_list, kmer_count_path, rep_colname, sample_info_path, count_index_path, stranded);
 
