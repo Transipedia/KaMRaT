@@ -105,6 +105,7 @@ void ScanCountTab(const std::string &count_tab_path,
                 throw std::domain_error("line parsing not coherent with header");
             }
         }
+        // std::cerr << express_rec << "\t" << silent_rec << std::endl;
         if (express_rec >= express_min_rec && silent_rec >= silent_min_rec)
         {
             std::cout << line << std::endl;

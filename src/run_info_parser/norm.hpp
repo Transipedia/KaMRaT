@@ -7,21 +7,23 @@
 inline void PrintHelper()
 {
     std::cerr << "========= kamratNorm helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratNorm -b CHAR [-d STRING] [-T STRING] STRING" << std::endl
+    std::cerr << "[Usage]    kamratNorm -base CHAR [-smp-info STR] [-ln] [-smp-sum STR] COUNT_TAB_PATH" << std::endl
               << std::endl;
-    std::cerr << "[Option]    -h         Print the helper" << std::endl;
-    std::cerr << "            -b CHAR    BASE for normalization: count per BASE (MANDATORY, could be B, M, or K)" << std::endl;
-    std::cerr << "            -d STRING  Sample-info path" << std::endl
-              << "                       if absent, all columns will be printed" << std::endl;
-    std::cerr << "            -T STRING  Transformation before evaluation (e.g. log)" << std::endl;
-    std::cerr << "            -s STRING  Sample sum path" << std::endl
+    std::cerr << "[Option]    -h,-help       Print the helper" << std::endl;
+    std::cerr << "            -base CHAR     BASE for normalization (MANDATORY)" << std::endl
+              << "                               B: count per billion" << std::endl
+              << "                               M: count per million" << std::endl
+              << "                               K: count per thousand" << std::endl;
+    std::cerr << "            -smp-info STR  Sample-info path" << std::endl
+              << "                               if absent, all columns except the first will be normalized" << std::endl;
+    std::cerr << "            -ln            Apply ln(x + 1) transformation after normalization [false]" << std::endl;
+    std::cerr << "            -smp-sum STR   Path for outputing sample sum [./sample_sum.tsv]" << std::endl
               << std::endl;
-    exit(EXIT_SUCCESS);
 }
 
 inline void PrintRunInfo(const size_t &baseN,
                          const std::string &sample_info_path,
-                         const std::string &trans_mode,
+                         const bool ln_trans,
                          const std::string &sample_sum_path,
                          const std::string &count_tab_path)
 {
@@ -29,12 +31,9 @@ inline void PrintRunInfo(const size_t &baseN,
     std::cerr << "Normalization base:     " << baseN << std::endl;
     if (!sample_info_path.empty())
     {
-        std::cerr << "Sample-info path:      " << sample_info_path << std::endl;
+        std::cerr << "Sample-info path:       " << sample_info_path << std::endl;
     }
-    if (!trans_mode.empty())
-    {
-        std::cerr << "Transformation mode:    " << trans_mode << std::endl;
-    }
+    std::cerr << "Ln transformation:      " << (ln_trans ? "On" : "Off") << std::endl;
     std::cerr << "Sample sum path:        " << sample_sum_path << std::endl;
     std::cerr << "k-mer count path:       " << count_tab_path << std::endl
               << std::endl;
@@ -44,7 +43,7 @@ inline void ParseOptions(int argc,
                          char *argv[],
                          size_t &baseN,
                          std::string &sample_info_path,
-                         std::string &trans_mode,
+                         bool &ln_trans,
                          std::string &sample_sum_path,
                          std::string &count_tab_path)
 {
@@ -52,11 +51,12 @@ inline void ParseOptions(int argc,
     while (i_opt < argc && argv[i_opt][0] == '-')
     {
         std::string arg(argv[i_opt]);
-        if (arg == "-h")
+        if (arg == "-h" || arg == "-help")
         {
             PrintHelper();
+            exit(EXIT_SUCCESS);
         }
-        else if (arg == "-b" && i_opt + 1 < argc)
+        else if (arg == "-base" && i_opt + 1 < argc)
         {
             char base_mode = *(argv[++i_opt]);
             switch (base_mode)
@@ -74,37 +74,36 @@ inline void ParseOptions(int argc,
                 throw std::domain_error("unknown base mode character " + base_mode);
             }
         }
-        else if (arg == "-d" && i_opt + 1 < argc)
+        else if (arg == "-smp-info" && i_opt + 1 < argc)
         {
             sample_info_path = argv[++i_opt];
         }
-        else if (arg == "-T" && i_opt + 1 < argc)
+        else if (arg == "-ln")
         {
-            trans_mode = argv[++i_opt];
+            ln_trans = true;
         }
-        else if (arg == "-s" && i_opt + 1 < argc)
+        else if (arg == "-smp-sum" && i_opt + 1 < argc)
         {
             sample_sum_path = argv[++i_opt];
         }
         else
         {
+            PrintHelper();
             throw std::domain_error("unknown option " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
+        PrintHelper();
         throw std::domain_error("k-mer count table path is mandatory");
     }
     count_tab_path = argv[i_opt++];
 
     if (baseN == 0)
     {
+        PrintHelper();
         throw std::domain_error("base mode is missing or failed to be parsed");
-    }
-    if (!trans_mode.empty() && trans_mode != "log")
-    {
-        throw std::domain_error("unknown transformation mode " + trans_mode);
     }
 }
 

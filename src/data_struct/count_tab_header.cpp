@@ -69,7 +69,7 @@ const void CountTabHeader::MakeSmpCond(const std::string &sample_info_path,
             }
             if (preserved_cond_tags.find(condition) != preserved_cond_tags.cend())
             {
-                throw std::domain_error("condition name " + condition + "is preserved by KaMRaT, please change another name for this condition");
+                throw std::domain_error("condition name " + condition + " is preserved by KaMRaT, please change another name for this condition");
             }
             auto ins = cond2lab_dict_.insert({condition, nb_cond_});
             size_t i_tag = ins.first->second;

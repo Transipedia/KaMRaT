@@ -9,7 +9,7 @@
 inline void PrintHelper()
 {
     std::cerr << "=====> kamratFilter Helper <=====" << std::endl;
-    std::cerr << "[USAGE]    kamratFilter -express-name STR -silent-name STR -express-thres INT1:INT2 -silent-thres INT1:INT2 [-smp-info STR] KMER_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]    kamratFilter -express-name STR -silent-name STR -express-thres INT_REC:INT_ABD -silent-thres INT_REC:INT_ABD [-smp-info STR] KMER_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]   -express-name all/rest/STR:cond/STR:smp   String indicating samples considered for express filter" << std::endl
               << "                                                         all         for considering all samples" << std::endl
@@ -21,12 +21,12 @@ inline void PrintHelper()
               << "                                                         rest        for considering other samples not related with -express-name" << std::endl
               << "                                                         STR:cond    for considering samples in the condition indicated by STR" << std::endl
               << "                                                         STR:smp     for considering the only one sample indicated by STR" << std::endl;
-    std::cerr << "           -express-thres INT1:INT2                  Expressed filter threshold" << std::endl
-              << "                                                         keep the feature with at least (>=) INT1 samples labeled as express-name whose count >= INT2" << std::endl
-              << "                                                         if express-name indicates a sample name, INT1 must be 1" << std::endl;
-    std::cerr << "           -silent-thres INT1:INT2                   Silent filter threshold" << std::endl
-              << "                                                         keep the feature with at least (>=) INT1 samples labeled as silent-name whose count <= INT2" << std::endl
-              << "                                                         if silent-name indicates a sample name, INT1 must be 1" << std::endl;
+    std::cerr << "           -express-thres INT_REC:INT_ABD            Expressed filter threshold" << std::endl
+              << "                                                         keep the feature with at least (>=) INT_REC samples labeled as express-name whose count >= INT_ABD" << std::endl
+              << "                                                         if express-name indicates a sample name, INT_REC must be 1" << std::endl;
+    std::cerr << "           -silent-thres INT_REC:INT_ABD             Silent filter threshold" << std::endl
+              << "                                                         keep the feature with at least (>=) INT_REC samples labeled as silent-name whose count <= INT_ABD" << std::endl
+              << "                                                         if silent-name indicates a sample name, INT_REC must be 1" << std::endl;
     std::cerr << "           -smp-info STR                             Path to sample-condition file, without header line" << std::endl
               << "                                                         if abscent, all columns except the first are regarded as samples and labeled as \"all\"" << std::endl
               << std::endl;
@@ -50,7 +50,7 @@ inline void PrintRunInfo(const std::string &count_tab_path,
     }
     std::cerr << "Express level:                              " << express_level << std::endl;
     std::cerr << "Express name:                               " << express_name << std::endl;
-    std::cerr << "\tat least (>=)" << express_min_rec << " samples with count >= " << express_min_abd << std::endl;
+    std::cerr << "\tat least (>=) " << express_min_rec << " samples with count >= " << express_min_abd << std::endl;
     std::cerr << "Silent level:                               " << silent_level << std::endl;
     std::cerr << "Silent name:                                " << silent_name << std::endl;
     std::cerr << "\tat least (>=) " << silent_min_rec << " samples with count <= " << silent_max_abd << std::endl;
@@ -91,8 +91,9 @@ inline void ParseOptions(int argc,
                 SubCommandParser(express_name, express_level);
                 if (express_level != "cond" && express_level != "smp")
                 {
+                    PrintHelper();
                     throw std::invalid_argument("express-name argument should have \'cond\' or \'smp\' followed by \':\' when filter by condition or sample");
-                } 
+                }
             }
         }
         else if (arg == "-silent-name" && i_opt + 1 < argc)
@@ -107,6 +108,7 @@ inline void ParseOptions(int argc,
                 SubCommandParser(silent_name, silent_level);
                 if (silent_level != "cond" && silent_level != "smp")
                 {
+                    PrintHelper();
                     throw std::invalid_argument("silent-name argument should have \'cond\' or \'smp\' followed by \':\' when filter by condition or sample");
                 }
             }
@@ -131,34 +133,46 @@ inline void ParseOptions(int argc,
         }
         else
         {
+            PrintHelper();
             throw std::invalid_argument("unknown option: " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
+        PrintHelper();
         throw std::domain_error("k-mer count table path is mandatory");
     }
     count_tab_path = argv[i_opt++];
     if (express_name.empty())
     {
+        PrintHelper();
         throw std::invalid_argument("express-name argument not specified");
     }
     if (express_min_rec == -1 || express_min_abd == -1)
     {
+        PrintHelper();
         throw std::invalid_argument("express-thres argument not specified or failed to parse");
     }
     if (silent_name.empty())
     {
+        PrintHelper();
         throw std::invalid_argument("silent-name argument not specified");
     }
     if (silent_min_rec == -1 || silent_max_abd == -1)
     {
+        PrintHelper();
         throw std::invalid_argument("silent-thres argument not specified or failed to parse");
     }
     if ((express_name == "all" && silent_name == "rest") || (silent_name == "all" && express_name == "rest"))
     {
-        throw std::invalid_argument("_all_ and _rest_ are not compatible for express-/silent-names");
+        PrintHelper();
+        throw std::invalid_argument("all and rest are not compatible for express-/silent-names");
+    }
+    if ((express_level == "smp" && express_min_rec > 1) || (silent_level == "smp" && silent_min_rec > 1))
+    {
+        PrintHelper();
+        throw std::invalid_argument("Filtering in sample level but with min_recurrence > 1 does not make sense");
     }
 }
 

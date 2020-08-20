@@ -77,7 +77,7 @@ void PrintNorm(sampleInfoVect_t &sample_info_vect,
                const std::string &sample_info_path,
                const std::string &raw_counts_path,
                const size_t baseN,
-               const std::string &trans_mode)
+               const bool log_trans)
 {
     std::ifstream raw_counts_file(raw_counts_path);
 
@@ -112,7 +112,7 @@ void PrintNorm(sampleInfoVect_t &sample_info_vect,
             {
                 double sum_count = sample_info_vect.at(count_tab_header.GetColSerial(i)).GetCount(),
                        out_count = (sum_count == 0) ? 0 : (baseN / sum_count * std::stod(str_x));
-                if (trans_mode == "log")
+                if (log_trans)
                 {
                     out_count = log(out_count + 1);
                 }
@@ -136,16 +136,17 @@ void PrintNorm(sampleInfoVect_t &sample_info_vect,
 int main(int argc, char **argv)
 {
     size_t baseN(0);
-    std::string sample_info_path, trans_mode, raw_counts_path, sample_sum_path("sample_sum.tsv");
+    std::string sample_info_path, raw_counts_path, sample_sum_path("sample_sum.tsv");
+    bool ln_trans(false);
 
-    ParseOptions(argc, argv, baseN, sample_info_path, trans_mode, sample_sum_path, raw_counts_path);
-    PrintRunInfo(baseN, sample_info_path, trans_mode, sample_sum_path, raw_counts_path);
+    ParseOptions(argc, argv, baseN, sample_info_path, ln_trans, sample_sum_path, raw_counts_path);
+    PrintRunInfo(baseN, sample_info_path, ln_trans, sample_sum_path, raw_counts_path);
 
     sampleInfoVect_t sample_info_vect;
     CalcSum(sample_info_vect, sample_info_path, raw_counts_path);
     PrintSum(sample_sum_path, sample_info_vect);
 
-    PrintNorm(sample_info_vect, sample_info_path, raw_counts_path, baseN, trans_mode);
+    PrintNorm(sample_info_vect, sample_info_path, raw_counts_path, baseN, ln_trans);
 
     return EXIT_SUCCESS;
 }
