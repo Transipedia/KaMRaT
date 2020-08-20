@@ -16,7 +16,8 @@ inline void PrintHelper()
               << "                               K: count per thousand" << std::endl;
     std::cerr << "            -smp-info STR  Sample-info path" << std::endl
               << "                               if absent, all columns except the first will be normalized" << std::endl;
-    std::cerr << "            -ln            Apply ln(x + 1) transformation after normalization [false]" << std::endl;
+    std::cerr << "            -ln            Apply ln(x + 1) transformation after normalization [false]" << std::endl
+              << "                               hint: please remember to unlog for original counts after kamratReduce or other analysis" << std::endl;
     std::cerr << "            -smp-sum STR   Path for outputing sample sum [./sample_sum.tsv]" << std::endl
               << std::endl;
 }

@@ -225,23 +225,35 @@ const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts)
     float score;
     if (nb_class_ == 2)
     {
-        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Binary>>
-            score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
-        score = score_data.Evaluate();
-	if (isnan(score))
-	{
-	    score = 0;
-	}
+        // mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Binary>>
+        //     score_data(7, arma_sample_counts, sample_labels_, nb_class_);
+        // score = score_data.Evaluate();
+        // while (isnan(score))
+        // {
+        //     score_data.Shuffle();
+        //     score = score_data.Evaluate();
+        // }
+        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels_, nb_class_);
+        arma::Row<size_t> pred_class(sample_counts.size());
+        nbc.Classify(arma_sample_counts, pred_class);
+        // arma::mat confusion_mat;
+        // mlpack::data::ConfusionMatrix(pred_class, sample_labels_, confusion_mat, nb_class_);
+        // pred_class.print("Pred class:");
+        // sample_labels_.print("Sample labels:");
+        // confusion_mat.print("Confusion matrix:");
+        mlpack::cv::F1<mlpack::cv::Binary> F1;
+        score = F1.Evaluate(nbc, arma_sample_counts, sample_labels_);
+        // std::cout << "F1 score: " << F1.Evaluate(nbc, arma_sample_counts, sample_labels_) << std::endl;
     }
     else if (nb_class_ > 2)
     {
         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Micro>>
             score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
         score = score_data.Evaluate();
-	if (isnan(score))
-	{
-	    score = 0;
-	}
+        if (isnan(score))
+        {
+            score = 0;
+        }
     }
     else
     {
@@ -270,9 +282,20 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts)
     float score;
     if (nb_class_ == 2)
     {
-        mlpack::cv::KFoldCV<mlpack::regression::LogisticRegression<>, mlpack::cv::F1<mlpack::cv::Binary>>
-            score_data(nb_fold_, arma_sample_counts, sample_labels_);
-        score = score_data.Evaluate();
+        // mlpack::cv::KFoldCV<mlpack::regression::LogisticRegression<>, mlpack::cv::F1<mlpack::cv::Binary>>
+        //     score_data(nb_fold_, arma_sample_counts, sample_labels_);
+        // score = score_data.Evaluate();
+        mlpack::regression::LogisticRegression<> rgc(arma_sample_counts, sample_labels_);
+        arma::Row<size_t> pred_class(sample_counts.size());
+        rgc.Classify(arma_sample_counts, pred_class);
+        // arma::mat confusion_mat;
+        // mlpack::data::ConfusionMatrix(pred_class, sample_labels_, confusion_mat, nb_class_);
+        // pred_class.print("Pred class:");
+        // sample_labels_.print("Sample labels:");
+        // confusion_mat.print("Confusion matrix:");
+        mlpack::cv::F1<mlpack::cv::Binary> F1;
+        score = F1.Evaluate(rgc, arma_sample_counts, sample_labels_);
+        // std::cout << "F1 score: " << F1.Evaluate(rgc, arma_sample_counts, sample_labels_) << std::endl;
     }
     // else if (nb_class_ > 2)
     // {

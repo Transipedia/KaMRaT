@@ -36,7 +36,7 @@ const void CountTabByString::PrintFromInput(const size_t row_serial, std::ifstre
     std::string str_line;
     input_file.seekg(disk_pos);
     std::getline(input_file, str_line);
-    std::cout << str_line.substr(0, str_line.find_first_of(" \t"))
+    std::cout << str_line.substr(0, str_line.find_first_of(" \t") + 1)
               << insert_at_second_col
               << str_line.substr(str_line.find_first_of(" \t")) << std::endl;
 }
