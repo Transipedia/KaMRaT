@@ -20,7 +20,7 @@ void MakeMask(std::unordered_set<uint64_t> &kmer_mask,
     }
     std::string seq, line;
     // std::getline(contig_list_file, line); // ignore the first header line
-    while (true) 
+    while (true)
     {
         std::getline(contig_list_file, line);
         if (line[0] == '>' || contig_list_file.eof()) // reading the last line
@@ -66,6 +66,11 @@ void MaskOutput(std::string &&count_tab_path,
         std::istringstream conv(line);
         std::string kmer;
         conv >> kmer;
+        if (kmer.size() != k_length)
+        {
+            throw std::domain_error("k-mer length in table (" + std::to_string(kmer.size()) + ")" +
+                                    " not equal to the given kmer length (" + std::to_string(k_length) + ")");
+        }
         bool is_in_mask = (kmer_mask.find(Seq2Int(kmer, k_length, stranded)) != kmer_mask.cend());
         if (is_in_mask && reverse_mask) // reverse_mask = to_select
         {
@@ -83,10 +88,10 @@ int main(int argc, char **argv)
 {
     std::string mask_file_path, count_tab_path;
     bool stranded(true), reverse_mask(false);
-    size_t k_length(31);
+    size_t k_length(0);
 
-    ParseOptions(argc, argv, mask_file_path, stranded, k_length, reverse_mask, count_tab_path);
-    PrintRunInfo(mask_file_path, stranded, k_length, reverse_mask);
+    ParseOptions(argc, argv, k_length, mask_file_path, stranded, reverse_mask, count_tab_path);
+    PrintRunInfo(k_length, mask_file_path, stranded, reverse_mask);
 
     std::unordered_set<uint64_t> kmer_mask;
     MakeMask(kmer_mask, mask_file_path, k_length, stranded);
