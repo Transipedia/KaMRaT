@@ -6,29 +6,28 @@
 
 #include "utils.hpp"
 
-inline void PrintHelper(const size_t k_length, const size_t min_overlap)
+inline void PrintHelper()
 {
     std::cerr << "========= kamratMerge helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratMerge [-k k_length] [-m min_overlap] [-n] [-d sample_info] [-i interv_method] [-q quant_mode] [-R rep_colname] [-x] [-t tmp_dir] kmer_count_path" << std::endl
+    std::cerr << "[Usage]    kamratMerge -klen INT [-min-overlap INT] [-unstrand] [-smp-info STR] [-interv STR] [-quant STR] [-rep-name STR] [-disk] [-idx-dir STR] KMER_COUNT_TAB_PATH" << std::endl
               << std::endl;
-    std::cerr << "[Option]    -h         Print the helper" << std::endl;
-    std::cerr << "            -n         If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
-    std::cerr << "            -k INT     k-mer length (max_value: 32) [" << int(k_length) << "]" << std::endl;
-    std::cerr << "            -m INT     Min assembly overlap (max_value: k) [" << int(min_overlap) << "]" << std::endl;
-    std::cerr << "            -d STRING  Sample-info path, either list or table with sample names as the first column" << std::endl
-              << "                       if absent, all columns except the first one in k-mer count table are taken as samples" << std::endl;
-    std::cerr << "            -i STRING  Intervention method (none, pearson, spearman, mac) [none]" << std::endl
-              << "                       the threshold can be precised after a ':' symbol" << std::endl;
-    std::cerr << "            -q STRING  Quantification mode (rep, mean) [rep]" << std::endl;
-    std::cerr << "            -R STRING  Representative value column name, k-mer input order as rep-val by default" << std::endl;
-    std::cerr << "            -x         Query on disk [false]" << std::endl;
-    std::cerr << "            -t STRING  Temporary directory [./]" << std::endl
+    std::cerr << "[Option]    -h,-help            Print the helper" << std::endl;
+    std::cerr << "            -klen INT           k-mer length (max_value: 32)" << std::endl;
+    std::cerr << "            -unstrand           If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
+    std::cerr << "            -min-overlap INT    Min assembly overlap (max_value: k) [floor(k/2)]" << std::endl;
+    std::cerr << "            -smp-info STR       Sample-info path, either list or table with sample names as the first column" << std::endl
+              << "                                    if absent, all columns except the first one in k-mer count table are taken as samples" << std::endl;
+    std::cerr << "            -interv STR         Intervention method (none, pearson, spearman, mac) [none]" << std::endl
+              << "                                    the threshold can be precised after a ':' symbol" << std::endl;
+    std::cerr << "            -quant STR          Quantification mode (rep, mean) [rep]" << std::endl;
+    std::cerr << "            -rep-name STR       Representative value column name, k-mer input order as rep-val by default" << std::endl;
+    std::cerr << "            -disk               Query on disk [false]" << std::endl;
+    std::cerr << "            -idx-dir STR        Count index directory path [./]" << std::endl
               << std::endl;
-    exit(EXIT_SUCCESS);
 }
 
-inline void PrintRunInfo(const bool stranded,
-                         const size_t k_length,
+inline void PrintRunInfo(const size_t k_length,
+                         const bool stranded,
                          const size_t min_overlap,
                          const std::string &sample_info_path,
                          const std::string &interv_method,
@@ -40,8 +39,8 @@ inline void PrintRunInfo(const bool stranded,
                          const std::string &kmer_count_path)
 {
     std::cerr << std::endl;
-    std::cerr << "Stranded mode:                 " << (stranded ? "On" : "Off") << std::endl;
     std::cerr << "k-mer length:                  " << k_length << std::endl;
+    std::cerr << "Stranded mode:                 " << (stranded ? "On" : "Off") << std::endl;
     std::cerr << "Min overlap length:            " << min_overlap << std::endl;
     if (!sample_info_path.empty())
     {
@@ -72,8 +71,8 @@ inline void PrintRunInfo(const bool stranded,
 
 inline void ParseOptions(int argc,
                          char *argv[],
-                         bool &stranded,
                          size_t &k_length,
+                         bool &stranded,
                          size_t &min_overlap,
                          std::string &sample_info_path,
                          std::string &interv_method,
@@ -88,65 +87,77 @@ inline void ParseOptions(int argc,
     while (i_opt < argc && argv[i_opt][0] == '-')
     {
         std::string arg(argv[i_opt]);
-        if (arg == "-h")
+        if (arg == "-h" || arg == "-help")
         {
-            PrintHelper(k_length, min_overlap);
+            PrintHelper();
+            exit(EXIT_SUCCESS);
         }
-        else if (arg == "-n")
+        else if (arg == "-klen" && i_opt + 1 < argc)
+        {
+            k_length = atoi(argv[++i_opt]);
+            if (min_overlap == 0)
+            {
+                min_overlap = (k_length / 2);
+            }
+        }
+        else if (arg == "-unstrand")
         {
             stranded = false;
         }
-        else if (arg == "-k" && i_opt + 1 < argc)
-        {
-            k_length = atoi(argv[++i_opt]);
-        }
-        else if (arg == "-m" && i_opt + 1 < argc)
+        else if (arg == "-min-overlap" && i_opt + 1 < argc)
         {
             min_overlap = atoi(argv[++i_opt]);
         }
-        else if (arg == "-d" && i_opt + 1 < argc)
+        else if (arg == "-smp-info" && i_opt + 1 < argc)
         {
             sample_info_path = argv[++i_opt];
         }
-        else if (arg == "-i" && i_opt + 1 < argc)
+        else if (arg == "-interv" && i_opt + 1 < argc)
         {
             interv_method = argv[++i_opt];
         }
-        else if (arg == "-q" && i_opt + 1 < argc)
+        else if (arg == "-quant" && i_opt + 1 < argc)
         {
             quant_mode = argv[++i_opt];
         }
-        else if (arg == "-R" && i_opt + 1 < argc)
+        else if (arg == "-rep-name" && i_opt + 1 < argc)
         {
             rep_value_cname = argv[++i_opt];
         }
-        else if (arg == "-x")
+        else if (arg == "-disk")
         {
             disk_mode = true;
         }
-        else if (arg == "-t" && i_opt + 1 < argc)
+        else if (arg == "-idx-dir" && i_opt + 1 < argc)
         {
             tmp_dir = argv[++i_opt];
         }
         else
         {
-            throw std::domain_error("unknown option " + arg);
-            exit(EXIT_FAILURE);
+            PrintHelper();
+            throw std::invalid_argument("unknown option " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
-        throw std::domain_error("k-mer count table path is mandatory");
+        PrintHelper();
+        throw std::invalid_argument("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
+    if (k_length == 0)
+    {
+        PrintHelper();
+        throw std::invalid_argument("k-mer length is missing");
+    }
 
     // dealing intervention method //
     std::string threshold_str;
     SubCommandParser(interv_method, threshold_str);
     if (interv_method != "none" && INTERV_METHOD_UNIV.find(interv_method) == INTERV_METHOD_UNIV.cend())
     {
-        throw std::domain_error("unknown intervention method " + interv_method);
+        PrintHelper();
+        throw std::invalid_argument("unknown intervention method " + interv_method);
     }
     if (threshold_str.empty() && interv_method == "pearson")
     {

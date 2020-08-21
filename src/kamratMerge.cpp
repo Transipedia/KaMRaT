@@ -144,11 +144,11 @@ void PrintContigList(const code2contig_t &hashed_contig_list,
         for (size_t i(1); i < kmer_count_tab.GetNbColumn(); ++i)
         {
             size_t serial = kmer_count_tab.GetColSerial(i);
-            if (kmer_count_tab.GetColNature(i) == 's') // count column => output according to quant_mode
+            if (kmer_count_tab.GetColNature(i) >= 0) // count column => output according to quant_mode
             {
                 std::cout << "\t" << sample_count.at(serial);
             }
-            else if (kmer_count_tab.GetColNature(i) == 'v' || kmer_count_tab.GetColNature(i) == '+') // value column => output that related with rep-k-mer
+            else if (kmer_count_tab.GetColNature(i) == -1 || kmer_count_tab.GetColNature(i) == -2) // value column => output that related with rep-k-mer
             {
                 std::cout << "\t" << kmer_count_tab.GetValue(rep_serial, serial);
             }
@@ -242,12 +242,12 @@ int main(int argc, char **argv)
     std::clock_t begin_time = clock(), inter_time;
     std::string kmer_count_path, sample_info_path, interv_method("none"), quant_mode("rep"), tmp_dir("./"), rep_colname;
     float interv_thres;
-    size_t k_len(31);
+    size_t k_len(0);
     bool stranded(true), disk_mode(false);
-    size_t min_overlap(15);
+    size_t min_overlap(0);
 
-    ParseOptions(argc, argv, stranded, k_len, min_overlap, sample_info_path, interv_method, interv_thres, quant_mode, rep_colname, disk_mode, tmp_dir, kmer_count_path);
-    PrintRunInfo(stranded, k_len, min_overlap, sample_info_path, interv_method, interv_thres, quant_mode, rep_colname, disk_mode, tmp_dir, kmer_count_path);
+    ParseOptions(argc, argv, k_len, stranded, min_overlap, sample_info_path, interv_method, interv_thres, quant_mode, rep_colname, disk_mode, tmp_dir, kmer_count_path);
+    PrintRunInfo(k_len, stranded, min_overlap, sample_info_path, interv_method, interv_thres, quant_mode, rep_colname, disk_mode, tmp_dir, kmer_count_path);
 
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();

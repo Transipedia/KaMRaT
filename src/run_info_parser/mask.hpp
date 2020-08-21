@@ -7,12 +7,12 @@
 inline void PrintHelper()
 {
     std::cerr << "========= kamratMask helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratMask -klen INT -fasta STR [-unstranded] [-reverse-mask] KMER_COUNT_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamratMask -klen INT -fasta STR [-unstrand] [-reverse-mask] KMER_COUNT_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help         Print the helper" << std::endl;
     std::cerr << "            -klen INT        Length of k-mers [31]" << std::endl;
     std::cerr << "            -fasta STR       Sequence fasta file as the mask" << std::endl;
-    std::cerr << "            -unstranded      If k-mers are generated from unstranded RNA-seq data" << std::endl;
+    std::cerr << "            -unstrand        If k-mers are generated from unstranded RNA-seq data" << std::endl;
     std::cerr << "            -reverse-mask    Reverse mask, to select the k-mers in sequence fasta file" << std::endl;
 }
 
@@ -45,17 +45,17 @@ inline void ParseOptions(int argc,
             PrintHelper();
             exit(EXIT_SUCCESS);
         }
+        else if (arg == "-klen" && i_opt + 1 < argc)
+        {
+            k_length = atoi(argv[++i_opt]);
+        }
         else if (arg == "-fasta" && i_opt + 1 < argc)
         {
             mask_file_path = argv[++i_opt];
         }
-        else if (arg == "-unstranded")
+        else if (arg == "-unstrand")
         {
             stranded = false;
-        }
-        else if (arg == "-klen" && i_opt + 1 < argc)
-        {
-            k_length = atoi(argv[++i_opt]);
         }
         else if (arg == "-reverse-mask")
         {
@@ -64,14 +64,14 @@ inline void ParseOptions(int argc,
         else
         {
             PrintHelper();
-            throw std::domain_error("unknown option: " + arg);
+            throw std::invalid_argument("unknown option: " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
         PrintHelper();
-        throw std::domain_error("k-mer count table path is mandatory");
+        throw std::invalid_argument("k-mer count table path is mandatory");
     }
     count_tab_path = argv[i_opt++];
     if (k_length == 0)
@@ -82,7 +82,7 @@ inline void ParseOptions(int argc,
     if (mask_file_path.empty())
     {
         PrintHelper();
-        throw std::domain_error("Mask sequence fasta path is mandatory");
+        throw std::invalid_argument("Mask sequence fasta path is mandatory");
     }
 }
 
