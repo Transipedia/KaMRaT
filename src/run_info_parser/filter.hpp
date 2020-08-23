@@ -6,7 +6,7 @@
 
 #include "utils.hpp"
 
-inline void PrintHelper()
+inline void PrintFilterHelper()
 {
     std::cerr << "=====> kamratFilter Helper <=====" << std::endl;
     std::cerr << "[USAGE]    kamratFilter -express-name STR -silent-name STR -express-thres INT_REC:INT_ABD -silent-thres INT_REC:INT_ABD [-smp-info STR] KMER_TAB_PATH" << std::endl
@@ -76,7 +76,7 @@ inline void ParseOptions(int argc,
         std::string arg(argv[i_opt]);
         if (arg == "-help" || arg == "-h")
         {
-            PrintHelper();
+            PrintFilterHelper();
             exit(EXIT_SUCCESS);
         }
         else if (arg == "-express-name" && i_opt + 1 < argc)
@@ -91,7 +91,7 @@ inline void ParseOptions(int argc,
                 SubCommandParser(express_name, express_level);
                 if (express_level != "cond" && express_level != "smp")
                 {
-                    PrintHelper();
+                    PrintFilterHelper();
                     throw std::invalid_argument("express-name argument should have \'cond\' or \'smp\' followed by \':\' when filter by condition or sample");
                 }
             }
@@ -108,7 +108,7 @@ inline void ParseOptions(int argc,
                 SubCommandParser(silent_name, silent_level);
                 if (silent_level != "cond" && silent_level != "smp")
                 {
-                    PrintHelper();
+                    PrintFilterHelper();
                     throw std::invalid_argument("silent-name argument should have \'cond\' or \'smp\' followed by \':\' when filter by condition or sample");
                 }
             }
@@ -133,45 +133,45 @@ inline void ParseOptions(int argc,
         }
         else
         {
-            PrintHelper();
+            PrintFilterHelper();
             throw std::invalid_argument("unknown option: " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
-        PrintHelper();
+        PrintFilterHelper();
         throw std::domain_error("k-mer count table path is mandatory");
     }
     count_tab_path = argv[i_opt++];
     if (express_name.empty())
     {
-        PrintHelper();
+        PrintFilterHelper();
         throw std::invalid_argument("express-name argument not specified");
     }
     if (express_min_rec == -1 || express_min_abd == -1)
     {
-        PrintHelper();
+        PrintFilterHelper();
         throw std::invalid_argument("express-thres argument not specified or failed to parse");
     }
     if (silent_name.empty())
     {
-        PrintHelper();
+        PrintFilterHelper();
         throw std::invalid_argument("silent-name argument not specified");
     }
     if (silent_min_rec == -1 || silent_max_abd == -1)
     {
-        PrintHelper();
+        PrintFilterHelper();
         throw std::invalid_argument("silent-thres argument not specified or failed to parse");
     }
     if ((express_name == "all" && silent_name == "rest") || (silent_name == "all" && express_name == "rest"))
     {
-        PrintHelper();
+        PrintFilterHelper();
         throw std::invalid_argument("all and rest are not compatible for express-/silent-names");
     }
     if ((express_level == "smp" && express_min_rec > 1) || (silent_level == "smp" && silent_min_rec > 1))
     {
-        PrintHelper();
+        PrintFilterHelper();
         throw std::invalid_argument("Filtering in sample level but with min_recurrence > 1 does not make sense");
     }
 }

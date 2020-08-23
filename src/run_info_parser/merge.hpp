@@ -6,7 +6,7 @@
 
 #include "utils.hpp"
 
-inline void PrintHelper()
+inline void PrintMergeHelper()
 {
     std::cerr << "========= kamratMerge helper =========" << std::endl;
     std::cerr << "[Usage]    kamratMerge -klen INT [-min-overlap INT] [-unstrand] [-smp-info STR] [-interv STR] [-quant STR] [-rep-name STR] [-disk] [-idx-dir STR] KMER_COUNT_TAB_PATH" << std::endl
@@ -89,7 +89,7 @@ inline void ParseOptions(int argc,
         std::string arg(argv[i_opt]);
         if (arg == "-h" || arg == "-help")
         {
-            PrintHelper();
+            PrintMergeHelper();
             exit(EXIT_SUCCESS);
         }
         else if (arg == "-klen" && i_opt + 1 < argc)
@@ -134,20 +134,20 @@ inline void ParseOptions(int argc,
         }
         else
         {
-            PrintHelper();
+            PrintMergeHelper();
             throw std::invalid_argument("unknown option " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
-        PrintHelper();
+        PrintMergeHelper();
         throw std::invalid_argument("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
     if (k_length == 0)
     {
-        PrintHelper();
+        PrintMergeHelper();
         throw std::invalid_argument("k-mer length is missing");
     }
 
@@ -156,7 +156,7 @@ inline void ParseOptions(int argc,
     SubCommandParser(interv_method, threshold_str);
     if (interv_method != "none" && INTERV_METHOD_UNIV.find(interv_method) == INTERV_METHOD_UNIV.cend())
     {
-        PrintHelper();
+        PrintMergeHelper();
         throw std::invalid_argument("unknown intervention method " + interv_method);
     }
     if (threshold_str.empty() && interv_method == "pearson")

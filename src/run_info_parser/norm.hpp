@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-inline void PrintHelper()
+inline void PrintNormHelper()
 {
     std::cerr << "========= kamratNorm helper =========" << std::endl;
     std::cerr << "[Usage]    kamratNorm -base CHAR [-smp-info STR] [-ln] [-smp-sum STR] COUNT_TAB_PATH" << std::endl
@@ -54,7 +54,7 @@ inline void ParseOptions(int argc,
         std::string arg(argv[i_opt]);
         if (arg == "-h" || arg == "-help")
         {
-            PrintHelper();
+            PrintNormHelper();
             exit(EXIT_SUCCESS);
         }
         else if (arg == "-base" && i_opt + 1 < argc)
@@ -89,21 +89,21 @@ inline void ParseOptions(int argc,
         }
         else
         {
-            PrintHelper();
+            PrintNormHelper();
             throw std::domain_error("unknown option " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
-        PrintHelper();
+        PrintNormHelper();
         throw std::domain_error("k-mer count table path is mandatory");
     }
     count_tab_path = argv[i_opt++];
 
     if (baseN == 0)
     {
-        PrintHelper();
+        PrintNormHelper();
         throw std::domain_error("base mode is missing or failed to be parsed");
     }
 }

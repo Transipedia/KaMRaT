@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstring>
 
 int FilterMain(int argc, char *argv[]);
 int MaskMain(int argc, char *argv[]);
@@ -11,13 +12,12 @@ const void Welcome()
     std::cerr << "===================================================================================" << std::endl
               << "******                           Welcome to KaMRaT                           ******" << std::endl
               << "******                                                                       ******" << std::endl
-              << "-----------------------------------------------------------------------------------" << std::endl;
+              << "****** --------------------------------------------------------------------- ******" << std::endl;
 }
 
 const void PrintHelper()
 {
-    std::cerr << "KaMRaT helper:" << std::endl
-              << "[Usage]" << std::endl 
+    std::cerr << "[Usage]" << std::endl 
               << "    kamrat <command> [options] COUNT_TAB_PATH > OUTPUT_PATH" << std::endl
               << "[Command]" << std::endl
               << "    filter:    filter count table according to occurence among samples" << std::endl
@@ -31,7 +31,11 @@ const void PrintHelper()
 int main(int argc, char *argv[])
 {
     Welcome();
-    if (strcmp(argv[1], "filter") == 0) {
+    if (argc == 1 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-help") == 0 || strcmp(argv[1], "--help") == 0)
+    {
+        PrintHelper();
+    }
+    else if (strcmp(argv[1], "filter") == 0) {
         FilterMain(argc - 1, &(argv[1]));
     }
     else if (strcmp(argv[1], "mask") == 0) {
@@ -45,10 +49,6 @@ int main(int argc, char *argv[])
     }
     else if (strcmp(argv[1], "rank") == 0) {
         RankMain(argc - 1, &(argv[1]));
-    }
-    else if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-help") == 0 || strcmp(argv[1], "--help") == 0)
-    {
-        PrintHelper();
     }
     else
     {

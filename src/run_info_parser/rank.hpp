@@ -6,7 +6,7 @@
 
 #include "utils.hpp"
 
-inline void PrintHelper()
+inline void PrintRankHelper()
 {
     std::cerr << "=====> kamratRank Helper <=====" << std::endl;
     std::cerr << "[USAGE]    kamratRank [-smp-info STR] [-eval-method STR] [-sort-mode STR] [-top-num INT] [-ln] COUNT_TAB_PATH" << std::endl
@@ -90,7 +90,7 @@ inline void ParseOptions(int argc,
         std::string arg(argv[i_opt]);
         if (arg == "-h" || arg == "-help")
         {
-            PrintHelper();
+            PrintRankHelper();
             exit(EXIT_SUCCESS);
         }
         else if (arg == "-smp-info" && i_opt + 1 < argc)
@@ -116,20 +116,20 @@ inline void ParseOptions(int argc,
         }
         else
         {
-            PrintHelper();
+            PrintRankHelper();
             throw std::domain_error("unknown option: " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
-        PrintHelper();
+        PrintRankHelper();
         throw std::domain_error("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
     if (!sort_mode.empty() && SORT_MODE_UNIV.find(sort_mode) == SORT_MODE_UNIV.cend())
     {
-        PrintHelper();
+        PrintRankHelper();
         throw std::domain_error("unknown sort mode: " + sort_mode);
     }
 }

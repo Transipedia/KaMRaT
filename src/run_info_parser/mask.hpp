@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-inline void PrintHelper()
+inline void PrintMaskHelper()
 {
     std::cerr << "========= kamratMask helper =========" << std::endl;
     std::cerr << "[Usage]    kamratMask -klen INT -fasta STR [-unstrand] [-reverse-mask] KMER_COUNT_TAB_PATH" << std::endl
@@ -42,7 +42,7 @@ inline void ParseOptions(int argc,
         std::string arg(argv[i_opt]);
         if (arg == "-h" || arg == "-help")
         {
-            PrintHelper();
+            PrintMaskHelper();
             exit(EXIT_SUCCESS);
         }
         else if (arg == "-klen" && i_opt + 1 < argc)
@@ -63,25 +63,25 @@ inline void ParseOptions(int argc,
         }
         else
         {
-            PrintHelper();
+            PrintMaskHelper();
             throw std::invalid_argument("unknown option: " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
-        PrintHelper();
+        PrintMaskHelper();
         throw std::invalid_argument("k-mer count table path is mandatory");
     }
     count_tab_path = argv[i_opt++];
     if (k_length == 0)
     {
-        PrintHelper();
+        PrintMaskHelper();
         throw std::invalid_argument("k-mer length is missing");
     }
     if (mask_file_path.empty())
     {
-        PrintHelper();
+        PrintMaskHelper();
         throw std::invalid_argument("Mask sequence fasta path is mandatory");
     }
 }
