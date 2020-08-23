@@ -130,7 +130,7 @@ void ModelPrint(const seqVect_t &feature_vect,
     count_tab_file.close();
 }
 
-int main(int argc, char *argv[])
+int RankMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
     std::string count_tab_path, sample_info_path, score_method, score_cmd, sort_mode;

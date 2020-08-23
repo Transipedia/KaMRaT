@@ -133,7 +133,7 @@ void PrintNorm(sampleInfoVect_t &sample_info_vect,
     }
 }
 
-int main(int argc, char **argv)
+int NormMain(int argc, char **argv)
 {
     size_t baseN(0);
     std::string sample_info_path, raw_counts_path, sample_sum_path("sample_sum.tsv");

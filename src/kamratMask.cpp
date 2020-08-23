@@ -84,7 +84,7 @@ void MaskOutput(std::string &&count_tab_path,
     kmer_count_file.close();
 }
 
-int main(int argc, char **argv)
+int MaskMain(int argc, char **argv)
 {
     std::string mask_file_path, count_tab_path;
     bool stranded(true), reverse_mask(false);

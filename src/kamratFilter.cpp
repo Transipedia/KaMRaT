@@ -114,7 +114,7 @@ void ScanCountTab(const std::string &count_tab_path,
     count_tab_file.close();
 }
 
-int main(int argc, char *argv[])
+int FilterMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
     std::string count_tab_path, sample_info_path, express_level, express_name, silent_level, silent_name;

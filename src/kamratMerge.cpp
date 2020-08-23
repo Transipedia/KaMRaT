@@ -237,7 +237,7 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
     return has_new_extensions;
 }
 
-int main(int argc, char **argv)
+int MergeMain(int argc, char **argv)
 {
     std::clock_t begin_time = clock(), inter_time;
     std::string kmer_count_path, sample_info_path, interv_method("none"), quant_mode("rep"), tmp_dir("./"), rep_colname;
