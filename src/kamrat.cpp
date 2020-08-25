@@ -12,7 +12,8 @@ const void Welcome()
     std::cerr << "===================================================================================" << std::endl
               << "******                           Welcome to KaMRaT                           ******" << std::endl
               << "******                                                                       ******" << std::endl
-              << "****** --------------------------------------------------------------------- ******" << std::endl;
+              << "****** --------------------------------------------------------------------- ******" << std::endl
+	      << std::endl;
 }
 
 const void PrintHelper()
@@ -53,7 +54,7 @@ int main(int argc, char *argv[])
     else
     {
         PrintHelper();
-        throw std::invalid_argument("unknown command: " + *(argv[1]));
+        throw std::invalid_argument("unknown command: " + std::string(argv[1]));
     }
     return EXIT_SUCCESS;
 }

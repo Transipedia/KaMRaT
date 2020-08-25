@@ -52,11 +52,11 @@ inline void PrintRunInfo(const std::string &kmer_count_path,
         std::cerr << "Sample info path:                             " << sample_info_path << std::endl;
     }
     std::cerr << "Evaluation method:                            " << score_method << std::endl;
-    if (score_method == "nb" || score_method == "lr")
+    if (nb_fold >= 2)
     {
         std::cerr << "    Fold number = " << nb_fold << std::endl;
     }
-    else if (score_method == "lfc")
+    else if (score_method == "log2fc")
     {
         std::cerr << "    Value for comparison = " << score_cmd << " of group" << std::endl;
     }
