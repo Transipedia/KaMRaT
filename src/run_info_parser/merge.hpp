@@ -8,8 +8,7 @@
 
 inline void PrintMergeHelper()
 {
-    std::cerr << "========= kamratMerge helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratMerge -klen INT [-min-overlap INT] [-unstrand] [-smp-info STR] [-interv STR] [-quant STR] [-rep-name STR] [-disk] [-idx-dir STR] KMER_COUNT_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat merge -klen INT [-min-overlap INT] [-unstrand] [-smp-info STR] [-interv STR] [-quant STR] [-rep-name STR] [-disk] [-idx-dir STR] KMER_COUNT_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help            Print the helper" << std::endl;
     std::cerr << "            -klen INT           k-mer length (max_value: 32)" << std::endl;

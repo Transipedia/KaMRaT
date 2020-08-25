@@ -8,8 +8,7 @@
 
 inline void PrintRankHelper()
 {
-    std::cerr << "=====> kamratRank Helper <=====" << std::endl;
-    std::cerr << "[USAGE]    kamratRank [-smp-info STR] [-eval-method STR] [-sort-mode STR] [-top-num INT] [-ln] COUNT_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]    kamrat rank [-smp-info STR] [-eval-method STR] [-sort-mode STR] [-top-num INT] [-ln] COUNT_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]        -smp-info STR        Path to sample-condition or sample file, without header line" << std::endl
               << "                                         if absent, all columns except the first in the count table are regarded as sample" << std::endl;

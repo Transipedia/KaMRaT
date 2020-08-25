@@ -6,8 +6,7 @@
 
 inline void PrintNormHelper()
 {
-    std::cerr << "========= kamratNorm helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratNorm -base CHAR [-smp-info STR] [-ln] [-smp-sum STR] COUNT_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat norm -base CHAR [-smp-info STR] [-ln] [-smp-sum STR] COUNT_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help       Print the helper" << std::endl;
     std::cerr << "            -base CHAR     BASE for normalization (MANDATORY)" << std::endl

@@ -6,8 +6,7 @@
 
 inline void PrintMaskHelper()
 {
-    std::cerr << "========= kamratMask helper =========" << std::endl;
-    std::cerr << "[Usage]    kamratMask -klen INT -fasta STR [-unstrand] [-reverse-mask] KMER_COUNT_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat mask -klen INT -fasta STR [-unstrand] [-reverse-mask] KMER_COUNT_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help         Print the helper" << std::endl;
     std::cerr << "            -klen INT        Length of k-mers [31]" << std::endl;

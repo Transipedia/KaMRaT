@@ -4,6 +4,15 @@
 #include <iostream>
 #include "scorer.hpp"
 
+#define MET_SD "sd"
+#define MET_RSD "relat.sd"
+#define MET_TTEST "t-test"
+#define MET_ES "effect.size"
+#define MET_LFC "log2fc"
+#define MET_NBF1 "naivebayes.f1"
+#define MET_RGF1 "regression.f1"
+#define MET_USER "user"
+
 inline float calc_mean(const arma::mat &sample_counts)
 {
     float mean = arma::mean(arma::conv_to<arma::vec>::from(sample_counts));
@@ -32,18 +41,6 @@ inline void Conv2Arma(arma::mat &arma_count_vect, const std::vector<float> &coun
     }
 }
 
-const size_t InferNbFold(const std::string &score_method, const std::string &score_cmd)
-{
-    if (score_method == "nb" || score_method == "sr")
-    {
-        return (score_cmd.empty() ? 2 : std::stoi(score_cmd));
-    }
-    else
-    {
-        return 0;
-    }
-}
-
 Scorer::Scorer(const std::string &score_method, const std::string &score_cmd, const std::string &sort_mode, const size_t nb_fold)
     : score_method_(score_method),
       sort_mode_(sort_mode),
@@ -55,9 +52,13 @@ Scorer::Scorer(const std::string &score_method, const std::string &score_cmd, co
 
 void Scorer::LoadSampleLabel(const std::vector<size_t> &label_vect, const size_t nb_class)
 {
-    if (nb_class != 2 && (score_method_ == "ttest" || score_method_ == "es" || score_method_ == "lfc"))
+    if (nb_class != 2 && (score_method_ == MET_TTEST || score_method_ == MET_ES || score_method_ == MET_LFC))
     {
         throw std::domain_error("T-test, effect size, and log2FC scoring only accept binary sample condition");
+    }
+    if (nb_class < 2 && (score_method_ == MET_NBF1 || score_method_ == MET_RGF1))
+    {
+        throw std::domain_error("Naive Bayes or regression classfiers only accept condition number >= 2");
     }
     nb_class_ = nb_class;
     sample_labels_ = arma::conv_to<arma::Row<size_t>>::from(label_vect); // each column is an observation
@@ -96,7 +97,7 @@ const float Scorer::CalcScore(const std::vector<float> &sample_counts) const // 
 
 // =====> Standard Deviation Scoring <===== //
 SDScorer::SDScorer(const std::string &sort_mode)
-    : Scorer("sd", "", (sort_mode.empty() ? "dec" : sort_mode), 1)
+    : Scorer(MET_SD, "", (sort_mode.empty() ? "dec" : sort_mode), 1)
 {
 }
 
@@ -110,7 +111,7 @@ const float SDScorer::CalcScore(const std::vector<float> &sample_counts) const
 
 // =====> Relative Standard Deviation Scoring <===== //
 RelatSDScorer::RelatSDScorer(const std::string &sort_mode)
-    : Scorer("relat.sd", "", (sort_mode.empty() ? "dec" : sort_mode), 1)
+    : Scorer(MET_RSD, "", (sort_mode.empty() ? "dec" : sort_mode), 1)
 {
 }
 
@@ -126,7 +127,7 @@ const float RelatSDScorer::CalcScore(const std::vector<float> &sample_counts) co
 
 // =====> T-test Scoring <===== //
 TtestScorer::TtestScorer(const std::string &sort_mode)
-    : Scorer("t-test", "", (sort_mode.empty() ? "inc" : sort_mode), 1)
+    : Scorer(MET_TTEST, "", (sort_mode.empty() ? "inc" : sort_mode), 1)
 {
 }
 
@@ -166,7 +167,7 @@ const float TtestScorer::CalcScore(const std::vector<float> &sample_counts) cons
 
 // =====> Effect Size Scorer <===== //
 EffectSizeScorer::EffectSizeScorer(const std::string &sort_mode)
-    : Scorer("effect size", "", (sort_mode.empty() ? "dec:abs" : sort_mode), 1)
+    : Scorer(MET_ES, "", (sort_mode.empty() ? "dec:abs" : sort_mode), 1)
 {
 }
 
@@ -184,7 +185,7 @@ const float EffectSizeScorer::CalcScore(const std::vector<float> &sample_counts)
 
 // =====> Log2FC Scorer <===== //
 LFCScorer::LFCScorer(const std::string &score_cmd, const std::string &sort_mode)
-    : Scorer("log2fc", score_cmd, (sort_mode.empty() ? "dec:abs" : sort_mode), 1)
+    : Scorer(MET_LFC, score_cmd, (sort_mode.empty() ? "dec:abs" : sort_mode), 1)
 {
 }
 
@@ -214,7 +215,7 @@ const float LFCScorer::CalcScore(const std::vector<float> &sample_counts) const
 
 // =====> Naive Bayes Scorer <===== //
 NaiveBayesScorer::NaiveBayesScorer(const std::string &sort_mode, const size_t nb_fold)
-    : Scorer("naive bayes f1 score", "", (sort_mode.empty() ? "dec" : sort_mode), nb_fold)
+    : Scorer(MET_NBF1, "", (sort_mode.empty() ? "dec" : sort_mode), nb_fold)
 {
 }
 
@@ -271,7 +272,7 @@ const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts)
 
 // =====> Regression Scorer <===== //
 RegressionScorer::RegressionScorer(const std::string &sort_mode, const size_t nb_fold)
-    : Scorer("regression f1 score", "", (sort_mode.empty() ? "dec" : sort_mode), nb_fold)
+    : Scorer(MET_RGF1, "", (sort_mode.empty() ? "dec" : sort_mode), nb_fold)
 {
 }
 
@@ -318,7 +319,7 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts)
 
 // =====> User Scorer <===== //
 UserScorer::UserScorer(const std::string &sort_mode)
-    : Scorer("user", "", (sort_mode.empty() ? "dec" : sort_mode), 0)
+    : Scorer(MET_USER, "", (sort_mode.empty() ? "dec" : sort_mode), 0)
 {
 }
 

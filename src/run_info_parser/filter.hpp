@@ -8,8 +8,7 @@
 
 inline void PrintFilterHelper()
 {
-    std::cerr << "=====> kamratFilter Helper <=====" << std::endl;
-    std::cerr << "[USAGE]    kamratFilter -express-name STR -silent-name STR -express-thres INT_REC:INT_ABD -silent-thres INT_REC:INT_ABD [-smp-info STR] KMER_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]    kamrat filter -express-name STR -silent-name STR -express-thres INT_REC:INT_ABD -silent-thres INT_REC:INT_ABD [-smp-info STR] KMER_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]   -express-name all/rest/STR:cond/STR:smp   String indicating samples considered for express filter" << std::endl
               << "                                                         all         for considering all samples" << std::endl
