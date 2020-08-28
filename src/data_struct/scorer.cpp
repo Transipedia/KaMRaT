@@ -229,11 +229,10 @@ const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts)
         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Binary>>
              score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
         score = score_data.Evaluate();
-        // while (isnan(score))
-        // {
-        //     score_data.Shuffle();
-        //     score = score_data.Evaluate();
-        // }
+        if (isnan(score))
+        {
+            score = 0;
+        }
         // mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels_, nb_class_);
         // arma::Row<size_t> pred_class(sample_counts.size());
         // nbc.Classify(arma_sample_counts, pred_class);
