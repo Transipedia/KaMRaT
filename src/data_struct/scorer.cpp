@@ -41,6 +41,25 @@ inline void Conv2Arma(arma::mat &arma_count_vect, const std::vector<float> &coun
     }
 }
 
+// class CustomF1Measure
+// {
+//     template <typename MLAlgorithm, typename DataType>
+//     static double Evaluate(MLAlgorithm &model,
+//                            const DataType &data,
+//                            const arma::Row<size_t> &labels)
+//     {
+//         arma::Row<size_t> pred_class(labels.size());
+//         model.Classify(data, pred_class);
+//         // arma::mat confusion_mat;
+//         // mlpack::data::ConfusionMatrix(pred_class, labels, confusion_mat, nb_class_);
+//         // pred_class.print("Pred class:");
+//         // labels.print("Sample labels:");
+//         // confusion_mat.print("Confusion matrix:");
+//         double score = mlpack::cv::F1<mlpack::cv::Binary>().Evaluate(model, data, labels);
+//         return (isnan(score) ? 0 : score);
+//     }
+// };
+
 Scorer::Scorer(const std::string &score_method, const std::string &score_cmd, const std::string &sort_mode, const size_t nb_fold)
     : score_method_(score_method),
       sort_mode_(sort_mode),
@@ -226,13 +245,13 @@ const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts)
     float score;
     if (nb_class_ == 2)
     {
-        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Binary>>
-             score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
+        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Micro>>
+            score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
         score = score_data.Evaluate();
-        if (isnan(score))
-        {
-            score = 0;
-        }
+        // if (isnan(score))
+        // {
+        //     score = 0;
+        // }
         // mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels_, nb_class_);
         // arma::Row<size_t> pred_class(sample_counts.size());
         // nbc.Classify(arma_sample_counts, pred_class);
