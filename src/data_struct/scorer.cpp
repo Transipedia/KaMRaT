@@ -41,24 +41,26 @@ inline void Conv2Arma(arma::mat &arma_count_vect, const std::vector<float> &coun
     }
 }
 
-// class CustomF1Measure
-// {
-//     template <typename MLAlgorithm, typename DataType>
-//     static double Evaluate(MLAlgorithm &model,
-//                            const DataType &data,
-//                            const arma::Row<size_t> &labels)
-//     {
-//         arma::Row<size_t> pred_class(labels.size());
-//         model.Classify(data, pred_class);
-//         // arma::mat confusion_mat;
-//         // mlpack::data::ConfusionMatrix(pred_class, labels, confusion_mat, nb_class_);
-//         // pred_class.print("Pred class:");
-//         // labels.print("Sample labels:");
-//         // confusion_mat.print("Confusion matrix:");
-//         double score = mlpack::cv::F1<mlpack::cv::Binary>().Evaluate(model, data, labels);
-//         return (isnan(score) ? 0 : score);
-//     }
-// };
+class MLMetrics
+{
+public:
+    template <typename MLAlgorithm, typename DataType>
+    static double Evaluate(MLAlgorithm &model, const DataType &data, const arma::Row<size_t> &labels)
+    {
+        arma::Row<size_t> pred_class(labels.size());
+        model.Classify(data, pred_class);
+        if (labels.max() == 1) // binary conditions
+        {
+            double score = mlpack::cv::F1<mlpack::cv::Binary>().Evaluate(model, data, labels);
+            return (isnan(score) ? 0 : score);
+        }
+        else // multiple conditions
+        {
+            double score = mlpack::cv::F1<mlpack::cv::Micro>().Evaluate(model, data, labels);
+            return score;
+        }
+    }
+};
 
 Scorer::Scorer(const std::string &score_method, const std::string &score_cmd, const std::string &sort_mode, const size_t nb_fold)
     : score_method_(score_method),
@@ -238,45 +240,78 @@ NaiveBayesScorer::NaiveBayesScorer(const std::string &sort_mode, const size_t nb
 {
 }
 
+inline void CompareScore(const arma::mat &arma_sample_counts, const arma::Row<size_t> &sample_labels, const size_t nb_class, const size_t nb_fold)
+{
+    // Binary F1 all samples
+    {
+        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels, nb_class);
+        arma::Row<size_t> pred_class(sample_labels.size());
+        nbc.Classify(arma_sample_counts, pred_class);
+        mlpack::cv::F1<mlpack::cv::Binary> F1;
+        std::cout << "\t" << F1.Evaluate(nbc, arma_sample_counts, sample_labels);
+    }
+    // Micro F1 all samples
+    {
+        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels, nb_class);
+        arma::Row<size_t> pred_class(sample_labels.size());
+        nbc.Classify(arma_sample_counts, pred_class);
+        mlpack::cv::F1<mlpack::cv::Micro> F1;
+        std::cout << "\t" << F1.Evaluate(nbc, arma_sample_counts, sample_labels);
+    }
+    // Accuracy all samples
+    {
+        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels, nb_class);
+        arma::Row<size_t> pred_class(sample_labels.size());
+        nbc.Classify(arma_sample_counts, pred_class);
+        mlpack::cv::Accuracy accuracy;
+        std::cout << "\t" << accuracy.Evaluate(nbc, arma_sample_counts, sample_labels);
+    }
+    // Binary F1 cross-validation
+    {
+        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Binary>>
+            score_data(nb_fold, arma_sample_counts, sample_labels, nb_class);
+        std::cout << "\t" << score_data.Evaluate();
+    }
+    // Micro F1 cross-validation
+    {
+        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Micro>>
+            score_data(nb_fold, arma_sample_counts, sample_labels, nb_class);
+        std::cout << "\t" << score_data.Evaluate();
+    }
+    // Accuracy cross-validation
+    {
+        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::Accuracy>
+            score_data(nb_fold, arma_sample_counts, sample_labels, nb_class);
+        std::cout << "\t" << score_data.Evaluate();
+    }
+    // Binary F1 cross-validation with -nan replaced by 0 in folds
+    {
+        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, MLMetrics>
+            score_data(nb_fold, arma_sample_counts, sample_labels, nb_class);
+        std::cout << "\t" << score_data.Evaluate() << std::endl;
+    }
+}
+
 const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts) const
 {
     arma::mat arma_sample_counts;
     Conv2Arma(arma_sample_counts, sample_counts);
+    // CompareScore(arma_sample_counts, sample_labels_, nb_class_, nb_fold_);
+    const size_t nb_fold_final = (nb_fold_ == 0 ? sample_labels_.size() : nb_fold_);
     float score;
-    if (nb_class_ == 2)
+    if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
     {
-        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Micro>>
-            score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
-        score = score_data.Evaluate();
-        // if (isnan(score))
-        // {
-        //     score = 0;
-        // }
-        // mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels_, nb_class_);
-        // arma::Row<size_t> pred_class(sample_counts.size());
-        // nbc.Classify(arma_sample_counts, pred_class);
-        // arma::mat confusion_mat;
-        // mlpack::data::ConfusionMatrix(pred_class, sample_labels_, confusion_mat, nb_class_);
-        // pred_class.print("Pred class:");
-        // sample_labels_.print("Sample labels:");
-        // confusion_mat.print("Confusion matrix:");
-        // mlpack::cv::F1<mlpack::cv::Binary> F1;
-        // score = F1.Evaluate(nbc, arma_sample_counts, sample_labels_);
-        // std::cout << "F1 score: " << F1.Evaluate(nbc, arma_sample_counts, sample_labels_) << std::endl;
+        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels_, nb_class_);
+        arma::Row<size_t> pred_class(sample_counts.size());
+        nbc.Classify(arma_sample_counts, pred_class);
+        MLMetrics F1;
+        score = F1.Evaluate(nbc, arma_sample_counts, sample_labels_);
     }
-    else if (nb_class_ > 2)
+    else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
-        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Micro>>
-            score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
+        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, MLMetrics>
+            score_data(nb_fold_final, arma_sample_counts, sample_labels_, nb_class_);
         score = score_data.Evaluate();
-        if (isnan(score))
-        {
-            score = 0;
-        }
-    }
-    else
-    {
-        throw std::invalid_argument("nb_class should be at least 2 for naive bayes classifier (nb_class = " + std::to_string(nb_class_) + ")");
     }
     if (isnan(score) || isinf(score))
     {
@@ -298,36 +333,31 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts)
 {
     arma::mat arma_sample_counts;
     Conv2Arma(arma_sample_counts, sample_counts);
+    const size_t nb_fold_final = (nb_fold_ == 0 ? sample_labels_.size() : nb_fold_);
     float score;
-    if (nb_class_ == 2)
+    if (nb_fold_final == 1)
     {
-        // mlpack::cv::KFoldCV<mlpack::regression::LogisticRegression<>, mlpack::cv::F1<mlpack::cv::Binary>>
-        //     score_data(nb_fold_, arma_sample_counts, sample_labels_);
-        // score = score_data.Evaluate();
-        mlpack::regression::LogisticRegression<> rgc(arma_sample_counts, sample_labels_);
-        arma::Row<size_t> pred_class(sample_counts.size());
-        rgc.Classify(arma_sample_counts, pred_class);
+        // mlpack::regression::SoftmaxRegression rgc(arma_sample_counts, sample_labels_, nb_class_);
+        // arma::Row<size_t> pred_class(sample_counts.size());
+        // rgc.Classify(arma_sample_counts, pred_class);
         // arma::mat confusion_mat;
         // mlpack::data::ConfusionMatrix(pred_class, sample_labels_, confusion_mat, nb_class_);
         // pred_class.print("Pred class:");
         // sample_labels_.print("Sample labels:");
         // confusion_mat.print("Confusion matrix:");
-        mlpack::cv::F1<mlpack::cv::Binary> F1;
-        score = F1.Evaluate(rgc, arma_sample_counts, sample_labels_);
-        // std::cout << "F1 score: " << F1.Evaluate(rgc, arma_sample_counts, sample_labels_) << std::endl;
+        // MLMetrics F1;
+        // score = F1.Evaluate(rgc, arma_sample_counts, sample_labels_);
     }
-    // else if (nb_class_ > 2)
-    // {
-    //     mlpack::cv::KFoldCV<mlpack::regression::SoftmaxRegression, mlpack::cv::F1<mlpack::cv::Micro>>
-    //         score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
-    //     score = score_data.Evaluate();
-    // }
     else
     {
-        throw std::invalid_argument("nb_class should be at least 2 for regression classifier (nb_class = " + std::to_string(nb_class_) + ")");
+        // mlpack::cv::KFoldCV<mlpack::regression::SoftmaxRegression, MLMetrics>
+        //     score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
+        // score = score_data.Evaluate();
     }
+    throw std::domain_error("Softmax regression is not applicable for now");
     if (isnan(score) || isinf(score))
     {
+        std::cout << score << std::endl;
         arma_sample_counts.print("Sample counts: ");
         sample_labels_.print("Sample labels: ");
         throw std::domain_error("F1 score is NaN or Inf in regression model");

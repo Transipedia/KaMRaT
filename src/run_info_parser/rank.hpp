@@ -10,7 +10,8 @@ inline void PrintRankHelper()
 {
     std::cerr << "[USAGE]    kamrat rank [-smp-info STR] [-eval-method STR] [-sort-mode STR] [-top-num INT] [-ln] COUNT_TAB_PATH" << std::endl
               << std::endl;
-    std::cerr << "[OPTION]        -smp-info STR        Path to sample-condition or sample file, without header line" << std::endl
+    std::cerr << "[OPTION]        -h,-help             Print the helper "<< std::endl;
+    std::cerr << "                -smp-info STR        Path to sample-condition or sample file, without header line" << std::endl
               << "                                         if absent, all columns except the first in the count table are regarded as sample" << std::endl;
     std::cerr << "                -score-method STR    Evaluation method to use and its parameter, seperated by \':\' (cf. [EVAL. METHOD])" << std::endl;
     std::cerr << "                -sort-mode STR       Mode for score sorting, default value depends on evaluation method (cf. [SORT MODE])" << std::endl;
@@ -24,7 +25,10 @@ inline void PrintRankHelper()
     std::cerr << "                es                  Effect size between conditions" << std::endl;
     std::cerr << "                lfc:mean            Log2 fold change by group mean, 'mean' can be omitted by default" << std::endl;
     std::cerr << "                lfc:median          Log2 fold change by group median" << std::endl;
-    std::cerr << "                nb:n_fold           Naive Bayes classification, default n_fold = 2" << std::endl;
+    std::cerr << "                nb:n_fold           Naive Bayes classification [default n_fold = 1]" << std::endl
+              << "                                        if n_fold = 0, leave-one-out cross-validation is applied" << std::endl
+              << "                                        if n_fold = 1, no cross-validation is applied, features are evaluated by training and testing on the whole datset" << std::endl
+              << "                                        if n_fold >= 2, n-fold cross-validation is applied" << std::endl;
     std::cerr << "                rg:n_fold           Classification by regression, default n_fold = 2" << std::endl
               << "                                        if nb_condition = 2, logistic regression is used" << std::endl
               << "                                        if nb_condition > 2, softmax regression is used" << std::endl;
@@ -52,9 +56,21 @@ inline void PrintRunInfo(const std::string &kmer_count_path,
         std::cerr << "Sample info path:                             " << sample_info_path << std::endl;
     }
     std::cerr << "Evaluation method:                            " << score_method << std::endl;
-    if (nb_fold >= 2)
+    if (score_method == "naivebayes.f1" || score_method == "regression.f1")
     {
-        std::cerr << "    Fold number = " << nb_fold << std::endl;
+	if (nb_fold == 0)
+	{
+	    std::cerr << "    Leave-one-out cross-validation";
+	}
+	else if (nb_fold == 1)
+	{
+	    std::cerr << "    No cross-validation, train and test on the whole dataset";
+	}
+	else
+	{
+            std::cerr << "    Cross-validation with fold number = " << nb_fold;
+	}
+	std::cerr << std::endl;
     }
     else if (score_method == "log2fc")
     {

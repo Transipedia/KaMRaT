@@ -8,20 +8,20 @@
 
 inline void PrintMergeHelper()
 {
-    std::cerr << "[Usage]    kamrat merge -klen INT [-min-overlap INT] [-unstrand] [-smp-info STR] [-interv STR] [-quant STR] [-rep-name STR] [-disk] [-idx-dir STR] KMER_COUNT_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat merge -klen INT [-min-overlap INT] [-unstrand] [-smp-info STR] [-interv-method STR] [-quant STR] [-rep-name STR] [-disk] [-idx-dir STR] KMER_COUNT_TAB_PATH" << std::endl
               << std::endl;
-    std::cerr << "[Option]    -h,-help            Print the helper" << std::endl;
-    std::cerr << "            -klen INT           k-mer length (max_value: 32)" << std::endl;
-    std::cerr << "            -unstrand           If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
-    std::cerr << "            -min-overlap INT    Min assembly overlap (max_value: k) [floor(k/2)]" << std::endl;
-    std::cerr << "            -smp-info STR       Sample-info path, either list or table with sample names as the first column" << std::endl
-              << "                                    if absent, all columns except the first one in k-mer count table are taken as samples" << std::endl;
-    std::cerr << "            -interv STR         Intervention method (none, pearson, spearman, mac) [none]" << std::endl
-              << "                                    the threshold can be precised after a ':' symbol" << std::endl;
-    std::cerr << "            -quant STR          Quantification mode (rep, mean) [rep]" << std::endl;
-    std::cerr << "            -rep-name STR       Representative value column name, k-mer input order as rep-val by default" << std::endl;
-    std::cerr << "            -disk               Query on disk [false]" << std::endl;
-    std::cerr << "            -idx-dir STR        Count index directory path [./]" << std::endl
+    std::cerr << "[Option]    -h,-help              Print the helper" << std::endl;
+    std::cerr << "            -klen INT             k-mer length (max_value: 32)" << std::endl;
+    std::cerr << "            -unstrand             If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
+    std::cerr << "            -min-overlap INT      Min assembly overlap (max_value: k) [floor(k/2)]" << std::endl;
+    std::cerr << "            -smp-info STR         Sample-info path, either list or table with sample names as the first column" << std::endl
+              << "                                      if absent, all columns except the first one in k-mer count table are taken as samples" << std::endl;
+    std::cerr << "            -interv-method STR    Intervention method (none, pearson, spearman, mac) [none]" << std::endl
+              << "                                      the threshold can be precised after a ':' symbol" << std::endl;
+    std::cerr << "            -quant STR            Quantification mode (rep, mean) [rep]" << std::endl;
+    std::cerr << "            -rep-name STR         Representative value column name, k-mer input order as rep-val by default" << std::endl;
+    std::cerr << "            -disk                 Query on disk [false]" << std::endl;
+    std::cerr << "            -idx-dir STR          Count index directory path [./]" << std::endl
               << std::endl;
 }
 
@@ -111,7 +111,7 @@ inline void ParseOptions(int argc,
         {
             sample_info_path = argv[++i_opt];
         }
-        else if (arg == "-interv" && i_opt + 1 < argc)
+        else if (arg == "-interv-method" && i_opt + 1 < argc)
         {
             interv_method = argv[++i_opt];
         }
