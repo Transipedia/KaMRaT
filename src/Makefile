@@ -1,10 +1,10 @@
 target : kamrat kamratEvaluate clean
 
 kamrat : kamrat.cpp kamratRank.o kamratNorm.o kamratMerge.o kamratMask.o kamratFilter.o
-	g++ -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -I/home/haoliang.xue/.conda/envs/mlpack/include -lboost_iostreams
+	g++ -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams
 
 kamratRank.o : kamratRank.cpp data_struct/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab_by_string.cpp data_struct/seq_elem.cpp
-	g++ -c kamratRank.cpp data_struct/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab_by_string.cpp data_struct/seq_elem.cpp -fopenmp -lmlpack -larmadillo -I/home/haoliang.xue/.conda/envs/mlpack/include
+	g++ -c kamratRank.cpp data_struct/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab_by_string.cpp data_struct/seq_elem.cpp -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include
 
 kamratNorm.o : kamratNorm.cpp data_struct/count_tab_header.cpp data_struct/sample_info.cpp 
 	g++ -c kamratNorm.cpp data_struct/count_tab_header.cpp data_struct/sample_info.cpp -lboost_iostreams
