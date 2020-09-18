@@ -7,7 +7,7 @@ The toolbox contains for now modules below:
 - kamratMerge which takes a k-mer count table as input, and merge k-mers into longer contigs according to their overlap
 - kamratReduce which takes a k-mer count table as input, and evaluates the performance of each k-mer according to different metrics
 
-## Prerequest
+## Prerequisite
 
 The kamratReduce module is dependent on MLPack library. It could be installed from [conda cloud](https://anaconda.org/conda-forge/mlpack).
 
