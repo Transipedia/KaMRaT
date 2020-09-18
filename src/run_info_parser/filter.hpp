@@ -10,7 +10,8 @@ inline void PrintFilterHelper()
 {
     std::cerr << "[USAGE]    kamrat filter -express-name STR -silent-name STR -express-thres INT_REC:INT_ABD -silent-thres INT_REC:INT_ABD [-smp-info STR] KMER_TAB_PATH" << std::endl
               << std::endl;
-    std::cerr << "[OPTION]   -express-name all/rest/STR:cond/STR:smp   String indicating samples considered for express filter" << std::endl
+    std::cerr << "[OPTION]   -h,-help                                  Print the helper" << std::endl;
+    std::cerr << "           -express-name all/rest/STR:cond/STR:smp   String indicating samples considered for express filter" << std::endl
               << "                                                         all         for considering all samples" << std::endl
               << "                                                         rest        for considering other samples not related with -silent-name" << std::endl
               << "                                                         STR:cond    for considering samples in the condition indicated by STR" << std::endl

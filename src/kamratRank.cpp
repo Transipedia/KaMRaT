@@ -32,12 +32,17 @@ void EvalScore(CountTabByString &feature_count_tab,
     std::vector<size_t> smp_labels;
     feature_count_tab.GetSmpLabels(smp_labels);
     scorer->LoadSampleLabel(smp_labels, feature_count_tab.GetNbCondition());
+    // std::cout << "feature\tall.f1.binary\tall.f1.micro\tall.accuracy\tcv.f1.binary\tcv.f1.micro\tcv.accuracy\tcv.f1.na_to_0" << std::endl;
     //----- Dealing with Following k-mer Count Lines -----//
     for (size_t feature_serial(0), idx_pos(count_tab_file.tellg());
          std::getline(count_tab_file, line);
          ++feature_serial, idx_pos = count_tab_file.tellg())
     {
-        float feature_score;
+        std::istringstream conv(line);
+        std::string feature_seq;
+        conv >> feature_seq; // first column as feature (string)
+	// std::cout << feature_seq << "\t";
+	float feature_score;
         std::vector<float> count_vect;
         if (!feature_count_tab.IndexWithString(feature_score, count_vect, line, idx_pos) && scorer->GetScoreMethod() == "user")
         {
@@ -54,9 +59,6 @@ void EvalScore(CountTabByString &feature_count_tab,
             }
             feature_score = scorer->CalcScore(count_vect);
         }
-        std::istringstream conv(line);
-        std::string feature_seq;
-        conv >> feature_seq; // first column as feature (string)
         feature_vect.emplace_back(feature_seq, feature_serial, feature_score);
     }
     count_tab_file.close();
@@ -168,12 +170,12 @@ int RankMain(int argc, char *argv[])
     }
     else if (score_method == "nb")
     {
-        size_t nb_fold = (score_cmd.empty() ? 2 : std::stoi(score_cmd));
+        size_t nb_fold = (score_cmd.empty() ? 1 : std::stoi(score_cmd));
         scorer = new NaiveBayesScorer(sort_mode, nb_fold);
     }
     else if (score_method == "rg")
     {
-        size_t nb_fold = (score_cmd.empty() ? 2 : std::stoi(score_cmd));
+        size_t nb_fold = (score_cmd.empty() ? 1 : std::stoi(score_cmd));
         scorer = new RegressionScorer(sort_mode, nb_fold);
     }
     else if (score_method == "user")

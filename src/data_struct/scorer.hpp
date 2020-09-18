@@ -7,6 +7,7 @@
 
 #include "mlpack/core/cv/k_fold_cv.hpp"
 #include "mlpack/core/cv/metrics/f1.hpp"
+#include "mlpack/core/cv/metrics/accuracy.hpp"
 #include "mlpack/methods/naive_bayes/naive_bayes_classifier.hpp"
 #include "mlpack/methods/logistic_regression/logistic_regression.hpp"
 #include "mlpack/methods/softmax_regression/softmax_regression.hpp"
