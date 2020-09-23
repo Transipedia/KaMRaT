@@ -49,6 +49,9 @@ public:
     {
         arma::Row<size_t> pred_class(labels.size());
         model.Classify(data, pred_class);
+	data.print("Count vector:");
+	labels.print("Real labels:");
+	pred_class.print("Predicted class:");
         if (labels.max() == 1) // binary conditions
         {
             double score = mlpack::cv::F1<mlpack::cv::Binary>().Evaluate(model, data, labels);
@@ -302,10 +305,8 @@ const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts)
     if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
     {
         mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels_, nb_class_);
-        arma::Row<size_t> pred_class(sample_counts.size());
-        nbc.Classify(arma_sample_counts, pred_class);
-        MLMetrics F1;
-        score = F1.Evaluate(nbc, arma_sample_counts, sample_labels_);
+        MLMetrics my_f1;
+        score = my_f1.Evaluate(nbc, arma_sample_counts, sample_labels_);
     }
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
@@ -345,8 +346,8 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts)
         // pred_class.print("Pred class:");
         // sample_labels_.print("Sample labels:");
         // confusion_mat.print("Confusion matrix:");
-        // MLMetrics F1;
-        // score = F1.Evaluate(rgc, arma_sample_counts, sample_labels_);
+        // MLMetrics my_f1;
+        // score = my_f1.Evaluate(rgc, arma_sample_counts, sample_labels_);
     }
     else
     {
