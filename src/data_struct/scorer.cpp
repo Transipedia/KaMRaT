@@ -11,6 +11,7 @@
 #define MET_LFC "log2fc"
 #define MET_NBF1 "naivebayes.f1"
 #define MET_RGF1 "regression.f1"
+#define MET_SVM "svm.hingeloss"
 #define MET_USER "user"
 
 inline float calc_mean(const arma::mat &sample_counts)
@@ -49,9 +50,9 @@ public:
     {
         arma::Row<size_t> pred_class(labels.size());
         model.Classify(data, pred_class);
-	data.print("Count vector:");
-	labels.print("Real labels:");
-	pred_class.print("Predicted class:");
+        data.print("Count vector:");
+        labels.print("Real labels:");
+        pred_class.print("Predicted class:");
         if (labels.max() == 1) // binary conditions
         {
             double score = mlpack::cv::F1<mlpack::cv::Binary>().Evaluate(model, data, labels);
@@ -364,6 +365,13 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts)
         throw std::domain_error("F1 score is NaN or Inf in regression model");
     }
     return score;
+}
+
+// =====> SVM Scorer <===== //
+
+SVMScorer::SVMScorer(const std::string &sort_mode)
+    : Scorer(MET_SVM, "", (sort_mode.empty() ? "inc" : sort_mode), 0)
+{
 }
 
 // =====> User Scorer <===== //

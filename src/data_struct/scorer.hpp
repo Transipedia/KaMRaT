@@ -11,6 +11,8 @@
 #include "mlpack/methods/naive_bayes/naive_bayes_classifier.hpp"
 #include "mlpack/methods/logistic_regression/logistic_regression.hpp"
 #include "mlpack/methods/softmax_regression/softmax_regression.hpp"
+#include "mlpack/methods/linear_svm/linear_svm.hpp"
+#include "mlpack/methods/linear_svm/linear_svm_function.hpp"
 #include "armadillo"
 #include "boost/math/distributions/students_t.hpp"
 
@@ -81,6 +83,13 @@ class RegressionScorer : public Scorer
 {
 public:
     RegressionScorer(const std::string &sort_mode, size_t nb_fold);
+    const float CalcScore(const std::vector<float> &sample_counts) const override;
+};
+
+class SVMScorer : public Scorer
+{
+public:
+    SVMScorer(const std::string &sort_mode);
     const float CalcScore(const std::vector<float> &sample_counts) const override;
 };
 
