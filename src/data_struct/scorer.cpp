@@ -379,12 +379,18 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts,
 // =====> SVM Scorer <===== //
 
 SVMScorer::SVMScorer(const std::string &sort_mode)
-    : Scorer(MET_SVM, "", (sort_mode.empty() ? "inc" : sort_mode), 0)
+    : Scorer(MET_SVM, "", (sort_mode.empty() ? "dec" : sort_mode), 0)
 {
 }
 
 const float SVMScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
+    arma::mat arma_sample_counts;
+    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
+    mlpack::svm::LinearSVM<> lsvm(arma_sample_counts, sample_labels_, nb_class_);
+    MLMetrics my_f1;
+    float score = my_f1.Evaluate(lsvm, arma_sample_counts, sample_labels_);
+    return score;
 }
 
 // =====> User Scorer <===== //

@@ -8,7 +8,7 @@
 
 inline void PrintRankHelper()
 {
-    std::cerr << "[USAGE]    kamrat rank [-smp-info STR] [-eval-method STR] [-sort-mode STR] [-top-num INT] [-ln] COUNT_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]    kamrat rank [-smp-info STR] [-score-method STR] [-sort-mode STR] [-top-num INT] [-ln] COUNT_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]        -h,-help             Print the helper " << std::endl;
     std::cerr << "                -smp-info STR        Path to sample-condition or sample file, without header line" << std::endl
@@ -27,14 +27,15 @@ inline void PrintRankHelper()
     std::cerr << "                es                   Effect size between conditions" << std::endl;
     std::cerr << "                lfc:mean             Log2 fold change by group mean, 'mean' can be omitted by default" << std::endl;
     std::cerr << "                lfc:median           Log2 fold change by group median" << std::endl;
-    std::cerr << "                nb:n_fold            Naive Bayes classification [default n_fold = 1]" << std::endl
+    std::cerr << "                nb:n_fold            F1-score with naive Bayes classification [default n_fold = 1]" << std::endl
               << "                                         if n_fold = 0, leave-one-out cross-validation is applied" << std::endl
               << "                                         if n_fold = 1, no cross-validation is applied, features are evaluated by training and testing on the whole datset" << std::endl
               << "                                         if n_fold >= 2, n-fold cross-validation is applied" << std::endl;
-    std::cerr << "                rg:n_fold            Classification by regression [default n_fold = 1]" << std::endl
+    std::cerr << "                rg:n_fold            F1-score with regression classification [default n_fold = 1]" << std::endl
               << "                                         if n_fold = 0, leave-one-out cross-validation is applied" << std::endl
               << "                                         if n_fold = 1, no cross-validation is applied, features are evaluated by training and testing on the whole datset" << std::endl
               << "                                         if n_fold >= 2, n-fold cross-validation is applied" << std::endl;
+    std::cerr << "                svm                  F1-score with SVM classification (standardization is required)" << std::endl;
     std::cerr << "                user:name            User-defined method, where name indicates a column in the k-mer count table" << std::endl
               << std::endl;
     std::cerr << "[SORT MODE]     dec                  Sorting by decreasing order                              (as default for sd, rsd, nb, lr, user:name)" << std::endl;
@@ -156,6 +157,10 @@ inline void ParseOptions(int argc,
     {
         PrintRankHelper();
         throw std::domain_error("unknown sort mode: " + sort_mode);
+    }
+    if (score_method == "svm" && !standardize)
+    {
+        throw std::domain_error("Standardization is required for SVM classification");
     }
 }
 

@@ -179,6 +179,10 @@ int RankMain(int argc, char *argv[])
         size_t nb_fold = (score_cmd.empty() ? 1 : std::stoi(score_cmd));
         scorer = new RegressionScorer(sort_mode, nb_fold);
     }
+    else if (score_method == "svm")
+    {
+        scorer = new SVMScorer(sort_mode);
+    }
     else if (score_method == "user")
     {
         scorer = new UserScorer(sort_mode);
