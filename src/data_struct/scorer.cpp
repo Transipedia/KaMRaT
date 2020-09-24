@@ -32,13 +32,26 @@ inline float calc_sd(const arma::mat &sample_counts)
     return sd;
 }
 
-inline void Conv2Arma(arma::mat &arma_count_vect, const std::vector<float> &count_vect)
+inline void Conv2Arma(arma::mat &arma_count_vect, const std::vector<float> &count_vect, const bool to_standardize)
 {
     size_t nb_sample = count_vect.size();
     arma_count_vect.zeros(1, nb_sample);
     for (int i = 0; i < nb_sample; ++i)
     {
         arma_count_vect(0, i) = count_vect[i];
+    }
+    if (to_standardize)
+    {
+        float mean = calc_mean(arma_count_vect), sd = calc_sd(arma_count_vect);
+        if (sd == 0)    // in case of a constant count vector
+        {
+            std::cerr << "[warning]:    a constant count vector appears, turing it to all zeros." << std::endl;
+            sd = 1;
+        }
+        for (int i = 0; i < nb_sample; ++i)
+        {
+            arma_count_vect(0, i) = (arma_count_vect(0, i) - mean) / sd;
+        }
     }
 }
 
@@ -115,7 +128,7 @@ const size_t Scorer::GetNbClass() const
     return nb_class_;
 }
 
-const float Scorer::CalcScore(const std::vector<float> &sample_counts) const // no implement, but virtual method must be defined
+const float Scorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const // no implement, but virtual method must be defined
 {
     return 0;
 }
@@ -126,10 +139,10 @@ SDScorer::SDScorer(const std::string &sort_mode)
 {
 }
 
-const float SDScorer::CalcScore(const std::vector<float> &sample_counts) const
+const float SDScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
     arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts);
+    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     float sd = calc_sd(arma_sample_counts);
     return sd;
 }
@@ -140,10 +153,10 @@ RelatSDScorer::RelatSDScorer(const std::string &sort_mode)
 {
 }
 
-const float RelatSDScorer::CalcScore(const std::vector<float> &sample_counts) const
+const float RelatSDScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
     arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts);
+    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     float sd = calc_sd(arma_sample_counts),
           mean = calc_mean(arma_sample_counts),
           score = (mean <= 1 ? sd : sd / mean);
@@ -156,10 +169,10 @@ TtestScorer::TtestScorer(const std::string &sort_mode)
 {
 }
 
-const float TtestScorer::CalcScore(const std::vector<float> &sample_counts) const
+const float TtestScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
     arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts);
+    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
               cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
     for (size_t i = 0; i < cond1_counts.size(); ++i)
@@ -196,10 +209,10 @@ EffectSizeScorer::EffectSizeScorer(const std::string &sort_mode)
 {
 }
 
-const float EffectSizeScorer::CalcScore(const std::vector<float> &sample_counts) const
+const float EffectSizeScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
     arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts);
+    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
               cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
     float cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts),
@@ -214,10 +227,10 @@ LFCScorer::LFCScorer(const std::string &score_cmd, const std::string &sort_mode)
 {
 }
 
-const float LFCScorer::CalcScore(const std::vector<float> &sample_counts) const
+const float LFCScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
     arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts);
+    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
               cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
     float score;
@@ -296,10 +309,10 @@ inline void CompareScore(const arma::mat &arma_sample_counts, const arma::Row<si
     }
 }
 
-const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts) const
+const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
     arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts);
+    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     // CompareScore(arma_sample_counts, sample_labels_, nb_class_, nb_fold_);
     const size_t nb_fold_final = (nb_fold_ == 0 ? sample_labels_.size() : nb_fold_);
     float score;
@@ -331,10 +344,10 @@ RegressionScorer::RegressionScorer(const std::string &sort_mode, const size_t nb
 {
 }
 
-const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts) const
+const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
     arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts);
+    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     const size_t nb_fold_final = (nb_fold_ == 0 ? sample_labels_.size() : nb_fold_);
     float score;
     if (nb_fold_final == 1)
@@ -371,6 +384,10 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts)
 
 SVMScorer::SVMScorer(const std::string &sort_mode)
     : Scorer(MET_SVM, "", (sort_mode.empty() ? "inc" : sort_mode), 0)
+{
+}
+
+const float SVMScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
 }
 

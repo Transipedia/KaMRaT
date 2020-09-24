@@ -17,7 +17,8 @@ void EvalScore(CountTabByString &feature_count_tab,
                const std::string &count_tab_path,
                const std::string &sample_info_path,
                Scorer *scorer,
-               const bool ln_transf)
+               const bool ln_transf,
+               const bool standardize)
 {
     std::ifstream count_tab_file(count_tab_path);
     if (!count_tab_file.is_open())
@@ -41,8 +42,8 @@ void EvalScore(CountTabByString &feature_count_tab,
         std::istringstream conv(line);
         std::string feature_seq;
         conv >> feature_seq; // first column as feature (string)
-	// std::cout << feature_seq << "\t";
-	float feature_score;
+        // std::cout << feature_seq << "\t";
+        float feature_score;
         std::vector<float> count_vect;
         if (!feature_count_tab.IndexWithString(feature_score, count_vect, line, idx_pos) && scorer->GetScoreMethod() == "user")
         {
@@ -57,7 +58,7 @@ void EvalScore(CountTabByString &feature_count_tab,
                     count_vect[i] = log(count_vect[i] + 1);
                 }
             }
-            feature_score = scorer->CalcScore(count_vect);
+            feature_score = scorer->CalcScore(count_vect, standardize);
         }
         feature_vect.emplace_back(feature_seq, feature_serial, feature_score);
     }
@@ -136,10 +137,10 @@ int RankMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
     std::string count_tab_path, sample_info_path, score_method, score_cmd, sort_mode;
-    bool ln_transf(false);
+    bool ln_transf(false), standardize(false);
     size_t nb_sel(0);
 
-    ParseOptions(argc, argv, sample_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, count_tab_path);
+    ParseOptions(argc, argv, sample_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, standardize, count_tab_path);
     Scorer *scorer;
     if (score_method.empty() || score_method == "sd")
     {
@@ -187,11 +188,13 @@ int RankMain(int argc, char *argv[])
         throw std::invalid_argument("unknown scoring method: " + score_method);
     }
 
-    PrintRunInfo(count_tab_path, sample_info_path, scorer->GetScoreMethod(), scorer->GetScoreCmd(), scorer->GetSortMode(), scorer->GetNbFold(), nb_sel, ln_transf);
+    PrintRunInfo(count_tab_path, sample_info_path,
+                 scorer->GetScoreMethod(), scorer->GetScoreCmd(), scorer->GetSortMode(), scorer->GetNbFold(),
+                 nb_sel, ln_transf, standardize);
     CountTabByString count_tab;
     seqVect_t feature_vect;
 
-    EvalScore(count_tab, feature_vect, count_tab_path, sample_info_path, scorer, ln_transf);
+    EvalScore(count_tab, feature_vect, count_tab_path, sample_info_path, scorer, ln_transf, standardize);
     SortScore(feature_vect, scorer->GetSortMode());
     if (scorer->GetScoreMethod() == "ttest")
     {

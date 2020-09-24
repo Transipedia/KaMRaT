@@ -26,7 +26,7 @@ public:
     const std::string &GetScoreCmd() const;
     const size_t GetNbFold() const;
     const size_t GetNbClass() const;
-    virtual const float CalcScore(const std::vector<float> &sample_counts) const;
+    virtual const float CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const;
 
 protected:
     const std::string score_method_;  // nb, lr, sd, rsd, ttest, es, lfc, user
@@ -41,56 +41,56 @@ class SDScorer : public Scorer
 {
 public:
     SDScorer(const std::string &sort_mode);
-    const float CalcScore(const std::vector<float> &sample_counts) const override;
+    const float CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const override;
 };
 
 class RelatSDScorer : public Scorer
 {
 public:
     RelatSDScorer(const std::string &sort_mode);
-    const float CalcScore(const std::vector<float> &sample_counts) const override;
+    const float CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const override;
 };
 
 class TtestScorer : public Scorer
 {
 public:
     TtestScorer(const std::string &sort_mode);
-    const float CalcScore(const std::vector<float> &sample_counts) const override;
+    const float CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const override;
 };
 
 class EffectSizeScorer : public Scorer
 {
 public:
     EffectSizeScorer(const std::string &sort_mode);
-    const float CalcScore(const std::vector<float> &sample_counts) const override;
+    const float CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const override;
 };
 
 class LFCScorer : public Scorer
 {
 public:
     LFCScorer(const std::string &score_cmd, const std::string &sort_mode);
-    const float CalcScore(const std::vector<float> &sample_counts) const override;
+    const float CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const override;
 };
 
 class NaiveBayesScorer : public Scorer
 {
 public:
     NaiveBayesScorer(const std::string &sort_mode, size_t nb_fold);
-    const float CalcScore(const std::vector<float> &sample_counts) const override;
+    const float CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const override;
 };
 
 class RegressionScorer : public Scorer
 {
 public:
     RegressionScorer(const std::string &sort_mode, size_t nb_fold);
-    const float CalcScore(const std::vector<float> &sample_counts) const override;
+    const float CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const override;
 };
 
 class SVMScorer : public Scorer
 {
 public:
     SVMScorer(const std::string &sort_mode);
-    const float CalcScore(const std::vector<float> &sample_counts) const override;
+    const float CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const override;
 };
 
 class UserScorer : public Scorer
