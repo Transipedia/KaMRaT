@@ -61,11 +61,11 @@ public:
     template <typename MLAlgorithm, typename DataType>
     static double Evaluate(MLAlgorithm &model, const DataType &data, const arma::Row<size_t> &labels)
     {
-        arma::Row<size_t> pred_class(labels.size());
-        model.Classify(data, pred_class);
-        data.print("Count vector:");
-        labels.print("Real labels:");
-        pred_class.print("Predicted class:");
+        // arma::Row<size_t> pred_class(labels.size());
+        // model.Classify(data, pred_class);
+        // data.print("Count vector:");
+        // labels.print("Real labels:");
+        // pred_class.print("Predicted class:");
         if (labels.max() == 1) // binary conditions
         {
             double score = mlpack::cv::F1<mlpack::cv::Binary>().Evaluate(model, data, labels);
