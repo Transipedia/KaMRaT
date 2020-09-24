@@ -31,9 +31,10 @@ inline void PrintRankHelper()
               << "                                         if n_fold = 0, leave-one-out cross-validation is applied" << std::endl
               << "                                         if n_fold = 1, no cross-validation is applied, features are evaluated by training and testing on the whole datset" << std::endl
               << "                                         if n_fold >= 2, n-fold cross-validation is applied" << std::endl;
-    std::cerr << "                rg:n_fold            Classification by regression, default n_fold = 2" << std::endl
-              << "                                         if nb_condition = 2, logistic regression is used" << std::endl
-              << "                                         if nb_condition > 2, softmax regression is used" << std::endl;
+    std::cerr << "                rg:n_fold            Classification by regression [default n_fold = 1]" << std::endl
+              << "                                         if n_fold = 0, leave-one-out cross-validation is applied" << std::endl
+              << "                                         if n_fold = 1, no cross-validation is applied, features are evaluated by training and testing on the whole datset" << std::endl
+              << "                                         if n_fold >= 2, n-fold cross-validation is applied" << std::endl;
     std::cerr << "                user:name            User-defined method, where name indicates a column in the k-mer count table" << std::endl
               << std::endl;
     std::cerr << "[SORT MODE]     dec                  Sorting by decreasing order                              (as default for sd, rsd, nb, lr, user:name)" << std::endl;

@@ -43,7 +43,7 @@ inline void Conv2Arma(arma::mat &arma_count_vect, const std::vector<float> &coun
     if (to_standardize)
     {
         float mean = calc_mean(arma_count_vect), sd = calc_sd(arma_count_vect);
-        if (sd == 0)    // in case of a constant count vector
+        if (sd == 0) // in case of a constant count vector
         {
             std::cerr << "[warning]:    a constant count vector appears, turing it to all zeros." << std::endl;
             sd = 1;
@@ -346,30 +346,26 @@ RegressionScorer::RegressionScorer(const std::string &sort_mode, const size_t nb
 
 const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
 {
+    if (nb_class_ != 2)
+    {
+        throw std::domain_error("Regression classifier accepts only binary condition for now");
+    }
     arma::mat arma_sample_counts;
     Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     const size_t nb_fold_final = (nb_fold_ == 0 ? sample_labels_.size() : nb_fold_);
     float score;
-    if (nb_fold_final == 1)
+    if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
     {
-        // mlpack::regression::SoftmaxRegression rgc(arma_sample_counts, sample_labels_, nb_class_);
-        // arma::Row<size_t> pred_class(sample_counts.size());
-        // rgc.Classify(arma_sample_counts, pred_class);
-        // arma::mat confusion_mat;
-        // mlpack::data::ConfusionMatrix(pred_class, sample_labels_, confusion_mat, nb_class_);
-        // pred_class.print("Pred class:");
-        // sample_labels_.print("Sample labels:");
-        // confusion_mat.print("Confusion matrix:");
-        // MLMetrics my_f1;
-        // score = my_f1.Evaluate(rgc, arma_sample_counts, sample_labels_);
+        mlpack::regression::LogisticRegression<> rgc(arma_sample_counts, sample_labels_);
+        MLMetrics my_f1;
+        score = my_f1.Evaluate(rgc, arma_sample_counts, sample_labels_);
     }
-    else
+    else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
-        // mlpack::cv::KFoldCV<mlpack::regression::SoftmaxRegression, MLMetrics>
-        //     score_data(nb_fold_, arma_sample_counts, sample_labels_, nb_class_);
-        // score = score_data.Evaluate();
+        mlpack::cv::KFoldCV<mlpack::regression::LogisticRegression<>, MLMetrics>
+            score_data(nb_fold_final, arma_sample_counts, sample_labels_);
+        score = score_data.Evaluate();
     }
-    throw std::domain_error("Softmax regression is not applicable for now");
     if (isnan(score) || isinf(score))
     {
         std::cout << score << std::endl;
