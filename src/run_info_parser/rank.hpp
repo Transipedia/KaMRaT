@@ -162,6 +162,10 @@ inline void ParseOptions(int argc,
     {
         throw std::domain_error("Standardization is required for SVM classification");
     }
+    if (score_method == "ttest" && standardize)
+    {
+        throw std::domain_error("Ttest is not compatible with standardized counts: log applied on negative values");
+    }
 }
 
 #endif //KAMRAT_RUNINFOPARSER_RANK_HPP

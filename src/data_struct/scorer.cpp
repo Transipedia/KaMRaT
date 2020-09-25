@@ -61,11 +61,6 @@ public:
     template <typename MLAlgorithm, typename DataType>
     static double Evaluate(MLAlgorithm &model, const DataType &data, const arma::Row<size_t> &labels)
     {
-        // arma::Row<size_t> pred_class(labels.size());
-        // model.Classify(data, pred_class);
-        // data.print("Count vector:");
-        // labels.print("Real labels:");
-        // pred_class.print("Predicted class:");
         if (labels.max() == 1) // binary conditions
         {
             double score = mlpack::cv::F1<mlpack::cv::Binary>().Evaluate(model, data, labels);
@@ -197,8 +192,20 @@ const float TtestScorer::CalcScore(const std::vector<float> &sample_counts, cons
               t2 = cond2_sd * cond2_sd / cond2_num,
               df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (cond1_num - 1) + t2 * t2 / (cond2_num - 1)),
               t_stat = (cond1_mean - cond2_mean) / sqrt(t1 + t2);
-        boost::math::students_t dist(df);
-        pvalue = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
+        try
+        {
+            boost::math::students_t dist(df);
+            pvalue = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
+        }
+        catch (const std::exception &)
+        {
+            cond1_counts.print("Condition 1 counts:");
+            cond2_counts.print("Condition 2 counts:");
+            arma_sample_counts.print("Sample counts:");
+            sample_labels_.print("Sample labels:");
+            std::cout << cond1_num << "\t" << cond1_mean << "\t" << cond1_sd << "\t" << t1 << "\t" << t2 << "\t" << df << "\t" << t_stat << std::endl;
+            throw std::domain_error("");
+        }
     }
     return pvalue;
 }
@@ -379,7 +386,7 @@ const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts,
 // =====> SVM Scorer <===== //
 
 SVMScorer::SVMScorer(const std::string &sort_mode)
-    : Scorer(MET_SVM, "", (sort_mode.empty() ? "dec" : sort_mode), 0)
+    : Scorer(MET_SVM, "", (sort_mode.empty() ? "inc" : sort_mode), 0)
 {
 }
 
@@ -388,8 +395,16 @@ const float SVMScorer::CalcScore(const std::vector<float> &sample_counts, const 
     arma::mat arma_sample_counts;
     Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     mlpack::svm::LinearSVM<> lsvm(arma_sample_counts, sample_labels_, nb_class_);
-    MLMetrics my_f1;
-    float score = my_f1.Evaluate(lsvm, arma_sample_counts, sample_labels_);
+    // MLMetrics my_f1;
+    // float score = my_f1.Evaluate(lsvm, arma_sample_counts, sample_labels_);
+    mlpack::svm::LinearSVMFunction<> lsvm_fun(arma_sample_counts, sample_labels_, nb_class_);
+    float score = lsvm_fun.Evaluate(lsvm.Parameters());
+    // lsvm.Parameters().print("Parameters:");
+    // arma_sample_counts.print("Sample counts:");
+    // sample_labels_.print("Real labels:");
+    // arma::Row<size_t> pred_class(sample_labels_.size());
+    // lsvm.Classify(arma_sample_counts, pred_class);
+    // pred_class.print("Predicted labels:");
     return score;
 }
 
