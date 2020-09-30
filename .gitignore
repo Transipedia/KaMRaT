@@ -6,8 +6,7 @@
 .DS_Store
 .vscode/
 bin/
-test_data/
-test/
+test*/
 kamrat-simg/
 notes.txt
 paper-code/
