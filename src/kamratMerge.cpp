@@ -52,7 +52,7 @@ void ScanCountTable(CountTabByFields &kmer_count_tab,
     std::ofstream count_index_file(count_index_path);
     for (size_t kmer_serial(0); std::getline(kmer_count_instream, line); ++kmer_serial)
     {
-        std::cout << line << std::endl;
+        // std::cout << line << std::endl;
         float rep_val;
         bool has_rep_val;
         if (kmer_count_tab.GetMode() == "inMem")
