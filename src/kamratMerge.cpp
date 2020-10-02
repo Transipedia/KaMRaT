@@ -208,15 +208,7 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
                 kmer_count_tab.GetCountInMem(pred_counts, left_serial);
                 kmer_count_tab.GetCountInMem(succ_counts, right_serial);
             }
-            if (interv_method == "pearson" && CalcPearsonCorrelation(pred_counts, succ_counts) < interv_thres)
-            {
-                continue;
-            }
-            else if (interv_method == "spearman" && CalcSpearmanCorrelation(pred_counts, succ_counts) < interv_thres)
-            {
-                continue;
-            }
-            else if (interv_method == "mac" && CalcMeanAbsoluteContrast(pred_counts, succ_counts) > interv_thres)
+            if (CalcDistance(pred_counts, succ_counts, interv_method) >= interv_thres)
             {
                 continue;
             }

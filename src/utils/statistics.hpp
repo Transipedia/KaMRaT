@@ -135,7 +135,7 @@ inline float CalcDistance(const std::vector<countT> &x, const std::vector<countT
     }
     else
     {
-        return -1;
+        throw std::invalid_argument("unknown intervention/evaluation method: " + eval_method);
     }
 }
 
