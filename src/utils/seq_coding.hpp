@@ -6,7 +6,7 @@
 #include <string>
 #include <stdexcept>
 
-inline uint8_t Nuc2Num(const char nuc)
+static inline uint8_t Nuc2Num(const char nuc)
 {
     switch (nuc)
     {
@@ -27,7 +27,7 @@ inline uint8_t Nuc2Num(const char nuc)
     }
 }
 
-inline char Num2Nuc(const uint8_t c)
+static inline char Num2Nuc(const uint8_t c)
 {
     switch (c)
     {
@@ -44,7 +44,7 @@ inline char Num2Nuc(const uint8_t c)
     }
 }
 
-inline uint64_t GetRC(const uint64_t code, size_t k_length)
+static inline uint64_t GetRC(const uint64_t code, size_t k_length)
 {
     uint64_t mask, tmp_code(code);
     if (k_length == 32)
@@ -69,7 +69,7 @@ inline uint64_t GetRC(const uint64_t code, size_t k_length)
     return result;
 }
 
-inline void Int2Seq(std::string &seq, const uint64_t code, const size_t k_length)
+static inline void Int2Seq(std::string &seq, const uint64_t code, const size_t k_length)
 {
     uint64_t tmp_code(code);
     seq.resize(k_length);
@@ -81,7 +81,7 @@ inline void Int2Seq(std::string &seq, const uint64_t code, const size_t k_length
     }
 }
 
-inline uint64_t Seq2Int(const std::string &seq, const size_t k_length, const bool stranded)
+static inline uint64_t Seq2Int(const std::string &seq, const size_t k_length, const bool stranded)
 {
     uint64_t code = 0;
     for (size_t i = 0; i < k_length; ++i)
@@ -92,6 +92,51 @@ inline uint64_t Seq2Int(const std::string &seq, const size_t k_length, const boo
     if (!stranded)
     {
         uint64_t code_rc(GetRC(code, k_length));
+        if (code_rc < code)
+        {
+            code = code_rc;
+        }
+    }
+    return code;
+}
+
+static inline uint64_t MutIntAtPos(uint64_t code, const size_t k_length, const int pos, const char n)
+{
+    uint64_t x = (k_length - pos - 1) * 2;
+    uint64_t up = 1;
+    if (n == 'A')
+    {
+        code &= ~(up << x);
+        code &= ~(up << (x + 1));
+    }
+    else if (n == 'C')
+    {
+        code |= up << x;
+        code &= ~(up << (x + 1));
+    }
+    else if (n == 'G')
+    {
+        code &= ~(up << x);
+        code |= up << (x + 1);
+    }
+    else
+    {
+        code |= up << x;
+        code |= up << (x + 1);
+    }
+    return code;
+}
+
+static inline uint64_t NextSeq(uint64_t code, const size_t k_length, const char new_nuc, const bool stranded)
+{
+    uint64_t x = (k_length - 1) * 2, up = 3;
+    // Unset the first nucleotide
+    code &= ~(up << x);
+    code <<= 2;
+    code = MutIntAtPos(code, k_length, k_length - 1, new_nuc);
+    if (!stranded)
+    {
+        uint64_t code_rc = GetRC(code, k_length);
         if (code_rc < code)
         {
             code = code_rc;

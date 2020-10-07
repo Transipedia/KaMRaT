@@ -9,7 +9,6 @@
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include "utils/seq_coding.hpp"
-#include "data_struct/seq_elem.hpp"
 #include "run_info_parser/mask.hpp"
 
 void MakeMask(std::unordered_set<uint64_t> &kmer_mask,

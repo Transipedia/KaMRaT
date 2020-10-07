@@ -8,7 +8,7 @@
 
 inline void PrintMergeHelper()
 {
-    std::cerr << "[Usage]    kamrat merge -klen INT [-min-overlap INT] [-unstrand] [-smp-info STR] [-interv-method STR] [-quant STR] [-rep-name STR] [-disk] [-idx-dir STR] KMER_COUNT_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat merge -klen INT [-min-overlap INT] [-unstrand] [-smp-info STR] [-interv-method STR] [-quant STR] [-rep-name STR] [-disk STR] KMER_COUNT_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help              Print the helper" << std::endl;
     std::cerr << "            -klen INT             k-mer length (max_value: 32)" << std::endl;
@@ -18,68 +18,61 @@ inline void PrintMergeHelper()
               << "                                      if absent, all columns except the first one in k-mer count table are taken as samples" << std::endl;
     std::cerr << "            -interv-method STR    Intervention method (none, pearson, spearman, mac) [none]" << std::endl
               << "                                      the threshold can be precised after a ':' symbol" << std::endl;
-    std::cerr << "            -quant STR            Quantification mode (rep, mean) [rep]" << std::endl;
+    std::cerr << "            -quant-mode STR       Quantification mode (rep, mean) [rep]" << std::endl;
     std::cerr << "            -rep-name STR         Representative value column name, k-mer input order as rep-val by default" << std::endl;
-    std::cerr << "            -disk                 Query on disk [false]" << std::endl;
-    std::cerr << "            -idx-dir STR          Count index directory path [./]" << std::endl
+    std::cerr << "            -disk STR             Query on disk, followed by index file path" << std::endl
               << std::endl;
 }
 
-inline void PrintRunInfo(const size_t k_length,
+inline void PrintRunInfo(const size_t k_len,
                          const bool stranded,
                          const size_t min_overlap,
-                         const std::string &sample_info_path,
-                         const std::string &interv_method,
-                         const float interv_thres,
+                         const std::string &smp_info_path,
+                         const std::string &interv_method, const float interv_thres,
                          const std::string &quant_mode,
-                         const std::string &rep_value_cname,
-                         const bool disk_mode,
-                         const std::string &tmp_dir,
+                         const std::string &rep_colname,
+                         const std::string &idx_path,
                          const std::string &kmer_count_path)
 {
     std::cerr << std::endl;
-    std::cerr << "k-mer length:                  " << k_length << std::endl;
+    std::cerr << "k-mer length:                  " << k_len << std::endl;
     std::cerr << "Stranded mode:                 " << (stranded ? "On" : "Off") << std::endl;
     std::cerr << "Min overlap length:            " << min_overlap << std::endl;
-    if (!sample_info_path.empty())
+    if (!smp_info_path.empty())
     {
-        std::cerr << "Sample-info path:              " << sample_info_path << std::endl;
+        std::cerr << "Sample-info path:              " << smp_info_path << std::endl;
     }
     std::cerr << "Intervention method:           " << interv_method << std::endl;
     if (interv_method != "none")
     {
-        std::cerr << "Intervention threshold:        " << interv_thres << std::endl;
+        std::cerr << "\tintervention threshold = " << interv_thres << std::endl;
     }
     std::cerr << "Quantification mode:           " << quant_mode << std::endl;
-    if (!rep_value_cname.empty())
+    if (!rep_colname.empty())
     {
-        std::cerr << "Representative value:          " << rep_value_cname << std::endl;
+        std::cerr << "Representative k-mer:          with lowest value in column " << rep_colname << std::endl;
     }
-    else if (quant_mode != "mean")
+    else
     {
-        std::cerr << "Representative value:          input order" << std::endl;
+        std::cerr << "Representative k-mer:          firstly inputted" << std::endl;
     }
-    std::cerr << "Disk mode:                     " << (disk_mode ? "On" : "Off") << std::endl;
-    if (!tmp_dir.empty())
+    if (!idx_path.empty())
     {
-        std::cerr << "temporary directory path:      " << tmp_dir << std::endl;
+        std::cerr << "Disk mode" << std::endl
+                  << "\tindex path = " << idx_path << std::endl;
     }
-    std::cerr << "k-mer count path:              " << kmer_count_path << std::endl
-              << std::endl;
+    std::cerr << "k-mer count path:              " << kmer_count_path << std::endl;
 }
 
-inline void ParseOptions(int argc,
-                         char *argv[],
-                         size_t &k_length,
+inline void ParseOptions(int argc, char *argv[],
+                         size_t &k_len,
                          bool &stranded,
                          size_t &min_overlap,
-                         std::string &sample_info_path,
-                         std::string &interv_method,
-                         float &interv_thres,
+                         std::string &smp_info_path,
+                         std::string &interv_method, float &interv_thres,
                          std::string &quant_mode,
-                         std::string &rep_value_cname,
-                         bool &disk_mode,
-                         std::string &tmp_dir,
+                         std::string &rep_colname,
+                         std::string &idx_path,
                          std::string &kmer_count_path)
 {
     int i_opt = 1;
@@ -93,10 +86,10 @@ inline void ParseOptions(int argc,
         }
         else if (arg == "-klen" && i_opt + 1 < argc)
         {
-            k_length = atoi(argv[++i_opt]);
+            k_len = atoi(argv[++i_opt]);
             if (min_overlap == 0)
             {
-                min_overlap = (k_length / 2);
+                min_overlap = (k_len / 2);
             }
         }
         else if (arg == "-unstrand")
@@ -109,27 +102,23 @@ inline void ParseOptions(int argc,
         }
         else if (arg == "-smp-info" && i_opt + 1 < argc)
         {
-            sample_info_path = argv[++i_opt];
+            smp_info_path = argv[++i_opt];
         }
         else if (arg == "-interv-method" && i_opt + 1 < argc)
         {
             interv_method = argv[++i_opt];
         }
-        else if (arg == "-quant" && i_opt + 1 < argc)
+        else if (arg == "-quant-mode" && i_opt + 1 < argc)
         {
             quant_mode = argv[++i_opt];
         }
         else if (arg == "-rep-name" && i_opt + 1 < argc)
         {
-            rep_value_cname = argv[++i_opt];
+            rep_colname = argv[++i_opt];
         }
-        else if (arg == "-disk")
+        else if (arg == "-disk" && i_opt + 1 < argc)
         {
-            disk_mode = true;
-        }
-        else if (arg == "-idx-dir" && i_opt + 1 < argc)
-        {
-            tmp_dir = argv[++i_opt];
+            idx_path = argv[++i_opt];
         }
         else
         {
@@ -144,7 +133,7 @@ inline void ParseOptions(int argc,
         throw std::invalid_argument("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
-    if (k_length == 0)
+    if (k_len == 0)
     {
         PrintMergeHelper();
         throw std::invalid_argument("k-mer length is missing");

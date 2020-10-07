@@ -5,52 +5,60 @@ MergeKnot::MergeKnot()
 {
 }
 
-void MergeKnot::AddContig(const uint64_t contig_code, const bool is_rc, const std::string &which_to_set)
+void MergeKnot::AddContig(const size_t contig_serial, const bool is_rc, const std::string &which_to_set)
 {
     if (which_to_set == "pred" && !has_pred_)
     {
-        pred_code_ = contig_code;
+        pred_serial_ = contig_serial;
         is_pred_rc_ = is_rc;
         has_pred_ = true;
     }
-    else if (which_to_set == "pred")
-    {
-        has_ambiguity_ = true;
-    }
     else if (which_to_set == "succ" && !has_succ_)
     {
-        succ_code_ = contig_code;
+        succ_serial_ = contig_serial;
         is_succ_rc_ = is_rc;
         has_succ_ = true;
     }
-    else if (which_to_set == "succ")
+    else if (which_to_set == "pred" || which_to_set == "succ")
     {
         has_ambiguity_ = true;
     }
     else
     {
-        throw std::domain_error("unknown argument which_to_set " + which_to_set);
+        throw std::domain_error("unknown argument which_to_set: " + which_to_set);
     }
 }
 
-const uint64_t MergeKnot::GetPredCode() const
+const size_t MergeKnot::GetSerial(const std::string &which_to_get) const
 {
-    return pred_code_;
+    if (which_to_get == "pred")
+    {
+        return pred_serial_;
+    }
+    else if (which_to_get == "succ")
+    {
+        return succ_serial_;
+    }
+    else
+    {
+        throw std::domain_error("unknown argument which_to_get: " + which_to_get);
+    }
 }
 
-const uint64_t MergeKnot::GetSuccCode() const
+const bool MergeKnot::IsRC(const std::string &which_to_get) const
 {
-    return succ_code_;
-}
-
-const bool MergeKnot::IsPredRC() const
-{
-    return is_pred_rc_;
-}
-
-const bool MergeKnot::IsSuccRC() const
-{
-    return is_succ_rc_;
+    if (which_to_get == "pred")
+    {
+        return is_pred_rc_;
+    }
+    else if (which_to_get == "succ")
+    {
+        return is_succ_rc_;
+    }
+    else
+    {
+        throw std::domain_error("unknown argument which_to_get: " + which_to_get);
+    }
 }
 
 const bool MergeKnot::IsMergeable() const
@@ -63,7 +71,7 @@ const bool MergeKnot::IsMergeable() const
     {
         return false;
     }
-    if (pred_code_ == succ_code_)
+    if (pred_serial_ == succ_serial_)
     {
         return false;
     }

@@ -2,8 +2,8 @@
 
 #include "seq_elem.hpp"
 
-SeqElem::SeqElem(const std::string &seq, const size_t serial, const float score)
-    : seq_(seq), serial_(serial), score_(score), final_score_(score)
+SeqElem::SeqElem(const std::string &seq, const uint64_t uniq_code, const float score)
+    : seq_(seq), uniq_code_(uniq_code), score_(score), final_score_(score)
 {
 }
 
@@ -12,9 +12,9 @@ const std::string SeqElem::GetSeq() const
     return seq_;
 }
 
-const size_t SeqElem::GetSerial() const
+const uint64_t SeqElem::GetUniqCode() const
 {
-    return serial_;
+    return uniq_code_;
 }
 
 const float SeqElem::GetScore(const std::string &&mode) const

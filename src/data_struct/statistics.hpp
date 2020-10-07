@@ -1,5 +1,9 @@
-#ifndef KAMRAT_UTILS_STATISTICS_HPP
-#define KAMRAT_UTILS_STATISTICS_HPP
+#ifndef KAMRAT_DATASTRUCT_STATISTICS_HPP
+#define KAMRAT_DATASTRUCT_STATISTICS_HPP
+
+/* ========================================================= *\
+                    Used for CountTab class                 
+\* ========================================================= */
 
 #include <vector>
 #include <numeric>
@@ -133,10 +137,14 @@ inline float CalcDistance(const std::vector<countT> &x, const std::vector<countT
     {
         return CalcSpearmanDistance(x, y);
     }
+    else if (eval_method == "none")
+    {
+        return 0;
+    }
     else
     {
         throw std::invalid_argument("unknown intervention/evaluation method: " + eval_method);
     }
 }
 
-#endif //KAMRAT_UTILS_STATISTICS_HPP
+#endif //KAMRAT_DATASTRUCT_STATISTICS_HPP

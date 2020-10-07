@@ -9,7 +9,7 @@ inline void PrintMaskHelper()
     std::cerr << "[Usage]    kamrat mask -klen INT -fasta STR [-unstrand] [-reverse-mask] KMER_COUNT_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help         Print the helper" << std::endl;
-    std::cerr << "            -klen INT        Length of k-mers [31]" << std::endl;
+    std::cerr << "            -klen INT        Length of k-mers" << std::endl;
     std::cerr << "            -fasta STR       Sequence fasta file as the mask" << std::endl;
     std::cerr << "            -unstrand        If k-mers are generated from unstranded RNA-seq data" << std::endl;
     std::cerr << "            -reverse-mask    Reverse mask, to select the k-mers in sequence fasta file" << std::endl;

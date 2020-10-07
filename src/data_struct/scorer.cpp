@@ -170,14 +170,14 @@ const float TtestScorer::CalcScore(const std::vector<float> &sample_counts, cons
     Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
               cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
-    for (size_t i = 0; i < cond1_counts.size(); ++i)
-    {
-        cond1_counts(i, 0) = log(cond1_counts(i, 0) + 1);
-    }
-    for (size_t i = 0; i < cond2_counts.size(); ++i)
-    {
-        cond2_counts(i, 0) = log(cond2_counts(i, 0) + 1);
-    }
+    // for (size_t i = 0; i < cond1_counts.size(); ++i)
+    // {
+    //     cond1_counts(i, 0) = log(cond1_counts(i, 0) + 1);
+    // }
+    // for (size_t i = 0; i < cond2_counts.size(); ++i)
+    // {
+    //     cond2_counts(i, 0) = log(cond2_counts(i, 0) + 1);
+    // }
     size_t cond1_num = cond1_counts.size(), cond2_num = cond2_counts.size();
     float cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts),
           cond1_sd = calc_sd(cond1_counts), cond2_sd = calc_sd(cond2_counts),

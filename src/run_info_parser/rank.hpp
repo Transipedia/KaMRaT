@@ -8,9 +8,10 @@
 
 inline void PrintRankHelper()
 {
-    std::cerr << "[USAGE]    kamrat rank [-smp-info STR] [-score-method STR] [-sort-mode STR] [-top-num INT] [-ln] COUNT_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]   kamrat rank [-idx-path STR] [-smp-info STR] [-score-method STR] [-sort-mode STR] [-top-num INT] [-ln] [-standard] STR" << std::endl
               << std::endl;
     std::cerr << "[OPTION]        -h,-help             Print the helper " << std::endl;
+    std::cerr << "                -idx-path STR        Count index file path [default: ./counts.idx]" << std::endl;
     std::cerr << "                -smp-info STR        Path to sample-condition or sample file, without header line" << std::endl
               << "                                         if absent, all columns except the first in the count table are regarded as sample" << std::endl;
     std::cerr << "                -score-method STR    Evaluation method to use and its parameter, seperated by \':\' (cf. [EVAL. METHOD])" << std::endl;
@@ -19,8 +20,7 @@ inline void PrintRankHelper()
     std::cerr << "                -ln                  Apply ln(x + 1) transformation BEFORE score estimation [false]" << std::endl
               << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
     std::cerr << "                -standardize         Standarize count vector BEFORE score estimation [false]" << std::endl
-              << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
-    std::cerr << "                -idx-dir STR         Count index directory path [./]" << std::endl
+              << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl
               << std::endl;
     std::cerr << "[EVAL. METHOD]  sd                   Standard deviation (default method)" << std::endl;
     std::cerr << "                rsd                  Relative standard deviation" << std::endl;
@@ -47,7 +47,8 @@ inline void PrintRankHelper()
 }
 
 inline void PrintRunInfo(const std::string &kmer_count_path,
-                         const std::string &sample_info_path,
+                         const std::string &idx_path,
+                         const std::string &smp_info_path,
                          const std::string &score_method,
                          const std::string &score_cmd,
                          const std::string &sort_mode,
@@ -57,9 +58,10 @@ inline void PrintRunInfo(const std::string &kmer_count_path,
                          const bool standardize)
 {
     std::cerr << "k-mer count path:                             " << kmer_count_path << std::endl;
-    if (!sample_info_path.empty())
+    std::cerr << "k-mer count index path:                       " << idx_path << std::endl;
+    if (!smp_info_path.empty())
     {
-        std::cerr << "Sample info path:                             " << sample_info_path << std::endl;
+        std::cerr << "Sample info path:                             " << smp_info_path << std::endl;
     }
     std::cerr << "Evaluation method:                            " << score_method << std::endl;
     if (score_method == "naivebayes.f1" || score_method == "regression.f1")
@@ -98,14 +100,14 @@ inline void PrintRunInfo(const std::string &kmer_count_path,
 
 inline void ParseOptions(int argc,
                          char *argv[],
-                         std::string &sample_info_path,
+                         std::string &idx_path,
+                         std::string &smp_info_path,
                          std::string &score_method,
                          std::string &score_cmd,
                          std::string &sort_mode,
                          size_t &nb_sel,
                          bool &ln_transf,
                          bool &standardize,
-                         std::string &index_file_path,
                          std::string &kmer_count_path)
 {
     int i_opt(1);
@@ -117,9 +119,13 @@ inline void ParseOptions(int argc,
             PrintRankHelper();
             exit(EXIT_SUCCESS);
         }
+        else if (arg == "-idx-path" && i_opt + 1 < argc)
+        {
+            idx_path = argv[++i_opt];
+        }
         else if (arg == "-smp-info" && i_opt + 1 < argc)
         {
-            sample_info_path = argv[++i_opt];
+            smp_info_path = argv[++i_opt];
         }
         else if (arg == "-score-method" && i_opt + 1 < argc)
         {
@@ -142,35 +148,35 @@ inline void ParseOptions(int argc,
         {
             standardize = true;
         }
-        else if (arg == "-idx-dir")
-        {
-            index_file_path = std::string(argv[++i_opt]) + "/counts.idx";
-        }
         else
         {
             PrintRankHelper();
-            throw std::domain_error("unknown option: " + arg);
+            throw std::invalid_argument("unknown option: " + arg);
         }
         ++i_opt;
     }
     if (i_opt == argc)
     {
         PrintRankHelper();
-        throw std::domain_error("k-mer count table path is mandatory");
+        throw std::invalid_argument("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
     if (!sort_mode.empty() && SORT_MODE_UNIV.find(sort_mode) == SORT_MODE_UNIV.cend())
     {
         PrintRankHelper();
-        throw std::domain_error("unknown sort mode: " + sort_mode);
+        throw std::invalid_argument("unknown sort mode: " + sort_mode);
     }
     if (score_method == "svm" && !standardize)
     {
-        throw std::domain_error("Standardization is required for SVM classification");
+        throw std::invalid_argument("Standardization is required for SVM classification");
     }
     if (score_method == "ttest" && standardize)
     {
-        throw std::domain_error("Ttest is not compatible with standardized counts: log applied on negative values");
+        throw std::invalid_argument("Ttest is not compatible with standardized counts: log applied on negative values");
+    }
+    if (score_method == "ttest" && !ln_transf)
+    {
+        throw std::invalid_argument("Ttest requires ln(x + 1) transformation");
     }
 }
 
