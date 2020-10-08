@@ -147,7 +147,6 @@ const float CountTab::AddCountVectIfCoherent(std::vector<float> &sum_count_vect,
             {
                 sum_count_vect[col_serial] += count_tab_[row_serial][col_serial];
             }
-            return count_dist;
         }
     }
     else if (idx_file.is_open()) // if counts on disk
@@ -161,14 +160,13 @@ const float CountTab::AddCountVectIfCoherent(std::vector<float> &sum_count_vect,
             {
                 sum_count_vect[col_serial] += count_vect_x[col_serial];
             }
-            return count_dist;
         }
     }
     else
     {
         throw std::domain_error("searching index on disk but index file not opened");
     }
-    return 1; // return maximal distance indicating the counts are not added
+    return count_dist;
 }
 
 const float CountTab::CalcCountDistance(const size_t row_serial1, const size_t row_serial2, const std::string &dist_method, std::ifstream &idx_file) const

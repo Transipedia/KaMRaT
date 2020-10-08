@@ -44,9 +44,13 @@ const size_t EstimateAvgCount(std::vector<float> &count_avg_vect,
     else
     {
         size_t pos_left(0), pos_right = pos_left;
-        uint64_t uniqcode1 = Seq2Int(seq.substr(pos_left, k_len), k_len, stranded),
-                 uniqcode2 = uniqcode1;
+        uint64_t uniqcode1 = Seq2Int(seq.substr(pos_left, k_len), k_len, true), // don't consider unstrandedness here, otherwise will disturb the downstreaming k-mer codes
+            uniqcode2 = uniqcode1;
         auto iter1 = code2serial.find(uniqcode1);
+        if (!stranded && iter1 == code2serial.cend()) // consider here the unstrandedness if needed
+        {
+            iter1 = code2serial.find(GetRC(uniqcode1, k_len));
+        }
         if (iter1 == code2serial.cend()) // shouldn't happen
         {
             throw std::domain_error("head k-mer not found in k-mer count table");
@@ -55,19 +59,33 @@ const size_t EstimateAvgCount(std::vector<float> &count_avg_vect,
         std::vector<float> count_vect_left(count_avg_vect);
 
         float count_dist(1);
-        while (pos_left < seq_len - k_len) // pos_right <= seq_len - k_len
+        do
         {
-            if (pos_right - pos_left > max_dist) // should not happen
-            {
-                throw std::domain_error("no adjacent k-mers found in sequence for given max distance");
-            }
             ++pos_right;
-            uniqcode2 = NextSeq(uniqcode2, k_len, seq[pos_right + k_len - 1], stranded);
+            uniqcode2 = NextSeq(uniqcode2, k_len, seq[pos_right + k_len - 1]);
+            { // for debug
+                std::string kmer2, kmer2_rc, kmer2_ref = seq.substr(pos_right, k_len);
+                Int2Seq(kmer2, uniqcode2, k_len);
+                Int2Seq(kmer2_rc, GetRC(uniqcode2, k_len), k_len);
+                if (kmer2 != kmer2_ref && kmer2_rc != kmer2_ref)
+                {
+                    std::cout << seq << "\t" << kmer2 << "\t" << kmer2_rc << "\t" << kmer2_ref << std::endl;
+                    throw std::domain_error("NextSeq function not functioned well");
+                }
+            }
             auto iter2 = code2serial.find(uniqcode2);
+            if (!stranded && iter2 == code2serial.cend())
+            {
+                iter2 = code2serial.find(GetRC(uniqcode2, k_len));
+            }
             if (iter2 == code2serial.cend())
             {
                 count_dist = 1; // for debug
                 continue;
+            }
+            if (pos_right - pos_left > max_dist) // should not happen
+            {
+                throw std::domain_error("no adjacent k-mers found in sequence for given max distance");
             }
             count_dist = kmer_count_tab.AddCountVectIfCoherent(count_avg_vect, iter2->second, count_vect_left, interv_method, interv_thres, idx_file);
             if (count_dist < interv_thres) // merging is rejected when larger or equal
@@ -76,7 +94,7 @@ const size_t EstimateAvgCount(std::vector<float> &count_avg_vect,
                 kmer_count_tab.GetCountVect(count_vect_left, iter2->second, idx_file);
                 ++nb_kmer_found;
             }
-        }
+        } while (pos_right < seq_len - k_len);
         if (count_dist >= interv_thres) // for debug, should not happen
         {
             throw std::domain_error("rear k-mer not found in k-mer count table");
@@ -301,6 +319,10 @@ void PrintContigList(const contigvect_t &contig_vect,
             {
                 throw std::domain_error("member k-mer number not coherent");
             }
+        }
+        else
+        {
+            throw std::domain_error("unknown quant mode: " + quant_mode);
         }
         std::cout << contig_seq << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq;
         for (size_t i(1); i < kmer_count_tab.GetNbColumn(); ++i)

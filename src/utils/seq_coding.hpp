@@ -91,7 +91,7 @@ static inline uint64_t Seq2Int(const std::string &seq, const size_t k_length, co
     }
     if (!stranded)
     {
-        uint64_t code_rc(GetRC(code, k_length));
+        uint64_t code_rc = GetRC(code, k_length);
         if (code_rc < code)
         {
             code = code_rc;
@@ -127,21 +127,15 @@ static inline uint64_t MutIntAtPos(uint64_t code, const size_t k_length, const i
     return code;
 }
 
-static inline uint64_t NextSeq(uint64_t code, const size_t k_length, const char new_nuc, const bool stranded)
+static inline uint64_t NextSeq(uint64_t code, const size_t k_length, const char new_nuc) 
+// Attention: should not return the RC code if unstranded !
+//            returning of RC code would disturb the calculation of downstreaming k-mers.
 {
     uint64_t x = (k_length - 1) * 2, up = 3;
     // Unset the first nucleotide
     code &= ~(up << x);
     code <<= 2;
     code = MutIntAtPos(code, k_length, k_length - 1, new_nuc);
-    if (!stranded)
-    {
-        uint64_t code_rc = GetRC(code, k_length);
-        if (code_rc < code)
-        {
-            code = code_rc;
-        }
-    }
     return code;
 }
 
