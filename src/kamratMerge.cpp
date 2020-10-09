@@ -88,20 +88,29 @@ const size_t EstimateAvgCount(std::vector<float> &count_avg_vect,
                 throw std::domain_error("no adjacent k-mers found in sequence for given max distance");
             }
             count_dist = kmer_count_tab.AddCountVectIfCoherent(count_avg_vect, iter2->second, count_vect_left, interv_method, interv_thres, idx_file);
-            if (count_dist < interv_thres) // merging is rejected when larger or equal
+            if (interv_method == "none" || count_dist < interv_thres) // merging is rejected when larger or equal
             {
                 pos_left = pos_right;
                 kmer_count_tab.GetCountVect(count_vect_left, iter2->second, idx_file);
                 ++nb_kmer_found;
+                // std::cout << nb_kmer_found << "\t" << seq.substr(pos_right, k_len) << std::endl;
             }
-        } while (pos_right < seq_len - k_len);
-        if (count_dist >= interv_thres) // for debug, should not happen
+            else
+            {
+                std::cerr << seq.substr(pos_right, k_len) << std::endl;
+            }
+            
+        } while (pos_right < seq_len - k_len); // skip out after last k-mer of the contig is processed
+        if (count_dist >= interv_thres)        // for debug, should not happen
         {
             throw std::domain_error("rear k-mer not found in k-mer count table");
         }
-        for (unsigned int i(0); i < count_avg_vect.size(); ++i)
+        if (nb_kmer_found > 1)
         {
-            count_avg_vect[i] /= nb_kmer_found;
+            for (unsigned int i(0); i < count_avg_vect.size(); ++i)
+            {
+                count_avg_vect[i] /= nb_kmer_found;
+            }
         }
     }
     return nb_kmer_found;
@@ -317,6 +326,7 @@ void PrintContigList(const contigvect_t &contig_vect,
                                              interv_method, interv_thres, idx_file);
             if (nb_kmer_found != elem.GetNbKMer()) // for debug, should not happen
             {
+                std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t" << nb_kmer_found << std::endl;
                 throw std::domain_error("member k-mer number not coherent");
             }
         }
@@ -399,13 +409,17 @@ int MergeMain(int argc, char **argv)
             // PrintContigList(contig_vect, kmer_count_tab, code2serial, k_len, stranded, min_overlap, interv_method, interv_thres, quant_mode, idx_file);
         }
     }
+
+    std::cerr << "Contig extension finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
+    inter_time = clock();
+
     PrintContigList(contig_vect, kmer_count_tab, code2serial, k_len, stranded, min_overlap, interv_method, interv_thres, quant_mode, idx_file);
     if (idx_file.is_open())
     {
         idx_file.close();
     }
 
-    std::cerr << "Contig extension finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
+    std::cerr << "Contig print finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Total executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
 
     return EXIT_SUCCESS;

@@ -140,8 +140,8 @@ const float CountTab::AddCountVectIfCoherent(std::vector<float> &sum_count_vect,
     }
     if (idx_file_path_.empty()) // if counts in memory
     {
-        count_dist = dist_method == "none" ? 0 : CalcDistance(count_tab_[row_serial], ref_count_vect, dist_method);
-        if (count_dist < dist_thres)
+        count_dist = (dist_method == "none" ? 0 : CalcDistance(count_tab_[row_serial], ref_count_vect, dist_method));
+        if (dist_method == "none" || count_dist < dist_thres)
         {
             for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
             {
@@ -153,8 +153,8 @@ const float CountTab::AddCountVectIfCoherent(std::vector<float> &sum_count_vect,
     {
         std::vector<float> count_vect_x;
         LoadCountFromIndex(count_vect_x, idx_file, index_pos_[row_serial], nb_count_);
-        count_dist = dist_method == "none" ? 0 : CalcDistance(count_vect_x, ref_count_vect, dist_method);
-        if (count_dist < dist_thres)
+        count_dist = (dist_method == "none" ? 0 : CalcDistance(count_vect_x, ref_count_vect, dist_method));
+        if (dist_method == "none" || count_dist < dist_thres)
         {
             for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
             {
