@@ -128,45 +128,32 @@ const void CountTab::GetRowString(std::string &row_string, const size_t row_seri
     row_string = str_line.substr(0, str_line.find_first_of(" \t") + 1) + as_scorecol + str_line.substr(str_line.find_first_of(" \t"));
 }
 
-const float CountTab::AddCountVectIfCoherent(std::vector<float> &sum_count_vect,
-                                             const size_t row_serial, const std::vector<float> &ref_count_vect,
-                                             const std::string &dist_method, const float dist_thres,
-                                             std::ifstream &idx_file) const
+const void CountTab::AddCountVect(std::vector<float> &sum_count_vect, const size_t row_serial, std::ifstream &idx_file) const
 {
-    float count_dist = 1;
     if (row_serial >= str_tab_.size())
     {
         throw std::domain_error("k-mer serial " + std::to_string(row_serial) + " larger than count table size " + std::to_string(str_tab_.size()));
     }
     if (idx_file_path_.empty()) // if counts in memory
     {
-        count_dist = (dist_method == "none" ? 0 : CalcDistance(count_tab_[row_serial], ref_count_vect, dist_method));
-        if (dist_method == "none" || count_dist < dist_thres)
+        for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
         {
-            for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
-            {
-                sum_count_vect[col_serial] += count_tab_[row_serial][col_serial];
-            }
+            sum_count_vect[col_serial] += count_tab_[row_serial][col_serial];
         }
     }
     else if (idx_file.is_open()) // if counts on disk
     {
         std::vector<float> count_vect_x;
         LoadCountFromIndex(count_vect_x, idx_file, index_pos_[row_serial], nb_count_);
-        count_dist = (dist_method == "none" ? 0 : CalcDistance(count_vect_x, ref_count_vect, dist_method));
-        if (dist_method == "none" || count_dist < dist_thres)
+        for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
         {
-            for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
-            {
-                sum_count_vect[col_serial] += count_vect_x[col_serial];
-            }
+            sum_count_vect[col_serial] += count_vect_x[col_serial];
         }
     }
     else
     {
         throw std::domain_error("searching index on disk but index file not opened");
     }
-    return count_dist;
 }
 
 const float CountTab::CalcCountDistance(const size_t row_serial1, const size_t row_serial2, const std::string &dist_method, std::ifstream &idx_file) const

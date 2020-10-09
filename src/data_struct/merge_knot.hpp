@@ -18,6 +18,6 @@ private:
     bool is_pred_rc_, has_pred_, is_succ_rc_, has_succ_, has_ambiguity_;
 };
 
-using fix2knot_t = std::map<size_t, MergeKnot>; // for making results not dependent to k-mers' input order, but their sequence order
+using fix2knot_t = std::map<uint64_t, MergeKnot>; // for making results not dependent to k-mers' input order, but their sequence order
 
 #endif //KAMRAT_DATASTRUCT_MERGEKNOT_H

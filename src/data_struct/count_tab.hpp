@@ -25,8 +25,7 @@ public:
     const float GetValue(size_t row_serial, size_t valcol_serial) const;
     const float GetStr(size_t row_serial, size_t strcol_serial) const;
     const void GetCountVect(std::vector<float> &count_vect, size_t row_serial, std::ifstream &idx_file) const;
-    const float AddCountVectIfCoherent(std::vector<float> &sum_count_vect, size_t row_serial, const std::vector<float> &ref_count_vect,
-                                       const std::string &dist_method, const float dist_thres, std::ifstream &idx_file) const;
+    const void AddCountVect(std::vector<float> &sum_count_vect, size_t row_serial, std::ifstream &idx_file) const;
     const void GetRowString(std::string &row_string, size_t row_serial, std::ifstream &idx_file, const std::string &as_scorecol) const;
 
     const float CalcCountDistance(size_t row_serial1, size_t row_serial2, const std::string &dist_method, std::ifstream &idx_file) const;
