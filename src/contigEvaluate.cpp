@@ -43,9 +43,9 @@ const float MIN_DISTANCE = 0, MAX_DISTANCE = 1 - MIN_DISTANCE;
 void ScanCountTable(CountTab &kmer_count_tab,
                     code2serial_t &code2serial,
                     const std::string &kmer_count_path,
-                    const std::string &colname_list_path,
-                    const bool stranded)
+                    const std::string &colname_list_path)
 {
+    const bool stranded = kmer_count_tab.IsStranded();
     std::ifstream kmer_count_file(kmer_count_path);
     if (!kmer_count_file.is_open())
     {
@@ -135,14 +135,14 @@ void EstablishSeqListFromMultilineFasta(name2seq_t &name2seq, const std::string 
 const void EvaluatePrintSeqElemFarthest(const std::string &name,
                                         const std::string &seq,
                                         const std::string &eval_method,
-                                        const bool stranded,
-                                        const unsigned int k_len,
                                         const CountTab &kmer_count_tab,
                                         const code2serial_t &code2serial,
                                         const std::string &idx_path)
 {
     std::ifstream idx_file(idx_path);
 
+    const size_t k_len = kmer_count_tab.GetKLen();
+    const bool stranded = kmer_count_tab.IsStranded();
     size_t start_pos1 = 0, start_pos2 = seq.size() - k_len;
     std::string kmer1 = seq.substr(start_pos1, k_len), kmer2 = seq.substr(start_pos2, k_len);
     while (start_pos1 < start_pos2 && code2serial.find(Seq2Int(kmer1, k_len, stranded)) == code2serial.cend())
@@ -172,14 +172,14 @@ const void EvaluatePrintSeqElemFarthest(const std::string &name,
 const void EvaluatePrintSeqElemWorstAdj(const std::string &name,
                                         const std::string &seq,
                                         const std::string &eval_method,
-                                        const bool stranded,
-                                        const unsigned int k_len,
                                         const CountTab &kmer_count_tab,
                                         const code2serial_t &code2serial,
                                         const std::string &idx_path)
 {
     std::ifstream idx_file(idx_path);
 
+    const size_t k_len = kmer_count_tab.GetKLen();
+    const bool stranded = kmer_count_tab.IsStranded();
     size_t seq_size = seq.size(), start_pos1 = 0, start_pos2;
     std::string kmer1, kmer2;
     float dist = MIN_DISTANCE - 1;
@@ -246,9 +246,9 @@ int main(int argc, char **argv)
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    CountTab kmer_count_tab(idx_path);
+    CountTab kmer_count_tab(k_len, stranded, idx_path);
     code2serial_t code2serial;
-    ScanCountTable(kmer_count_tab, code2serial, kmer_count_path, colname_list_path, stranded);
+    ScanCountTable(kmer_count_tab, code2serial, kmer_count_path, colname_list_path);
 
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
@@ -271,11 +271,11 @@ int main(int argc, char **argv)
         }
         else if (eval_mode == "farthest") // if seq has multiple k-mers, and evaluation mode is "farthest"
         {
-            EvaluatePrintSeqElemFarthest(name, seq, eval_method, stranded, k_len, kmer_count_tab, code2serial, idx_path);
+            EvaluatePrintSeqElemFarthest(name, seq, eval_method, kmer_count_tab, code2serial, idx_path);
         }
         else if (eval_mode == "worstAdj") // if seq has multiple k-mers, and evaluation mode is "worstAdj"
         {
-            EvaluatePrintSeqElemWorstAdj(name, seq, eval_method, stranded, k_len, kmer_count_tab, code2serial, idx_path);
+            EvaluatePrintSeqElemWorstAdj(name, seq, eval_method, kmer_count_tab, code2serial, idx_path);
         }
     }
 

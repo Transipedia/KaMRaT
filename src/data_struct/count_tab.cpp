@@ -11,8 +11,8 @@ inline void LoadCountFromIndex(std::vector<float> &counts, std::istream &idx_fil
     idx_file.read(reinterpret_cast<char *>(&counts[0]), nb_samples * sizeof(counts[0]));
 }
 
-CountTab::CountTab(const std::string &idx_file_path)
-    : idx_file_path_(idx_file_path)
+CountTab::CountTab(const size_t k_len, const bool stranded, const std::string &idx_file_path)
+    : k_len_(k_len), stranded_(stranded), idx_file_path_(idx_file_path)
 {
 }
 
@@ -24,6 +24,16 @@ const bool CountTab::IsCountsInMem() const
 const size_t CountTab::GetTableSize() const
 {
     return (IsCountsInMem() ? count_tab_.size() : index_pos_.size());
+}
+
+const size_t CountTab::GetKLen() const
+{
+    return k_len_;
+}
+
+const bool CountTab::IsStranded() const
+{
+    return stranded_;
 }
 
 const std::string &CountTab::GetIndexPath() const
@@ -128,31 +138,39 @@ const void CountTab::GetRowString(std::string &row_string, const size_t row_seri
     row_string = str_line.substr(0, str_line.find_first_of(" \t") + 1) + as_scorecol + str_line.substr(str_line.find_first_of(" \t"));
 }
 
-const void CountTab::AddCountVect(std::vector<float> &sum_count_vect, const size_t row_serial, std::ifstream &idx_file) const
+const void CountTab::EstimateMeanCountVect(std::vector<float> &avg_count_vect, const std::vector<size_t> &row_serial_vect, std::ifstream &idx_file) const
 {
-    if (row_serial >= str_tab_.size())
+    avg_count_vect.assign(nb_count_, 0);
+    for (size_t rs : row_serial_vect)
     {
-        throw std::domain_error("k-mer serial " + std::to_string(row_serial) + " larger than count table size " + std::to_string(str_tab_.size()));
-    }
-    if (idx_file_path_.empty()) // if counts in memory
-    {
-        for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
+        if (rs >= str_tab_.size()) // should not happen
         {
-            sum_count_vect[col_serial] += count_tab_[row_serial][col_serial];
+            throw std::domain_error("k-mer serial " + std::to_string(rs) + " larger than count table size " + std::to_string(str_tab_.size()));
+        }
+        if (idx_file_path_.empty()) // if counts in memory
+        {
+            for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
+            {
+                avg_count_vect[col_serial] += count_tab_[rs][col_serial];
+            }
+        }
+        else if (idx_file.is_open()) // if counts on disk
+        {
+            std::vector<float> count_vect_x;
+            LoadCountFromIndex(count_vect_x, idx_file, index_pos_[rs], nb_count_);
+            for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
+            {
+                avg_count_vect[col_serial] += count_vect_x[col_serial];
+            }
+        }
+        else
+        {
+            throw std::domain_error("searching index on disk but index file not opened");
         }
     }
-    else if (idx_file.is_open()) // if counts on disk
+    for (size_t i(0); i < avg_count_vect.size(); ++i)
     {
-        std::vector<float> count_vect_x;
-        LoadCountFromIndex(count_vect_x, idx_file, index_pos_[row_serial], nb_count_);
-        for (size_t col_serial(0); col_serial < nb_count_; ++col_serial)
-        {
-            sum_count_vect[col_serial] += count_vect_x[col_serial];
-        }
-    }
-    else
-    {
-        throw std::domain_error("searching index on disk but index file not opened");
+        avg_count_vect[i] /= row_serial_vect.size();
     }
 }
 

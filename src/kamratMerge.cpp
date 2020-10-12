@@ -20,108 +20,8 @@
 #include "run_info_parser/merge.hpp"
 #include "run_info_parser/utils.hpp"
 
-const size_t EstimateAvgCount(std::vector<float> &count_avg_vect,
-                              const std::vector<std::unordered_set<uint64_t>> &fix_record,
-                              const CountTab &kmer_count_tab,
-                              const code2serial_t code2serial,
-                              const std::string &seq,
-                              const size_t k_len, const bool stranded, const size_t min_overlap,
-                              std::ifstream &idx_file)
-{
-    size_t nb_kmer_found(1), seq_len = seq.size();
-    if (seq_len < k_len) //shouldn't happen
-    {
-        throw std::domain_error("sequence size less than k-mer length");
-    }
-    if (seq_len == k_len)
-    {
-        auto iter = code2serial.find(Seq2Int(seq, k_len, stranded));
-        if (iter == code2serial.cend())
-        {
-            throw std::domain_error("single-mer contig not found in k-mer count table");
-        }
-        kmer_count_tab.GetCountVect(count_avg_vect, iter->second, idx_file);
-    }
-    else
-    {
-        uint64_t uniqcode1 = Seq2Int(seq.substr(0, k_len), k_len, true),
-                 uniqcode2 = uniqcode1; // don't consider unstrandedness here, otherwise will disturb the downstreaming k-mer codes
-        auto iter1 = code2serial.find(uniqcode1);
-        if (!stranded && iter1 == code2serial.cend()) // consider here the unstrandedness if needed
-        {
-            iter1 = code2serial.find(GetRC(uniqcode1, k_len));
-        }
-        if (iter1 == code2serial.cend()) // shouldn't happen
-        {
-            throw std::domain_error("head k-mer not found in k-mer count table");
-        }
-        kmer_count_tab.GetCountVect(count_avg_vect, iter1->second, idx_file); // initialized with the head k-mer
-        for (size_t pos_right(1); pos_right <= seq_len - k_len; ++pos_right)
-        {
-            uint64_t mask = (~0);
-            mask >>= (2 * (32 - k_len + 1)); // (k_len - 1)-suffix
-            for (size_t i(0); i < k_len - min_overlap && pos_right <= seq_len - k_len; ++i, mask >>= 2, ++pos_right)
-            {
-                uniqcode2 = NextSeq(uniqcode2, k_len, seq[pos_right + k_len - 1]);
-                { // for debug
-                    std::string kmer2, kmer2_rc, kmer2_ref = seq.substr(pos_right, k_len);
-                    Int2Seq(kmer2, uniqcode2, k_len);
-                    Int2Seq(kmer2_rc, GetRC(uniqcode2, k_len), k_len);
-                    if (kmer2 != kmer2_ref && kmer2_rc != kmer2_ref)
-                    {
-                        std::cout << pos_right << "\t" << seq << "\t" << kmer2 << "\t" << kmer2_rc << "\t" << kmer2_ref << std::endl;
-                        throw std::domain_error("NextSeq function not functioned well");
-                    }
-                }
-                // std::cout << std::bitset<64>(mask) << std::endl;
-                // std::string fix_seq;
-                // Int2Seq(fix_seq, uniqcode1 & mask, k_len - i - 1);
-                // std::cout << fix_seq << std::endl;
-                if (fix_record[i].find(uniqcode1 & mask) != fix_record[i].cend())
-                {
-                    break;
-                }
-                if (!stranded && fix_record[i].find(GetRC(uniqcode1 & mask, k_len - i - 1)) != fix_record[i].cend())
-                {
-                    break;
-                }
-                if (i == k_len - min_overlap - 1) // should not happen, for debug
-                {
-                    throw std::domain_error("no adjacent k-mers found in sequence for given max distance");
-                }
-                if (pos_right == seq_len - k_len) // for debug, should not happen
-                {
-                    throw std::domain_error("rear k-mer not found in k-mer count table");
-                }
-            }
-            auto iter2 = code2serial.find(uniqcode2);
-            if (!stranded && iter2 == code2serial.cend())
-            {
-                iter2 = code2serial.find(GetRC(uniqcode2, k_len));
-            }
-            if (iter2 == code2serial.cend()) // should not happen, for debug
-            {
-                throw std::domain_error("right k-mer not found in the k-mer count table");
-            }
-            kmer_count_tab.AddCountVect(count_avg_vect, iter2->second, idx_file); // add count
-            ++nb_kmer_found;
-            uniqcode1 = uniqcode2;
-        }
-
-        if (nb_kmer_found > 1)
-        {
-            for (unsigned int i(0); i < count_avg_vect.size(); ++i)
-            {
-                count_avg_vect[i] /= nb_kmer_found;
-            }
-        }
-    }
-    return nb_kmer_found;
-}
-
 void ScanCountTable(CountTab &kmer_count_tab,
                     contigvect_t &contig_vect, code2serial_t &code2serial,
-                    const size_t klen, const bool stranded,
                     const std::string &kmer_count_path,
                     const std::string &rep_colname,
                     const std::string &smp_info_path)
@@ -175,11 +75,11 @@ void ScanCountTable(CountTab &kmer_count_tab,
         std::istringstream conv(line);
         std::string seq;
         conv >> seq; // first column as feature (string)
-        if (seq.size() != klen)
+        if (seq.size() != kmer_count_tab.GetKLen())
         {
             throw std::domain_error("the given k-len parameter not coherent with input k-mer: " + seq);
         }
-        uint64_t kmer_uniqcode = Seq2Int(seq, seq.size(), stranded);
+        uint64_t kmer_uniqcode = Seq2Int(seq, seq.size(), kmer_count_tab.IsStranded());
         if (!code2serial.insert({kmer_uniqcode, kmer_serial}).second)
         {
             throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
@@ -240,13 +140,13 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
 }
 
 const bool DoExtension(contigvect_t &contig_vect,
-                       std::vector<std::unordered_set<uint64_t>> &fix_record,
                        const fix2knot_t &hashed_mergeknot_list,
                        const CountTab &kmer_count_tab,
-                       const size_t k_len, const size_t n_overlap,
+                       const size_t n_overlap,
                        const std::string &interv_method, const float interv_thres,
                        std::ifstream &idx_file)
 {
+    const size_t k_len = kmer_count_tab.GetKLen();
     bool has_new_extensions(false);
     for (const auto &mk : hashed_mergeknot_list)
     {
@@ -261,18 +161,12 @@ const bool DoExtension(contigvect_t &contig_vect,
             continue;
         }
         bool is_pred_rc = mk.second.IsRC("pred"), is_succ_rc = mk.second.IsRC("succ");
-        if (interv_method != "none")
+        if (interv_method != "none" &&
+            kmer_count_tab.CalcCountDistance(contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc),
+                                             contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc),
+                                             interv_method, idx_file) >= interv_thres)
         {
-            size_t left_adj_serial = contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc),
-                   right_adj_serial = contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc);
-            if (kmer_count_tab.CalcCountDistance(left_adj_serial, right_adj_serial, interv_method, idx_file) >= interv_thres)
-            {
-                continue;
-            }
-        }
-        if (!fix_record[k_len - n_overlap - 1].insert(mk.first).second)
-        {
-            throw std::domain_error("duplicate merging prefix-suffix overlap");
+            continue;
         }
         // merge by guaranting representative k-mer having minimum p-value or input order //
         if (contig_vect[pred_serial].GetScore("origin") <= contig_vect[succ_serial].GetScore("origin")) // merge right to left
@@ -305,13 +199,12 @@ const bool DoExtension(contigvect_t &contig_vect,
 }
 
 void PrintContigList(const contigvect_t &contig_vect,
-                     const std::vector<std::unordered_set<uint64_t>> &fix_record,
                      const CountTab &kmer_count_tab, const code2serial_t &code2serial,
-                     const size_t k_len, const bool stranded, const size_t min_overlap,
                      const std::string &interv_method, const float interv_thres,
                      const std::string &quant_mode,
                      std::ifstream &idx_file)
 {
+    const auto k_len = kmer_count_tab.GetKLen();
     std::cout << "contig\tnb_merged_kmers";
     for (size_t i(0); i < kmer_count_tab.GetNbColumn(); ++i)
     {
@@ -320,7 +213,7 @@ void PrintContigList(const contigvect_t &contig_vect,
     std::cout << std::endl;
     for (const auto &elem : contig_vect)
     {
-        size_t rep_uniqcode = elem.GetUniqCode(), nb_kmer_found, rep_serial = code2serial.find(rep_uniqcode)->second;
+        size_t rep_uniqcode = elem.GetUniqCode(), rep_serial = code2serial.find(rep_uniqcode)->second;
         std::string contig_seq = elem.GetSeq(), rep_kmer_seq;
         Int2Seq(rep_kmer_seq, rep_uniqcode, k_len);
 
@@ -331,12 +224,9 @@ void PrintContigList(const contigvect_t &contig_vect,
         }
         else if (quant_mode == "mean")
         {
-            nb_kmer_found = EstimateAvgCount(sample_count, fix_record, kmer_count_tab, code2serial, contig_seq, k_len, stranded, min_overlap, idx_file);
-            if (nb_kmer_found != elem.GetNbKMer()) // for debug, should not happen
-            {
-                std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t" << nb_kmer_found << std::endl;
-                throw std::domain_error("member k-mer number not coherent");
-            }
+            std::vector<size_t> mem_kmer_vect;
+            elem.GetMemKMerSerialVect(mem_kmer_vect);
+            kmer_count_tab.EstimateMeanCountVect(sample_count, mem_kmer_vect, idx_file);
         }
         else
         {
@@ -374,11 +264,11 @@ int MergeMain(int argc, char **argv)
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    contigvect_t contig_vect;          // list of contigs for extension
-    code2serial_t code2serial;         // from contig's representative k-mer code to serial number in contig list
-    CountTab kmer_count_tab(idx_path); // count table containing k-mer counts
+    contigvect_t contig_vect;                           // list of contigs for extension
+    code2serial_t code2serial;                          // from contig's representative k-mer code to serial number in contig list
+    CountTab kmer_count_tab(k_len, stranded, idx_path); // count table containing k-mer counts
 
-    ScanCountTable(kmer_count_tab, contig_vect, code2serial, k_len, stranded, kmer_count_path, rep_colname, smp_info_path);
+    ScanCountTable(kmer_count_tab, contig_vect, code2serial, kmer_count_path, rep_colname, smp_info_path);
 
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
@@ -392,12 +282,10 @@ int MergeMain(int argc, char **argv)
             throw std::domain_error("k-mer count index file " + idx_path + " was not found");
         }
     }
-    std::vector<std::unordered_set<uint64_t>> fix_record;
     for (size_t n_overlap = k_len - 1; n_overlap >= min_overlap; --n_overlap)
     {
         std::cerr << "Merging contigs with overlap " << n_overlap << std::endl;
         bool has_new_extensions(true);
-        fix_record.emplace_back(std::unordered_set<uint64_t>());
         while (has_new_extensions)
         {
             std::cerr << "\tcontig list size: " << contig_vect.size() << std::endl;
@@ -412,7 +300,7 @@ int MergeMain(int argc, char **argv)
             //         std::cout << fix << ": " << contig_pred << " ======= " << contig_succ << std::endl;
             //     }
             // }
-            has_new_extensions = DoExtension(contig_vect, fix_record, hashed_mergeknot_list, kmer_count_tab, k_len, n_overlap, interv_method, interv_thres, idx_file);
+            has_new_extensions = DoExtension(contig_vect, hashed_mergeknot_list, kmer_count_tab, n_overlap, interv_method, interv_thres, idx_file);
             contig_vect.erase(std::remove_if(contig_vect.begin(), contig_vect.end(),
                                              [](const ContigElem &elem) { return elem.IsUsed(); }),
                               contig_vect.end());
@@ -423,7 +311,7 @@ int MergeMain(int argc, char **argv)
     std::cerr << "Contig extension finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    PrintContigList(contig_vect, fix_record, kmer_count_tab, code2serial, k_len, stranded, min_overlap, interv_method, interv_thres, quant_mode, idx_file);
+    PrintContigList(contig_vect, kmer_count_tab, code2serial, interv_method, interv_thres, quant_mode, idx_file);
     if (idx_file.is_open())
     {
         idx_file.close();

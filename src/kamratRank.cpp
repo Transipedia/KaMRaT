@@ -218,7 +218,7 @@ int RankMain(int argc, char *argv[])
 
     PrintRunInfo(count_tab_path, idx_path, smp_info_path, scorer->GetScoreMethod(), scorer->GetScoreCmd(), scorer->GetSortMode(), scorer->GetNbFold(),
                  nb_sel, ln_transf, standardize);
-    CountTab count_tab(idx_path);
+    CountTab count_tab(0, true, idx_path); // kamratRank does not care k-length and strandedness
     seqVect_t feature_vect;
 
     EvalScore(count_tab, feature_vect, count_tab_path, smp_info_path, scorer, ln_transf, standardize);
