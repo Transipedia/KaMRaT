@@ -51,10 +51,10 @@ const size_t EstimateAvgCount(std::vector<float> &count_avg_vect,
         {
             iter1 = code2serial.find(GetRC(uniqcode1, k_len));
         }
-        // if (iter1 == code2serial.cend()) // shouldn't happen
-        // {
-        //     throw std::domain_error("head k-mer not found in k-mer count table");
-        // }
+        if (iter1 == code2serial.cend()) // shouldn't happen
+        {
+            throw std::domain_error("head k-mer not found in k-mer count table");
+        }
         kmer_count_tab.GetCountVect(count_avg_vect, iter1->second, idx_file); // initialized with the head k-mer
         for (size_t pos_right(1); pos_right <= seq_len - k_len; ++pos_right)
         {
@@ -63,16 +63,16 @@ const size_t EstimateAvgCount(std::vector<float> &count_avg_vect,
             for (size_t i(0); i < k_len - min_overlap && pos_right <= seq_len - k_len; ++i, mask >>= 2, ++pos_right)
             {
                 uniqcode2 = NextSeq(uniqcode2, k_len, seq[pos_right + k_len - 1]);
-                // { // for debug
-                //     std::string kmer2, kmer2_rc, kmer2_ref = seq.substr(pos_right, k_len);
-                //     Int2Seq(kmer2, uniqcode2, k_len);
-                //     Int2Seq(kmer2_rc, GetRC(uniqcode2, k_len), k_len);
-                //     if (kmer2 != kmer2_ref && kmer2_rc != kmer2_ref)
-                //     {
-                //         std::cout << pos_right << "\t" << seq << "\t" << kmer2 << "\t" << kmer2_rc << "\t" << kmer2_ref << std::endl;
-                //         throw std::domain_error("NextSeq function not functioned well");
-                //     }
-                // }
+                { // for debug
+                    std::string kmer2, kmer2_rc, kmer2_ref = seq.substr(pos_right, k_len);
+                    Int2Seq(kmer2, uniqcode2, k_len);
+                    Int2Seq(kmer2_rc, GetRC(uniqcode2, k_len), k_len);
+                    if (kmer2 != kmer2_ref && kmer2_rc != kmer2_ref)
+                    {
+                        std::cout << pos_right << "\t" << seq << "\t" << kmer2 << "\t" << kmer2_rc << "\t" << kmer2_ref << std::endl;
+                        throw std::domain_error("NextSeq function not functioned well");
+                    }
+                }
                 // std::cout << std::bitset<64>(mask) << std::endl;
                 // std::string fix_seq;
                 // Int2Seq(fix_seq, uniqcode1 & mask, k_len - i - 1);
@@ -85,14 +85,14 @@ const size_t EstimateAvgCount(std::vector<float> &count_avg_vect,
                 {
                     break;
                 }
-                // if (i == k_len - min_overlap - 1) // should not happen, for debug
-                // {
-                //     throw std::domain_error("no adjacent k-mers found in sequence for given max distance");
-                // }
-                // if (pos_right == seq_len - k_len) // for debug, should not happen
-                // {
-                //     throw std::domain_error("rear k-mer not found in k-mer count table");
-                // }
+                if (i == k_len - min_overlap - 1) // should not happen, for debug
+                {
+                    throw std::domain_error("no adjacent k-mers found in sequence for given max distance");
+                }
+                if (pos_right == seq_len - k_len) // for debug, should not happen
+                {
+                    throw std::domain_error("rear k-mer not found in k-mer count table");
+                }
             }
             auto iter2 = code2serial.find(uniqcode2);
             if (!stranded && iter2 == code2serial.cend())

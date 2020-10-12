@@ -30,11 +30,11 @@ static inline const void ReverseComplementSeq(std::string &seq)
 
 ContigElem::ContigElem(const std::string &seq, const float rep_value, const uint64_t init_uniqcode, const size_t init_serial)
     : SeqElem(seq, init_uniqcode, rep_value),
+      is_used_(false),
       head_kmer_serial_(init_serial),
-      rear_kmer_serial_(init_serial),
-      nb_kmer_(1),
-      is_used_(false)
+      rear_kmer_serial_(init_serial)
 {
+    mem_kmer_serial_vect_.push_back(init_serial);
 }
 
 const bool ContigElem::IsUsed() const
@@ -49,7 +49,7 @@ const void ContigElem::SetUsed()
 
 const unsigned int ContigElem::GetNbKMer() const
 {
-    return nb_kmer_;
+    return mem_kmer_serial_vect_.size();
 }
 
 const size_t ContigElem::GetHeadKMerSerial(const bool if_need_reverse) const
@@ -62,6 +62,11 @@ const size_t ContigElem::GetRearKMerSerial(const bool if_need_reverse) const
     return (if_need_reverse ? head_kmer_serial_ : rear_kmer_serial_);
 }
 
+const void ContigElem::GetMemKMerSerialVect(std::vector<size_t> &mem_kmer_vect) const
+{
+    mem_kmer_vect = mem_kmer_serial_vect_;
+}
+
 const void ContigElem::LeftExtend(const ContigElem &left_contig_elem, const bool need_left_rc, unsigned int n_overlap)
 {
     auto left_seq = left_contig_elem.GetSeq();
@@ -71,7 +76,9 @@ const void ContigElem::LeftExtend(const ContigElem &left_contig_elem, const bool
     }
     seq_ = left_seq + seq_.substr(n_overlap);
     head_kmer_serial_ = left_contig_elem.GetHeadKMerSerial(need_left_rc);
-    nb_kmer_ += left_contig_elem.GetNbKMer();
+    decltype(mem_kmer_serial_vect_) mem_kmer_vect_toadd;
+    left_contig_elem.GetMemKMerSerialVect(mem_kmer_vect_toadd);
+    mem_kmer_serial_vect_.insert(mem_kmer_serial_vect_.end(), mem_kmer_vect_toadd.begin(), mem_kmer_vect_toadd.end());
 }
 
 const void ContigElem::RightExtend(const ContigElem &right_contig_elem, const bool need_right_rc, unsigned int n_overlap)
@@ -83,5 +90,7 @@ const void ContigElem::RightExtend(const ContigElem &right_contig_elem, const bo
     }
     seq_ = seq_ + right_seq.substr(n_overlap);
     rear_kmer_serial_ = right_contig_elem.GetRearKMerSerial(need_right_rc);
-    nb_kmer_ += right_contig_elem.GetNbKMer();
+    decltype(mem_kmer_serial_vect_) mem_kmer_vect_toadd;
+    right_contig_elem.GetMemKMerSerialVect(mem_kmer_vect_toadd);
+    mem_kmer_serial_vect_.insert(mem_kmer_serial_vect_.end(), mem_kmer_vect_toadd.begin(), mem_kmer_vect_toadd.end());
 }

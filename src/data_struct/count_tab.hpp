@@ -5,7 +5,7 @@
 #include <string>
 #include <set>
 #include <fstream>
-#include <map>
+#include <unordered_map>
 #include <cstdint>
 
 #include "count_tab_header.hpp"
@@ -38,6 +38,6 @@ private:
     std::vector<size_t> index_pos_;                 // indexed position for k-mer count ------ only used in onDsk
 };
 
-using code2serial_t = std::map<uint64_t, size_t>; // external dictionary to link k-mer with row serial number
+using code2serial_t = std::unordered_map<uint64_t, size_t>; // external dictionary to link k-mer with row serial number
 
 #endif //KAMRAT_DATASTRUCT_COUNTTAB_HPP

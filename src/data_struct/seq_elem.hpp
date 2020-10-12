@@ -2,7 +2,7 @@
 #define KAMRAT_DATASTRUCT_SEQELEM_HPP
 
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <cstdint>
 
@@ -22,7 +22,7 @@ protected:
     float final_score_;  // a modifiable score for p-value adjustement
 };
 
-using name2seq_t = std::map<std::string, SeqElem>;
+using name2seq_t = std::unordered_map<std::string, SeqElem>;
 using seqVect_t = std::vector<SeqElem>;
 
 #endif //KAMRAT_DATASTRUCT_SEQELEM_HPP
