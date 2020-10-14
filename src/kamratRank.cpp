@@ -147,7 +147,7 @@ void ModelPrint(const seqVect_t &feature_vect,
     {
         throw std::domain_error("cannot open count index file: " + idx_path);
     }
-    std::cout << nb_sel << "\t" << parsed_nb_sel << std::endl;
+    // std::cout << nb_sel << "\t" << parsed_nb_sel << std::endl;
     for (size_t i(0); i < parsed_nb_sel; ++i)
     {
         std::string row_string;

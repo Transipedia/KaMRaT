@@ -11,7 +11,8 @@ inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
     std::istringstream conv(line_str);
     std::string term;
     size_t score_pos(0); // ASSUMPTION: score value never appears at the first column !!!
-    for (unsigned int i(0); conv >> term && i < colnature_vect.size(); ++i)
+    conv >> term;        // skip the first column which is k-mer/tag/contig/sequence
+    for (unsigned int i(1); conv >> term && i < colnature_vect.size(); ++i)
     {
         if (colnature_vect[i] == -2)
         {
@@ -35,7 +36,7 @@ inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
             throw std::invalid_argument("unknown column nature code: " + std::to_string(colnature_vect[i]));
         }
     }
-    if (value_vect.size() + count_vect.size() + str_vect.size() != colnature_vect.size())
+    if (value_vect.size() + count_vect.size() + str_vect.size() != colnature_vect.size() - 1) // the first column is excluded for saving memory
     {
         throw std::domain_error("parsing string line to fields failed: sum of field lengths not equal to header length");
     }
@@ -65,7 +66,7 @@ const void CountTabHeader::MakeSmpCond(const std::string &sample_info_path,
             conv >> sample >> condition;
             if (conv.fail())
             {
-                condition = "$!~NO^CONDITION?#@_@";
+                condition = ""; // empty string indicating the unique condition
             }
             if (preserved_cond_tags.find(condition) != preserved_cond_tags.cend())
             {
@@ -252,7 +253,7 @@ const size_t CountTabHeader::ParseLineStr(std::vector<float> &value_vect,
     {
         throw std::domain_error("newly inserted count vector not coherent with existing count table");
     }
-    if (nb_str_ != str_vect.size())
+    if (nb_str_ != str_vect.size() + 1) // the first column is excluded for saving memory
     {
         throw std::domain_error("newly inserted string vector not coherent with existing string table");
     }
