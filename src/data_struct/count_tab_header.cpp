@@ -44,7 +44,7 @@ inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
 }
 
 CountTabHeader::CountTabHeader()
-    : nb_col_(0), nb_cond_(0), nb_count_(0), nb_value_(0), nb_str_(0)
+    : nb_col_(0), nb_cond_(0), nb_value_(0), nb_count_(0), nb_str_(0)
 {
 }
 
@@ -236,7 +236,7 @@ const bool CountTabHeader::CheckColCondition(size_t i_col, const std::string &ta
     {
         throw std::domain_error("checking a non-sample column is not possible");
     }
-    return (iter->second == colnature_vect_[i_col]);
+    return (iter->second == static_cast<size_t>(colnature_vect_[i_col]));
 }
 
 const size_t CountTabHeader::ParseLineStr(std::vector<float> &value_vect,

@@ -35,7 +35,7 @@ void CalcSum(sampleInfoVect_t &sample_info_vect, const std::string &sample_info_
     CountTabHeader count_tab_header;
     count_tab_header.MakeSmpCond(sample_info_path);
     count_tab_header.MakeColumnInfo(line, "NULLFORNOSCORE");
-    for (int i(0); i < count_tab_header.GetNbColumn(); ++i)
+    for (size_t i(0); i < count_tab_header.GetNbColumn(); ++i)
     {
         if (count_tab_header.IsSample(i))
         {
@@ -47,7 +47,7 @@ void CalcSum(sampleInfoVect_t &sample_info_vect, const std::string &sample_info_
     while (std::getline(kmer_count_instream, line))
     {
         std::istringstream conv(line);
-        for (int i(0); conv >> str_x && i < count_tab_header.GetNbColumn(); ++i)
+        for (size_t i(0); conv >> str_x && i < count_tab_header.GetNbColumn(); ++i)
         {
             if (count_tab_header.IsSample(i))
             {

@@ -146,7 +146,6 @@ const bool DoExtension(contigvect_t &contig_vect,
                        const std::string &interv_method, const float interv_thres,
                        std::ifstream &idx_file)
 {
-    const size_t k_len = kmer_count_tab.GetKLen();
     bool has_new_extensions(false);
     for (const auto &mk : hashed_mergeknot_list)
     {
@@ -304,6 +303,7 @@ int MergeMain(int argc, char **argv)
             contig_vect.erase(std::remove_if(contig_vect.begin(), contig_vect.end(),
                                              [](const ContigElem &elem) { return elem.IsUsed(); }),
                               contig_vect.end());
+	    contig_vect.shrink_to_fit();
             // PrintContigList(contig_vect, kmer_count_tab, code2serial, k_len, stranded, min_overlap, interv_method, interv_thres, quant_mode, idx_file);
         }
     }

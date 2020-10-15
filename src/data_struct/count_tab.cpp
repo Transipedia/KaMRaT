@@ -46,6 +46,9 @@ const bool CountTab::AddRowAsFields(float &row_score, const std::string &line_st
     std::vector<float> value_vect, count_vect;
     std::vector<std::string> str_vect;
     size_t score_pos = ParseLineStr(value_vect, count_vect, str_vect, line_str);
+    value_vect.shrink_to_fit();
+    count_vect.shrink_to_fit();
+    str_vect.shrink_to_fit();
 
     str_tab_.emplace_back(str_vect); // non-value columns are alwayes saved in memory
     if (nb_value_ > 0)

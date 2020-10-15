@@ -5,6 +5,7 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <memory>
 #include <ctime>
 
 #include <boost/iostreams/filtering_streambuf.hpp>
@@ -20,7 +21,7 @@ void EvalScore(CountTab &feature_count_tab,
                seqVect_t &feature_vect,
                const std::string &count_tab_path,
                const std::string &smp_info_path,
-               Scorer *scorer,
+               const std::unique_ptr<Scorer> &scorer,
                const bool ln_transf,
                const bool standardize)
 {
@@ -165,51 +166,51 @@ int RankMain(int argc, char *argv[])
     size_t nb_sel(0);
 
     ParseOptions(argc, argv, idx_path, smp_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, standardize, count_tab_path);
-    Scorer *scorer;
+    std::unique_ptr<Scorer> scorer;
     if (score_method.empty() || score_method == "sd")
     {
-        scorer = new SDScorer(sort_mode);
+        scorer = std::make_unique<SDScorer>(sort_mode);
     }
     else if (score_method == "rsd")
     {
-        scorer = new RelatSDScorer(sort_mode);
+        scorer = std::make_unique<RelatSDScorer>(sort_mode);
     }
     else if (score_method == "ttest")
     {
-        scorer = new TtestScorer(sort_mode);
+        scorer = std::make_unique<TtestScorer>(sort_mode);
     }
     else if (score_method == "es")
     {
-        scorer = new EffectSizeScorer(sort_mode);
+        scorer = std::make_unique<EffectSizeScorer>(sort_mode);
     }
     else if (score_method == "lfc")
     {
         if (score_cmd.empty())
         {
-            scorer = new LFCScorer("mean", sort_mode);
+            scorer = std::make_unique<LFCScorer>("mean", sort_mode);
         }
         else
         {
-            scorer = new LFCScorer(score_cmd, sort_mode);
+            scorer = std::make_unique<LFCScorer>(score_cmd, sort_mode);
         }
     }
     else if (score_method == "nb")
     {
         size_t nb_fold = (score_cmd.empty() ? 1 : std::stoi(score_cmd));
-        scorer = new NaiveBayesScorer(sort_mode, nb_fold);
+        scorer = std::make_unique<NaiveBayesScorer>(sort_mode, nb_fold);
     }
     else if (score_method == "rg")
     {
         size_t nb_fold = (score_cmd.empty() ? 1 : std::stoi(score_cmd));
-        scorer = new RegressionScorer(sort_mode, nb_fold);
+        scorer = std::make_unique<RegressionScorer>(sort_mode, nb_fold);
     }
     else if (score_method == "svm")
     {
-        scorer = new SVMScorer(sort_mode);
+        scorer = std::make_unique<SVMScorer>(sort_mode);
     }
     else if (score_method == "user")
     {
-        scorer = new UserScorer(sort_mode);
+        scorer = std::make_unique<UserScorer>(sort_mode);
     }
     else
     {
@@ -228,8 +229,6 @@ int RankMain(int argc, char *argv[])
         PValueAdjustmentBH(feature_vect);
     }
     ModelPrint(feature_vect, idx_path, nb_sel, count_tab);
-
-    delete scorer;
 
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
     return EXIT_SUCCESS;

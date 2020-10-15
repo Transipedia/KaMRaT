@@ -36,7 +36,7 @@ inline void Conv2Arma(arma::mat &arma_count_vect, const std::vector<float> &coun
 {
     size_t nb_sample = count_vect.size();
     arma_count_vect.zeros(1, nb_sample);
-    for (int i = 0; i < nb_sample; ++i)
+    for (size_t i = 0; i < nb_sample; ++i)
     {
         arma_count_vect(0, i) = count_vect[i];
     }
@@ -48,7 +48,7 @@ inline void Conv2Arma(arma::mat &arma_count_vect, const std::vector<float> &coun
             std::cerr << "[warning]:    a constant count vector appears, turing it to all zeros." << std::endl;
             sd = 1;
         }
-        for (int i = 0; i < nb_sample; ++i)
+        for (size_t i = 0; i < nb_sample; ++i)
         {
             arma_count_vect(0, i) = (arma_count_vect(0, i) - mean) / sd;
         }

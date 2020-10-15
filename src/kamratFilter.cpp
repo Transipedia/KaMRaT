@@ -89,8 +89,6 @@ void ScanCountTab(const std::string &count_tab_path,
     std::getline(kmer_count_instream, line);
     count_tab_header.MakeSmpCond(sample_info_path, preserved_condition_names);
     count_tab_header.MakeColumnInfo(line, "??%#NOT_CARE_SCORE-@_@");
-    const long express_smp_serial = (express_level == "smp" ? GetSampleSerial(express_name, count_tab_header) : -1),
-               silent_smp_serial = (silent_level == "smp" ? GetSampleSerial(silent_level, count_tab_header) : -1);
     std::vector<size_t> label_vect;
     count_tab_header.GetSmpLabels(label_vect);
     std::cout << line << std::endl;

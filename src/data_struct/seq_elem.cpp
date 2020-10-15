@@ -3,7 +3,7 @@
 #include "seq_elem.hpp"
 
 SeqElem::SeqElem(const std::string &seq, const uint64_t uniq_code, const float score)
-    : seq_(seq), uniq_code_(uniq_code), score_(score), final_score_(score)
+    : uniq_code_(uniq_code), seq_(seq), score_(score), final_score_(score)
 {
 }
 
