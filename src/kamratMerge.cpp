@@ -88,12 +88,14 @@ void ScanCountTable(CountTab &kmer_count_tab,
         {
             throw std::domain_error("contig vector not coherent with k-mer serial");
         }
-        contig_vect.push_back(ContigElem(seq, rep_val, kmer_uniqcode, kmer_serial));
+        contig_vect.emplace_back(ContigElem(seq, rep_val, kmer_uniqcode, kmer_serial));
     }
     if (count_idx_file.is_open())
     {
         count_idx_file.close();
     }
+    kmer_count_tab.ShrinkTab();
+    contig_vect.shrink_to_fit();
     kmer_count_file.close();
 }
 
@@ -223,9 +225,7 @@ void PrintContigList(const contigvect_t &contig_vect,
         }
         else if (quant_mode == "mean")
         {
-            std::vector<size_t> mem_kmer_vect;
-            elem.GetMemKMerSerialVect(mem_kmer_vect);
-            kmer_count_tab.EstimateMeanCountVect(sample_count, mem_kmer_vect, idx_file);
+            kmer_count_tab.EstimateMeanCountVect(sample_count, elem.GetMemKMerSerialVect(), idx_file);
         }
         else
         {

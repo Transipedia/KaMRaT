@@ -17,7 +17,7 @@ public:
     const unsigned int GetNbKMer() const;
     const size_t GetHeadKMerSerial(const bool if_need_reverse) const;
     const size_t GetRearKMerSerial(const bool if_need_reverse) const;
-    const void GetMemKMerSerialVect(std::vector<size_t> &mem_kmer_vect) const;
+    const std::vector<size_t> &GetMemKMerSerialVect() const;
     const void LeftExtend(const ContigElem &left_contig_elem, bool need_right_rc, unsigned int n_overlap);
     const void RightExtend(const ContigElem &right_contig_elem, bool need_right_rc, unsigned int n_overlap);
 

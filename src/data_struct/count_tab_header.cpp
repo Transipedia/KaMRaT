@@ -16,20 +16,20 @@ inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
     {
         if (colnature_vect[i] == -2)
         {
-            value_vect.push_back(std::stof(term));
+            value_vect.emplace_back(std::stof(term));
         }
         else if (colnature_vect[i] == -1)
         {
             score_pos = i;
-            value_vect.push_back(std::stof(term));
+            value_vect.emplace_back(std::stof(term));
         }
         else if (colnature_vect[i] >= 0)
         {
-            count_vect.push_back(std::stof(term));
+            count_vect.emplace_back(std::stof(term));
         }
         else if (colnature_vect[i] == -3)
         {
-            str_vect.push_back(term);
+            str_vect.emplace_back(term);
         }
         else
         {
@@ -104,18 +104,18 @@ const void CountTabHeader::MakeColumnInfo(const std::string &header_line,
     std::string term;
     // first term is supposed to be feature //
     conv >> term;
-    colname_vect_.push_back(term);
-    colnature_vect_.push_back(-3);
-    colserial_vect_.push_back(nb_str_++);
+    colname_vect_.emplace_back(term);
+    colnature_vect_.emplace_back(-3);
+    colserial_vect_.emplace_back(0); // place hoder: first column always as sequence
     ++nb_col_;
     // following columns //
     if (cond2lab_dict_.empty()) // sample info file NOT provided => all next columns are samples
     {
         while (conv >> term)
         {
-            colname_vect_.push_back(term);
-            colnature_vect_.push_back(0);
-            colserial_vect_.push_back(nb_count_++);
+            colname_vect_.emplace_back(term);
+            colnature_vect_.emplace_back(0);
+            colserial_vect_.emplace_back(nb_count_++);
             ++nb_col_;
         }
     }
@@ -123,23 +123,23 @@ const void CountTabHeader::MakeColumnInfo(const std::string &header_line,
     {
         while (conv >> term)
         {
-            colname_vect_.push_back(term);
+            colname_vect_.emplace_back(term);
             auto iter = smp2lab_dict_.find(term);
             if (iter != smp2lab_dict_.cend())
             {
-                colnature_vect_.push_back(iter->second);
-                colserial_vect_.push_back(nb_count_++);
+                colnature_vect_.emplace_back(iter->second);
+                colserial_vect_.emplace_back(nb_count_++);
             }
             else if (term == "tag" || term == "feature" || term == "contig")
             {
-                colnature_vect_.push_back(-3); // -3 for strings
-                colserial_vect_.push_back(nb_str_++);
+                colnature_vect_.emplace_back(-3); // -3 for strings
+                colserial_vect_.emplace_back(nb_str_++);
             }
             else
             {
                 size_t nat_code = (term == score_colname ? -1 : -2); // -1 for rep-value or score, -2 for ordinary value
-                colnature_vect_.push_back(nat_code);
-                colserial_vect_.push_back(nb_value_++);
+                colnature_vect_.emplace_back(nat_code);
+                colserial_vect_.emplace_back(nb_value_++);
             }
             ++nb_col_;
         }
@@ -253,7 +253,7 @@ const size_t CountTabHeader::ParseLineStr(std::vector<float> &value_vect,
     {
         throw std::domain_error("newly inserted count vector not coherent with existing count table");
     }
-    if (nb_str_ != str_vect.size() + 1) // the first column is excluded for saving memory
+    if (nb_str_ != str_vect.size()) // the first column is excluded for saving memory
     {
         throw std::domain_error("newly inserted string vector not coherent with existing string table");
     }

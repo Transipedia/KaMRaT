@@ -62,9 +62,9 @@ const size_t ContigElem::GetRearKMerSerial(const bool if_need_reverse) const
     return (if_need_reverse ? head_kmer_serial_ : rear_kmer_serial_);
 }
 
-const void ContigElem::GetMemKMerSerialVect(std::vector<size_t> &mem_kmer_vect) const
+const std::vector<size_t> &ContigElem::GetMemKMerSerialVect() const
 {
-    mem_kmer_vect = mem_kmer_serial_vect_;
+    return mem_kmer_serial_vect_;
 }
 
 const void ContigElem::LeftExtend(const ContigElem &left_contig_elem, const bool need_left_rc, unsigned int n_overlap)
@@ -76,9 +76,9 @@ const void ContigElem::LeftExtend(const ContigElem &left_contig_elem, const bool
     }
     seq_ = left_seq + seq_.substr(n_overlap);
     head_kmer_serial_ = left_contig_elem.GetHeadKMerSerial(need_left_rc);
-    decltype(mem_kmer_serial_vect_) mem_kmer_vect_toadd;
-    left_contig_elem.GetMemKMerSerialVect(mem_kmer_vect_toadd);
-    mem_kmer_serial_vect_.insert(mem_kmer_serial_vect_.end(), mem_kmer_vect_toadd.begin(), mem_kmer_vect_toadd.end());
+    mem_kmer_serial_vect_.insert(mem_kmer_serial_vect_.end(),
+                                 std::make_move_iterator(left_contig_elem.GetMemKMerSerialVect().begin()),
+                                 std::make_move_iterator(left_contig_elem.GetMemKMerSerialVect().end()));
 }
 
 const void ContigElem::RightExtend(const ContigElem &right_contig_elem, const bool need_right_rc, unsigned int n_overlap)
@@ -90,7 +90,7 @@ const void ContigElem::RightExtend(const ContigElem &right_contig_elem, const bo
     }
     seq_ = seq_ + right_seq.substr(n_overlap);
     rear_kmer_serial_ = right_contig_elem.GetRearKMerSerial(need_right_rc);
-    decltype(mem_kmer_serial_vect_) mem_kmer_vect_toadd;
-    right_contig_elem.GetMemKMerSerialVect(mem_kmer_vect_toadd);
-    mem_kmer_serial_vect_.insert(mem_kmer_serial_vect_.end(), mem_kmer_vect_toadd.begin(), mem_kmer_vect_toadd.end());
+    mem_kmer_serial_vect_.insert(mem_kmer_serial_vect_.end(),
+                                 std::make_move_iterator(right_contig_elem.GetMemKMerSerialVect().begin()),
+                                 std::make_move_iterator(right_contig_elem.GetMemKMerSerialVect().end()));
 }

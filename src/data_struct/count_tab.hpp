@@ -31,6 +31,8 @@ public:
     const void GetRowString(std::string &row_string, size_t row_serial, std::ifstream &idx_file, const std::string &as_scorecol) const;
     const float CalcCountDistance(size_t row_serial1, size_t row_serial2, const std::string &dist_method, std::ifstream &idx_file) const;
 
+    const void ShrinkTab();
+
 private:
     const size_t k_len_;                            // k-mer length
     const bool stranded_;                           // is k-mers stranded

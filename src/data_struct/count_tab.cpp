@@ -45,20 +45,24 @@ const bool CountTab::AddRowAsFields(float &row_score, const std::string &line_st
 {
     std::vector<float> value_vect, count_vect;
     std::vector<std::string> str_vect;
-    size_t score_pos = ParseLineStr(value_vect, count_vect, str_vect, line_str);
-    value_vect.shrink_to_fit();
-    count_vect.shrink_to_fit();
-    str_vect.shrink_to_fit();
+    value_vect.reserve(nb_value_);
+    count_vect.reserve(nb_count_);
+    str_vect.reserve(nb_str_);
 
-    str_tab_.emplace_back(str_vect); // non-value columns are alwayes saved in memory
+    size_t score_pos = ParseLineStr(value_vect, count_vect, str_vect, line_str);
+
     if (nb_value_ > 0)
     {
-        value_tab_.emplace_back(value_vect); // non-count values are always saved in memory
+        value_tab_.emplace_back(std::move(value_vect)); // non-count values are always saved in memory
+    }
+    if (nb_str_ > 0)
+    {
+        str_tab_.emplace_back(std::move(str_vect)); // non-value columns are alwayes saved in memory
     }
 
     if (!idx_file.is_open()) // if counts in memory
     {
-        count_tab_.emplace_back(count_vect);
+        count_tab_.emplace_back(std::move(count_vect));
     }
     else // if counts on disk
     {
@@ -73,7 +77,7 @@ const bool CountTab::AddRowAsFields(float &row_score, const std::string &line_st
     }
     else // if with score column
     {
-        row_score = value_vect[colserial_vect_[score_pos]];
+        row_score = value_tab_.back()[colserial_vect_[score_pos]];
         return true;
     }
 }
@@ -85,7 +89,7 @@ const bool CountTab::AddRowAsString(float &row_score, std::vector<float> &count_
     size_t score_pos = ParseLineStr(value_vect, count_vect, str_vect, line_str);
 
     index_pos_.emplace_back(idx_file.tellp());
-    idx_file << line_str << std::endl;
+    idx_file << std::move(line_str) << std::endl;
 
     if (score_pos == 0)
     {
@@ -106,7 +110,7 @@ const float CountTab::GetValue(const size_t kmer_serial, const size_t valcol_ser
 
 const void CountTab::GetCountVect(std::vector<float> &count_vect, const size_t kmer_serial, std::ifstream &idx_file) const
 {
-    if (kmer_serial >= str_tab_.size())
+    if (kmer_serial >= (IsCountsInMem() ? count_tab_.size() : index_pos_.size()))
     {
         throw std::domain_error("k-mer serial " + std::to_string(kmer_serial) + " larger than count table size " + std::to_string(str_tab_.size()));
     }
@@ -146,7 +150,7 @@ const void CountTab::EstimateMeanCountVect(std::vector<float> &avg_count_vect, c
     avg_count_vect.assign(nb_count_, 0);
     for (size_t rs : row_serial_vect)
     {
-        if (rs >= str_tab_.size()) // should not happen
+        if (rs >= (IsCountsInMem() ? count_tab_.size() : index_pos_.size())) // should not happen
         {
             throw std::domain_error("k-mer serial " + std::to_string(rs) + " larger than count table size " + std::to_string(str_tab_.size()));
         }
@@ -179,7 +183,8 @@ const void CountTab::EstimateMeanCountVect(std::vector<float> &avg_count_vect, c
 
 const float CountTab::CalcCountDistance(const size_t row_serial1, const size_t row_serial2, const std::string &dist_method, std::ifstream &idx_file) const
 {
-    if (row_serial1 >= str_tab_.size() || row_serial2 >= str_tab_.size())
+    size_t tab_size = (IsCountsInMem() ? count_tab_.size() : index_pos_.size());
+    if (row_serial1 >= tab_size || row_serial2 >= tab_size)
     {
         std::cerr << row_serial1 << "\t" << row_serial2 << std::endl;
         throw std::domain_error("k-mer serial larger than count table size " + std::to_string(str_tab_.size()));
@@ -200,4 +205,12 @@ const float CountTab::CalcCountDistance(const size_t row_serial1, const size_t r
     {
         throw std::domain_error("searching index on disk but index file not opened");
     }
+}
+
+const void CountTab::ShrinkTab()
+{
+    value_tab_.shrink_to_fit();
+    count_tab_.shrink_to_fit();
+    str_tab_.shrink_to_fit();
+    index_pos_.shrink_to_fit();
 }
