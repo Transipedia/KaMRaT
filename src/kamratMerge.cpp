@@ -227,26 +227,30 @@ void PrintContigList(const contigvect_t &contig_vect,
         std::cout << "\t" << kmer_count_tab.GetColName(i);
     }
     std::cout << std::endl;
+    std::string contig_seq, rep_kmer_seq;
+    size_t rep_uniqcode, rep_serial;
+    std::vector<float> sample_count;
+
     for (const auto &elem : contig_vect)
     {
-        size_t rep_uniqcode = elem.GetUniqCode(), rep_serial = code2serial.find(rep_uniqcode)->second;
-        std::string contig_seq = elem.GetSeq(), rep_kmer_seq;
+        rep_uniqcode = std::move(elem.GetUniqCode());
+        rep_serial = code2serial.find(rep_uniqcode)->second;
+        contig_seq = std::move(elem.GetSeq());
         Int2Seq(rep_kmer_seq, rep_uniqcode, k_len);
 
-        std::vector<float> sample_count;
         if (quant_mode == "rep")
         {
             kmer_count_tab.GetCountVect(sample_count, rep_serial, idx_file);
         }
         else if (quant_mode == "mean")
         {
-            kmer_count_tab.EstimateMeanCountVect(sample_count, elem.GetMemKMerSerialVect(), idx_file);
+            kmer_count_tab.EstimateMeanCountVect(sample_count, std::move(elem.GetMemKMerSerialVect()), idx_file);
         }
         else
         {
             throw std::domain_error("unknown quant mode: " + quant_mode);
         }
-        std::cout << contig_seq << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq;
+        std::cout << std::move(contig_seq) << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq;
         for (size_t i(1); i < kmer_count_tab.GetNbColumn(); ++i)
         {
             size_t col_serial = kmer_count_tab.GetColSerial(i);
@@ -260,6 +264,8 @@ void PrintContigList(const contigvect_t &contig_vect,
             }
         }
         std::cout << std::endl;
+        rep_kmer_seq.clear();
+        sample_count.clear();
     }
     std::cout.rdbuf(backup_buf);
     if (out_file.is_open())
@@ -323,7 +329,7 @@ int MergeMain(int argc, char **argv)
             contig_vect.erase(std::remove_if(contig_vect.begin(), contig_vect.end(),
                                              [](const ContigElem &elem) { return elem.IsUsed(); }),
                               contig_vect.end());
-	    contig_vect.shrink_to_fit();
+            contig_vect.shrink_to_fit();
             // PrintContigList(contig_vect, kmer_count_tab, code2serial, k_len, stranded, min_overlap, interv_method, interv_thres, quant_mode, idx_file);
         }
     }
