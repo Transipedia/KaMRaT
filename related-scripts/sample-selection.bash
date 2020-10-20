@@ -30,6 +30,14 @@ then
 	usage
 fi
 
+if [ $train_percent -le 0 ] || [ $train_percent -ge 100 ]
+then
+	echo
+	echo -e "ERROR: -p should be followed by a value larger than 0 and less than 100"
+	echo
+	exit
+fi
+
 echo
 echo "Complete sample condition file:       "$smp_condi_path
 echo "Percentage of sample for training:    "$train_percent
