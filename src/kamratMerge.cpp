@@ -8,6 +8,10 @@
 #include <ctime>
 #include <stdexcept>
 
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
 #include "utils/statistics.hpp"
 #include "utils/seq_coding.hpp"
 #include "data_struct/count_tab_by_fields.hpp"
@@ -29,15 +33,26 @@ void ScanCountTable(CountTabByFields &kmer_count_tab,
     {
         throw std::domain_error("k-mer count file " + kmer_count_path + " was not found");
     }
+
+    size_t pos = kmer_count_path.find_last_of(".");
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+    if (pos != std::string::npos && kmer_count_path.substr(pos + 1) == "gz")
+    {
+        inbuf.push(boost::iostreams::gzip_decompressor());
+    }
+    inbuf.push(kmer_count_file);
+    std::istream kmer_count_instream(&inbuf);
+
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::string line;
-    std::getline(kmer_count_file, line);
+    std::getline(kmer_count_instream, line);
     kmer_count_tab.MakeSmpCond(sample_info_path);
     kmer_count_tab.MakeColumnInfo(line, score_colname);
     //----- Dealing with Following k-mer Count Lines -----//
     std::ofstream count_index_file(count_index_path);
-    for (size_t kmer_serial(0); std::getline(kmer_count_file, line); ++kmer_serial)
+    for (size_t kmer_serial(0); std::getline(kmer_count_instream, line); ++kmer_serial)
     {
+        // std::cout << line << std::endl;
         float rep_val;
         bool has_rep_val;
         if (kmer_count_tab.GetMode() == "inMem")
@@ -193,15 +208,7 @@ const bool DoExtension(code2contig_t &hashed_contig_list,
                 kmer_count_tab.GetCountInMem(pred_counts, left_serial);
                 kmer_count_tab.GetCountInMem(succ_counts, right_serial);
             }
-            if (interv_method == "pearson" && CalcPearsonCorrelation(pred_counts, succ_counts) < interv_thres)
-            {
-                continue;
-            }
-            else if (interv_method == "spearman" && CalcSpearmanCorrelation(pred_counts, succ_counts) < interv_thres)
-            {
-                continue;
-            }
-            else if (interv_method == "mac" && CalcMeanAbsoluteContrast(pred_counts, succ_counts) > interv_thres)
+            if (CalcDistance(pred_counts, succ_counts, interv_method) >= interv_thres)
             {
                 continue;
             }

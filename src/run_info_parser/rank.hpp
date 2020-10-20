@@ -19,7 +19,8 @@ inline void PrintRankHelper()
     std::cerr << "                -ln                  Apply ln(x + 1) transformation BEFORE score estimation [false]" << std::endl
               << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
     std::cerr << "                -standardize         Standarize count vector BEFORE score estimation [false]" << std::endl
-              << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl
+              << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
+    std::cerr << "                -idx-dir STR         Count index directory path [./]" << std::endl
               << std::endl;
     std::cerr << "[EVAL. METHOD]  sd                   Standard deviation (default method)" << std::endl;
     std::cerr << "                rsd                  Relative standard deviation" << std::endl;
@@ -104,6 +105,7 @@ inline void ParseOptions(int argc,
                          size_t &nb_sel,
                          bool &ln_transf,
                          bool &standardize,
+                         std::string &index_file_path,
                          std::string &kmer_count_path)
 {
     int i_opt(1);
@@ -139,6 +141,10 @@ inline void ParseOptions(int argc,
         else if (arg == "-standardize")
         {
             standardize = true;
+        }
+        else if (arg == "-idx-dir")
+        {
+            index_file_path = std::string(argv[++i_opt]) + "/counts.idx";
         }
         else
         {

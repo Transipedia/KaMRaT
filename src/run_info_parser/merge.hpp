@@ -160,11 +160,11 @@ inline void ParseOptions(int argc,
     }
     if (threshold_str.empty() && interv_method == "pearson")
     {
-        interv_thres = MIN_PEARSON_DEFAULT;
+        interv_thres = MAX_PEARSON_DEFAULT;
     }
     else if (threshold_str.empty() && interv_method == "spearman")
     {
-        interv_thres = MIN_SPEARMAN_DEFAULT;
+        interv_thres = MAX_SPEARMAN_DEFAULT;
     }
     else if (threshold_str.empty() && interv_method == "mac")
     {

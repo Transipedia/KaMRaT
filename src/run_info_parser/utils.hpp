@@ -4,8 +4,8 @@
 #include <set>
 #include <string>
 
-#define MIN_PEARSON_DEFAULT 0.61
-#define MIN_SPEARMAN_DEFAULT 0.56
+#define MAX_PEARSON_DEFAULT 0.20
+#define MAX_SPEARMAN_DEFAULT 0.26
 #define MAX_MAC_DEFAULT 0.25
 
 const std::set<std::string> EVALU_METHOD_UNIV{"pearson", "spearman", "mac"};

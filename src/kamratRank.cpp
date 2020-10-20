@@ -7,12 +7,17 @@
 #include <unordered_map>
 #include <ctime>
 
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
 #include "data_struct/scorer.hpp"
 #include "data_struct/count_tab_by_string.hpp"
 #include "data_struct/seq_elem.hpp"
 #include "run_info_parser/rank.hpp"
 
 void EvalScore(CountTabByString &feature_count_tab,
+               const std::string &index_file_path,
                seqVect_t &feature_vect,
                const std::string &count_tab_path,
                const std::string &sample_info_path,
@@ -25,19 +30,29 @@ void EvalScore(CountTabByString &feature_count_tab,
     {
         throw std::domain_error("count table file " + count_tab_path + " is not found");
     }
+
+    size_t pos = count_tab_path.find_last_of(".");
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+    if (pos != std::string::npos && count_tab_path.substr(pos + 1) == "gz")
+    {
+        inbuf.push(boost::iostreams::gzip_decompressor());
+    }
+    inbuf.push(count_tab_file);
+    std::istream kmer_count_instream(&inbuf);
+
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::string line;
-    std::getline(count_tab_file, line);
+    std::getline(kmer_count_instream, line);
     feature_count_tab.MakeSmpCond(sample_info_path);
     feature_count_tab.MakeColumnInfo(line, scorer->GetScoreCmd());
     std::vector<size_t> smp_labels;
     feature_count_tab.GetSmpLabels(smp_labels);
     scorer->LoadSampleLabel(smp_labels, feature_count_tab.GetNbCondition());
     // std::cout << "feature\tall.f1.binary\tall.f1.micro\tall.accuracy\tcv.f1.binary\tcv.f1.micro\tcv.accuracy\tcv.f1.na_to_0" << std::endl;
+
     //----- Dealing with Following k-mer Count Lines -----//
-    for (size_t feature_serial(0), idx_pos(count_tab_file.tellg());
-         std::getline(count_tab_file, line);
-         ++feature_serial, idx_pos = count_tab_file.tellg())
+    std::ofstream index_file(index_file_path); // create new index file because gz file does not support random access
+    for (size_t feature_serial(0); std::getline(kmer_count_instream, line); ++feature_serial)
     {
         std::istringstream conv(line);
         std::string feature_seq;
@@ -45,7 +60,7 @@ void EvalScore(CountTabByString &feature_count_tab,
         // std::cout << feature_seq << "\t";
         float feature_score;
         std::vector<float> count_vect;
-        if (!feature_count_tab.IndexWithString(feature_score, count_vect, line, idx_pos) && scorer->GetScoreMethod() == "user")
+        if (!feature_count_tab.IndexWithString(feature_score, count_vect, line, index_file) && scorer->GetScoreMethod() == "user")
         {
             throw std::domain_error("user score column not found:" + scorer->GetScoreCmd());
         }
@@ -62,6 +77,7 @@ void EvalScore(CountTabByString &feature_count_tab,
         }
         feature_vect.emplace_back(feature_seq, feature_serial, feature_score);
     }
+    index_file.close();
     count_tab_file.close();
 }
 
@@ -112,35 +128,37 @@ void PValueAdjustmentBH(seqVect_t &feature_vect)
 }
 
 void ModelPrint(const seqVect_t &feature_vect,
-                const std::string &count_tab_path,
+                const std::string &index_file_path,
                 const size_t top_num,
                 const CountTabByString &count_tab)
 {
     size_t parsed_top_num = (top_num == 0) ? feature_vect.size() : top_num;
-    std::ifstream count_tab_file(count_tab_path);
-    if (!count_tab_file.is_open())
+
+    std::ifstream index_file(index_file_path);
+    if (!index_file.is_open())
     {
-        throw std::domain_error("cannot open count index file: " + count_tab_path);
+        throw std::domain_error("cannot open count index file: " + index_file_path);
     }
+
     std::string line;
-    std::getline(count_tab_file, line); // header line indicating sample names
+    std::getline(index_file, line); // header line indicating sample names
     size_t first_delim = line.find_first_of("\t ");
     std::cout << line.substr(0, first_delim + 1) << "score" << line.substr(first_delim) << std::endl;
     for (size_t i(0); i < parsed_top_num; ++i)
     {
-        count_tab.PrintFromInput(feature_vect[i].GetSerial(), count_tab_file, std::to_string(feature_vect[i].GetScore("final")));
+        count_tab.PrintFromInput(feature_vect[i].GetSerial(), index_file, std::to_string(feature_vect[i].GetScore("final")));
     }
-    count_tab_file.close();
+    index_file.close();
 }
 
 int RankMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
-    std::string count_tab_path, sample_info_path, score_method, score_cmd, sort_mode;
+    std::string count_tab_path, sample_info_path, score_method, score_cmd, sort_mode, index_file_path("./counts.idx");
     bool ln_transf(false), standardize(false);
     size_t nb_sel(0);
 
-    ParseOptions(argc, argv, sample_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, standardize, count_tab_path);
+    ParseOptions(argc, argv, sample_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, standardize, index_file_path, count_tab_path);
     Scorer *scorer;
     if (score_method.empty() || score_method == "sd")
     {
@@ -198,13 +216,13 @@ int RankMain(int argc, char *argv[])
     CountTabByString count_tab;
     seqVect_t feature_vect;
 
-    EvalScore(count_tab, feature_vect, count_tab_path, sample_info_path, scorer, ln_transf, standardize);
+    EvalScore(count_tab, index_file_path, feature_vect, count_tab_path, sample_info_path, scorer, ln_transf, standardize);
     SortScore(feature_vect, scorer->GetSortMode());
     if (scorer->GetScoreMethod() == "ttest")
     {
         PValueAdjustmentBH(feature_vect);
     }
-    ModelPrint(feature_vect, count_tab_path, nb_sel, count_tab);
+    ModelPrint(feature_vect, index_file_path, nb_sel, count_tab);
 
     delete scorer;
 

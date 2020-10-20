@@ -1,9 +1,8 @@
-#include <sstream>
 #include <iostream>
 
 #include "count_tab_by_string.hpp"
 
-const bool CountTabByString::IndexWithString(float &score_value, std::vector<float> &count_vect, const std::string &line_str, const size_t idx_pos)
+const bool CountTabByString::IndexWithString(float &row_score, std::vector<float> &count_vect, const std::string &line_str, std::ofstream &index_file)
 /* ------------------------------------------------------------------------------------------- *\
     Arg:    1. string of input k-mer table line
             2. column name for score
@@ -17,22 +16,23 @@ const bool CountTabByString::IndexWithString(float &score_value, std::vector<flo
     std::vector<float> value_vect;
     std::vector<std::string> str_vect;
     size_t score_pos = ParseLineStr(value_vect, count_vect, str_vect, line_str);
-    input_pos_.emplace_back(idx_pos);
+    index_pos_.emplace_back(index_file.tellp());
+    index_file << line_str << std::endl;
     if (score_pos == 0)
     {
-        score_value = 0;
+        row_score = 0;
         return false;
     }
     else
     {
-        score_value = value_vect[colserial_vect_[score_pos]];
+        row_score = value_vect[colserial_vect_[score_pos]];
         return true;
     }
 }
 
-const void CountTabByString::PrintFromInput(const size_t row_serial, std::ifstream &input_file, const std::string &insert_at_second_col) const
+const void CountTabByString::PrintFromInput(const size_t row_serial, std::istream &input_file, const std::string &insert_at_second_col) const
 {
-    size_t disk_pos = input_pos_.at(row_serial);
+    size_t disk_pos = index_pos_.at(row_serial);
     std::string str_line;
     input_file.seekg(disk_pos);
     std::getline(input_file, str_line);

@@ -7,6 +7,10 @@
 #include <unordered_map>
 #include <ctime>
 
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
 #include "data_struct/count_tab_header.hpp"
 #include "run_info_parser/filter.hpp"
 
@@ -68,11 +72,21 @@ void ScanCountTab(const std::string &count_tab_path,
     {
         throw std::domain_error("count table file " + count_tab_path + " is not found");
     }
+
+    size_t pos = count_tab_path.find_last_of(".");
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+    if (pos != std::string::npos && count_tab_path.substr(pos + 1) == "gz")
+    {
+        inbuf.push(boost::iostreams::gzip_decompressor());
+    }
+    inbuf.push(count_tab_file);
+    std::istream kmer_count_instream(&inbuf);
+
     CountTabHeader count_tab_header;
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::set<std::string> preserved_condition_names{"all", "rest"};
     std::string line;
-    std::getline(count_tab_file, line);
+    std::getline(kmer_count_instream, line);
     count_tab_header.MakeSmpCond(sample_info_path, preserved_condition_names);
     count_tab_header.MakeColumnInfo(line, "??%#NOT_CARE_SCORE-@_@");
     const long express_smp_serial = (express_level == "smp" ? GetSampleSerial(express_name, count_tab_header) : -1),
@@ -81,7 +95,7 @@ void ScanCountTab(const std::string &count_tab_path,
     count_tab_header.GetSmpLabels(label_vect);
     std::cout << line << std::endl;
     //----- Dealing with Following k-mer Count Lines -----//
-    while (std::getline(count_tab_file, line))
+    while (std::getline(kmer_count_instream, line))
     {
         std::istringstream conv(line);
         std::string term;

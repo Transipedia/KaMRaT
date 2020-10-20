@@ -4,6 +4,10 @@
 #include <fstream>
 #include <sstream>
 
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
 #include "utils/seq_coding.hpp"
 #include "data_struct/seq_elem.hpp"
 #include "run_info_parser/mask.hpp"
@@ -57,11 +61,21 @@ void MaskOutput(std::string &&count_tab_path,
         std::cerr << "ERROR: Filter list file " << count_tab_path << " does not exist..." << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    size_t pos = count_tab_path.find_last_of(".");
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+    if (pos != std::string::npos && count_tab_path.substr(pos + 1) == "gz")
+    {
+        inbuf.push(boost::iostreams::gzip_decompressor());
+    }
+    inbuf.push(kmer_count_file);
+    std::istream kmer_count_instream(&inbuf);
+
     // dealing with header line //
-    std::getline(kmer_count_file, line);
+    std::getline(kmer_count_instream, line);
     std::cout << line << std::endl;
     // dealing with other lines //
-    for (std::getline(kmer_count_file, line); !kmer_count_file.eof(); std::getline(kmer_count_file, line))
+    for (std::getline(kmer_count_instream, line); !kmer_count_instream.eof(); std::getline(kmer_count_instream, line))
     {
         std::istringstream conv(line);
         std::string kmer;
