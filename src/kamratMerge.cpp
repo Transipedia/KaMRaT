@@ -203,8 +203,23 @@ void PrintContigList(const contigvect_t &contig_vect,
                      const CountTab &kmer_count_tab, const code2serial_t &code2serial,
                      const std::string &interv_method, const float interv_thres,
                      const std::string &quant_mode,
-                     std::ifstream &idx_file)
+                     std::ifstream &idx_file,
+                     const std::string &out_path)
 {
+    std::ofstream out_file;
+    if (!out_path.empty())
+    {
+        out_file.open(out_path);
+        if (!out_file.is_open())
+        {
+            throw std::domain_error("cannot open file: " + out_path);
+        }
+    }
+    auto backup_buf = std::cout.rdbuf();
+    if (!out_path.empty()) // output to file if a path is given, to screen if not
+    {
+        std::cout.rdbuf(out_file.rdbuf());
+    }
     const auto k_len = kmer_count_tab.GetKLen();
     std::cout << "contig\tnb_merged_kmers";
     for (size_t i(0); i < kmer_count_tab.GetNbColumn(); ++i)
@@ -246,19 +261,24 @@ void PrintContigList(const contigvect_t &contig_vect,
         }
         std::cout << std::endl;
     }
+    std::cout.rdbuf(backup_buf);
+    if (out_file.is_open())
+    {
+        out_file.close();
+    }
 }
 
 int MergeMain(int argc, char **argv)
 {
     std::clock_t begin_time = clock(), inter_time;
-    std::string kmer_count_path, smp_info_path, interv_method("none"), quant_mode("rep"), idx_path, rep_colname;
+    std::string kmer_count_path, smp_info_path, interv_method("none"), quant_mode("rep"), idx_path, out_path, rep_colname;
     float interv_thres(1);
     size_t k_len(0);
     bool stranded(true);
     size_t min_overlap(0);
 
-    ParseOptions(argc, argv, k_len, stranded, min_overlap, smp_info_path, interv_method, interv_thres, quant_mode, rep_colname, idx_path, kmer_count_path);
-    PrintRunInfo(k_len, stranded, min_overlap, smp_info_path, interv_method, interv_thres, quant_mode, rep_colname, idx_path, kmer_count_path);
+    ParseOptions(argc, argv, k_len, stranded, min_overlap, smp_info_path, interv_method, interv_thres, quant_mode, rep_colname, idx_path, out_path, kmer_count_path);
+    PrintRunInfo(k_len, stranded, min_overlap, smp_info_path, interv_method, interv_thres, quant_mode, rep_colname, idx_path, out_path, kmer_count_path);
 
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
@@ -311,7 +331,7 @@ int MergeMain(int argc, char **argv)
     std::cerr << "Contig extension finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    PrintContigList(contig_vect, kmer_count_tab, code2serial, interv_method, interv_thres, quant_mode, idx_file);
+    PrintContigList(contig_vect, kmer_count_tab, code2serial, interv_method, interv_thres, quant_mode, idx_file, out_path);
     if (idx_file.is_open())
     {
         idx_file.close();
