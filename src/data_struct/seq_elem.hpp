@@ -10,7 +10,7 @@ class SeqElem
 {
 public:
     SeqElem(const std::string &seq, uint64_t uniq_code, float score);
-    const std::string GetSeq() const;
+    const std::string &GetSeq() const;
     const uint64_t GetUniqCode() const;
     const float GetScore(const std::string &&mode) const;
     void ScaleScore(float fact, float lower_lim, float upper_lim);

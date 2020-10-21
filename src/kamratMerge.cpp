@@ -3,7 +3,6 @@
 #include <vector>
 #include <unordered_set>
 #include <fstream>
-#include <sstream>
 #include <unordered_set>
 #include <ctime>
 #include <stdexcept>
@@ -41,12 +40,11 @@ void ScanCountTable(CountTab &kmer_count_tab,
     std::istream kmer_count_instream(&inbuf);
 
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
-    std::string line;
+    std::string line, seq, idx_path = kmer_count_tab.GetIndexPath();
     std::getline(kmer_count_instream, line);
     kmer_count_tab.MakeSmpCond(smp_info_path);
     kmer_count_tab.MakeColumnInfo(line, rep_colname);
     //----- Dealing with Following k-mer Count Lines -----//
-    std::string idx_path = kmer_count_tab.GetIndexPath();
     std::ofstream count_idx_file;
     if (!idx_path.empty())
     {
@@ -58,23 +56,19 @@ void ScanCountTable(CountTab &kmer_count_tab,
     }
     for (size_t kmer_serial(0); std::getline(kmer_count_instream, line); ++kmer_serial)
     {
-        float rep_val;
-        bool has_rep_val;
-
         if (kmer_serial != kmer_count_tab.GetTableSize()) // for debug, should not happen
         {
             throw std::domain_error("kmer_count_tab not coherent with k-mer serial");
         }
         // parsing count vector => k-mer count table
-        has_rep_val = kmer_count_tab.AddRowAsFields(rep_val, line, count_idx_file);
+        float rep_val;
+        bool has_rep_val = kmer_count_tab.AddRowAsFields(rep_val, line, count_idx_file);
         if (!has_rep_val) // if no representative k-mer column
         {
             rep_val = kmer_serial;
         }
         // dealing with sequence => contig vector
-        std::istringstream conv(line);
-        std::string seq;
-        conv >> seq; // first column as feature (string)
+        seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
         if (seq.size() != kmer_count_tab.GetKLen())
         {
             throw std::domain_error("the given k-len parameter not coherent with input k-mer: " + seq);
@@ -88,7 +82,7 @@ void ScanCountTable(CountTab &kmer_count_tab,
         {
             throw std::domain_error("contig vector not coherent with k-mer serial");
         }
-        contig_vect.emplace_back(ContigElem(seq, rep_val, kmer_uniqcode, kmer_serial));
+        contig_vect.emplace_back(std::move(seq), rep_val, kmer_uniqcode, kmer_serial);
     }
     if (count_idx_file.is_open())
     {
@@ -227,15 +221,13 @@ void PrintContigList(const contigvect_t &contig_vect,
         std::cout << "\t" << kmer_count_tab.GetColName(i);
     }
     std::cout << std::endl;
-    std::string contig_seq, rep_kmer_seq;
-    size_t rep_uniqcode, rep_serial;
-    std::vector<float> sample_count;
 
+    std::string contig_seq, rep_kmer_seq;
+    std::vector<float> sample_count;
     for (const auto &elem : contig_vect)
     {
-        rep_uniqcode = std::move(elem.GetUniqCode());
-        rep_serial = code2serial.find(rep_uniqcode)->second;
-        contig_seq = std::move(elem.GetSeq());
+        size_t rep_uniqcode = elem.GetUniqCode(), rep_serial = code2serial.find(rep_uniqcode)->second;
+        contig_seq = elem.GetSeq();
         Int2Seq(rep_kmer_seq, rep_uniqcode, k_len);
 
         if (quant_mode == "rep")
@@ -244,13 +236,13 @@ void PrintContigList(const contigvect_t &contig_vect,
         }
         else if (quant_mode == "mean")
         {
-            kmer_count_tab.EstimateMeanCountVect(sample_count, std::move(elem.GetMemKMerSerialVect()), idx_file);
+            kmer_count_tab.EstimateMeanCountVect(sample_count, elem.GetMemKMerSerialVect(), idx_file);
         }
         else
         {
             throw std::domain_error("unknown quant mode: " + quant_mode);
         }
-        std::cout << std::move(contig_seq) << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq;
+        std::cout << contig_seq << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq;
         for (size_t i(1); i < kmer_count_tab.GetNbColumn(); ++i)
         {
             size_t col_serial = kmer_count_tab.GetColSerial(i);

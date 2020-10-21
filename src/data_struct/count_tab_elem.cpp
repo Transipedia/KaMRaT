@@ -1,7 +1,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "count_tab.hpp"
+#include "count_tab_elem.hpp"
 #include "statistics.hpp"
 
 inline void LoadCountFromIndex(std::vector<float> &counts, std::istream &idx_file, const size_t position_on_disk, const size_t nb_samples)
@@ -12,37 +12,14 @@ inline void LoadCountFromIndex(std::vector<float> &counts, std::istream &idx_fil
     idx_file.read(reinterpret_cast<char *>(&counts[0]), nb_samples * sizeof(counts[0]));
 }
 
-CountTab::CountTab(const size_t k_len, const bool stranded, const std::string &idx_file_path)
-    : k_len_(k_len), stranded_(stranded), idx_file_path_(idx_file_path)
+CountTabElem::CountTabElem(const size_t nb_value, const size_t nb_count, const size_t nb_str)
 {
+    value_vect_.reserve(nb_value);
+    count_vect_.reserve(nb_count);
+    str_vect_.reserve(nb_str);
 }
 
-const bool CountTab::IsCountsInMem() const
-{
-    return idx_file_path_.empty();
-}
-
-const size_t CountTab::GetTableSize() const
-{
-    return (IsCountsInMem() ? count_tab_.size() : index_pos_.size());
-}
-
-const size_t CountTab::GetKLen() const
-{
-    return k_len_;
-}
-
-const bool CountTab::IsStranded() const
-{
-    return stranded_;
-}
-
-const std::string &CountTab::GetIndexPath() const
-{
-    return idx_file_path_;
-}
-
-const bool CountTab::AddRowAsFields(float &row_score, const std::string &line_str, std::ofstream &idx_file)
+const bool CountTabElem::MakeRowByFields(float &row_score, const std::string &line_str)
 {
     static std::vector<float> value_vect, count_vect;
     static std::vector<std::string> str_vect;

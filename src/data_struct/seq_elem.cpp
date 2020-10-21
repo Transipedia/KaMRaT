@@ -7,7 +7,7 @@ SeqElem::SeqElem(const std::string &seq, const uint64_t uniq_code, const float s
 {
 }
 
-const std::string SeqElem::GetSeq() const
+const std::string &SeqElem::GetSeq() const
 {
     return seq_;
 }

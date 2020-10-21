@@ -69,7 +69,8 @@ const std::vector<size_t> &ContigElem::GetMemKMerSerialVect() const
 
 const void ContigElem::LeftExtend(const ContigElem &left_contig_elem, const bool need_left_rc, unsigned int n_overlap)
 {
-    auto left_seq = left_contig_elem.GetSeq();
+    static std::string left_seq;
+    left_seq = left_contig_elem.GetSeq();
     if (need_left_rc)
     {
         ReverseComplementSeq(left_seq);
@@ -79,18 +80,21 @@ const void ContigElem::LeftExtend(const ContigElem &left_contig_elem, const bool
     mem_kmer_serial_vect_.insert(mem_kmer_serial_vect_.end(),
                                  std::make_move_iterator(left_contig_elem.GetMemKMerSerialVect().begin()),
                                  std::make_move_iterator(left_contig_elem.GetMemKMerSerialVect().end()));
+    left_seq.clear();
 }
 
 const void ContigElem::RightExtend(const ContigElem &right_contig_elem, const bool need_right_rc, unsigned int n_overlap)
 {
-    auto right_seq = right_contig_elem.GetSeq();
+    static std::string right_seq;
+    right_seq = right_contig_elem.GetSeq();
     if (need_right_rc)
     {
         ReverseComplementSeq(right_seq);
     }
-    seq_ = seq_ + right_seq.substr(n_overlap);
+    seq_ = seq_ + std::move(right_seq).substr(n_overlap);
     rear_kmer_serial_ = right_contig_elem.GetRearKMerSerial(need_right_rc);
     mem_kmer_serial_vect_.insert(mem_kmer_serial_vect_.end(),
                                  std::make_move_iterator(right_contig_elem.GetMemKMerSerialVect().begin()),
                                  std::make_move_iterator(right_contig_elem.GetMemKMerSerialVect().end()));
+    right_seq.clear();
 }
