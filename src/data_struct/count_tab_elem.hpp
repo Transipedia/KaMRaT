@@ -13,17 +13,16 @@
 class CountTabElem
 {
 public:
-    CountTabElem(size_t nb_value, size_t nb_count, size_t nb_str);
-
-    const bool MakeRowByFields(float &row_score, const std::string &line_str);                                                          // inMem if empty index file
-    const bool MakeRowByString(float &row_score, std::vector<float> &count_vect, const std::string &line_str, std::ofstream &idx_file); // always onDsk
+    CountTabElem(size_t nb_value, size_t nb_count, size_t nb_str,
+                 std::istringstream &line_conv, bool count_on_disk, const std::vector<char> &colnature_vect);
 
     const float GetValueAt(size_t valcol_serial) const;
-    const float GetStrAt(size_t strcol_serial) const;
-    const std::vector<float> &GetCountVect(bool get_by_move) const;
+    const std::string &GetStrAt(size_t strcol_serial) const;
+    const std::vector<float> &GetCountVect() const;
     const size_t GetIndexPos() const;
 
-    const void RestoreCountVect(std::ifstream &idx_file); // for onDsk
+    const void RestoreCountVect(std::ifstream &idx_file, size_t nb_count); // for onDsk
+    const void ClearCountVect();                                           // for onDsk
 
 private:
     std::vector<float> value_vect_;     // value vector ------ used both in inMem or onDsk
