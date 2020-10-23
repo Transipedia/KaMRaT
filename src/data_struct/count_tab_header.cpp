@@ -8,10 +8,11 @@ inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
                                       const std::string &line_str,
                                       const std::vector<int> &colnature_vect)
 {
-    std::istringstream conv(line_str);
-    std::string term;
+    static std::istringstream conv;
+    static std::string term;
     size_t score_pos(0); // ASSUMPTION: score value never appears at the first column !!!
-    conv >> term;        // skip the first column which is k-mer/tag/contig/sequence
+    conv.str(line_str);
+    conv >> term; // skip the first column which is k-mer/tag/contig/sequence
     for (unsigned int i(1); conv >> term && i < colnature_vect.size(); ++i)
     {
         if (colnature_vect[i] == -2)
@@ -36,6 +37,7 @@ inline size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
             throw std::invalid_argument("unknown column nature code: " + std::to_string(colnature_vect[i]));
         }
     }
+    conv.clear();
     if (value_vect.size() + count_vect.size() + str_vect.size() != colnature_vect.size() - 1) // the first column is excluded for saving memory
     {
         throw std::domain_error("parsing string line to fields failed: sum of field lengths not equal to header length");
@@ -58,11 +60,11 @@ const void CountTabHeader::MakeSmpCond(const std::string &sample_info_path,
         {
             throw std::domain_error("meta data file " + sample_info_path + " was not found");
         }
-        std::string sample_info_line;
+        std::istringstream conv;
+        std::string sample_info_line, sample, condition;
         while (std::getline(sample_info_file, sample_info_line))
         {
-            std::istringstream conv(sample_info_line);
-            std::string sample, condition;
+            conv.str(sample_info_line);
             conv >> sample >> condition;
             if (conv.fail())
             {
@@ -82,6 +84,7 @@ const void CountTabHeader::MakeSmpCond(const std::string &sample_info_path,
             {
                 ++nb_cond_;
             }
+            conv.clear();
         }
         sample_info_file.close();
     }

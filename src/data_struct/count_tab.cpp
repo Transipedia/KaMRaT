@@ -4,7 +4,7 @@
 #include "count_tab.hpp"
 #include "statistics.hpp"
 
-inline void LoadCountFromIndex(std::vector<float> &counts, std::istream &idx_file, const size_t position_on_disk, const size_t nb_samples)
+inline void LoadCountFromIndex(std::vector<float> &counts, std::ifstream &idx_file, const size_t position_on_disk, const size_t nb_samples)
 {
     counts.clear();
     counts.resize(nb_samples);
