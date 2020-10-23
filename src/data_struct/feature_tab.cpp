@@ -31,7 +31,7 @@ const size_t FeatureTab::GetTableSize() const
 
 const void FeatureTab::MakeTable(const std::string &table_path, const std::string &repval_name)
 {
-
+    
 }
 
 // const void FeatureTab::MakeHeaderRow(const std::string &header_line_str, const std::string &rep_colname)

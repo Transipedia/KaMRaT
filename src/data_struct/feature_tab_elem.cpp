@@ -1,19 +1,11 @@
-#include <sstream>
 #include <iostream>
 
 #include "feature_tab_elem.hpp"
 #include "statistics.hpp"
 
-const size_t StrLine2ValueCountVects(std::vector<float> &value_vect,
-                                     std::vector<float> &count_vect,
-                                     std::vector<std::string> &str_vect,
-                                     const std::string &line_str,
-                                     const std::vector<int> &colnature_vect)
-{
-}
-
 FeatureTabElem::FeatureTabElem(const size_t nb_value, const size_t nb_count, const size_t nb_str,
-                               std::istringstream &line_conv, const bool count_on_disk, const std::vector<char> &colnature_vect)
+                               std::istringstream &line_conv, std::ofstream &idx_file, const std::vector<char> &colnature_vect)
+    : index_pos_(idx_file.is_open() ? idx_file.tellp() : 0)
 {
     value_vect_.reserve(nb_value);
     count_vect_.reserve(nb_count);
@@ -44,12 +36,16 @@ FeatureTabElem::FeatureTabElem(const size_t nb_value, const size_t nb_count, con
     {
         throw std::domain_error("parsing string line to fields failed");
     }
-    line_conv.clear();
+    if (idx_file.is_open())
+    {
+        idx_file.write(reinterpret_cast<char *>(&count_vect_[0]), count_vect_.size() * sizeof(count_vect_[0]));
+        count_vect_.clear();
+    }
 }
 
-const std::vector<float> &FeatureTabElem::GetValueVect() const
+const float FeatureTabElem::GetValueAt(const size_t colpos) const
 {
-    return value_vect_;
+    return value_vect_[colpos];
 }
 
 const std::vector<float> &FeatureTabElem::GetCountVect() const
@@ -66,11 +62,6 @@ const std::vector<std::string> &FeatureTabElem::GetStrVect() const
     return str_vect_;
 }
 
-const size_t FeatureTabElem::GetIndexPos() const
-{
-    return index_pos_;
-}
-
 const void FeatureTabElem::RestoreCountVect(std::ifstream &idx_file, const size_t nb_count)
 {
     if (!count_vect_.empty())
@@ -80,4 +71,9 @@ const void FeatureTabElem::RestoreCountVect(std::ifstream &idx_file, const size_
     count_vect_.resize(nb_count);
     idx_file.seekg(index_pos_);
     idx_file.read(reinterpret_cast<char *>(&count_vect_[0]), nb_count * sizeof(count_vect_[0]));
+}
+
+const void FeatureTabElem::ClearCountVect()
+{
+    count_vect_.clear();
 }

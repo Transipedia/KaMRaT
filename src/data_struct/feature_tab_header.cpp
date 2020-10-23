@@ -52,7 +52,7 @@ const size_t FeatureTabHeader::MakeColumnInfo(const std::string &header_line, co
     {
         throw std::domain_error("cannot parse column information with an empty header line");
     }
-    size_t repval_pos(0);
+    size_t rep_colpos(0);
     std::istringstream conv(header_line);
     std::string term;
     // the first column is supposed to be feature string //
@@ -92,7 +92,7 @@ const size_t FeatureTabHeader::MakeColumnInfo(const std::string &header_line, co
             {
                 if (term == rep_colname)
                 {
-                    repval_pos = nb_col_;
+                    rep_colpos = nb_col_;
                 }
                 colnature_vect_.emplace_back('v');
                 colserial_vect_.emplace_back(nb_value_++);
@@ -108,7 +108,7 @@ const size_t FeatureTabHeader::MakeColumnInfo(const std::string &header_line, co
     {
         throw std::domain_error("colname, colserial, colnature sizes not coherent");
     }
-    return repval_pos;
+    return rep_colpos;
 }
 
 const size_t FeatureTabHeader::GetNbValue() const
