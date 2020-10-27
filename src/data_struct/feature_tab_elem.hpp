@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <sstream>
 #include <unordered_map>
 
 class FeatureTabElem
@@ -27,5 +28,6 @@ private:
 };
 
 using code2serial_t = std::unordered_map<uint64_t, size_t>; // external dictionary to link k-mer with row serial number
+using featuretab_t = std::vector<FeatureTabElem>;           // feature table
 
 #endif //KAMRAT_DATASTRUCT_FEATURETABELEM_HPP

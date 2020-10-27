@@ -5,7 +5,7 @@
 
 FeatureTabElem::FeatureTabElem(const size_t nb_value, const size_t nb_count, const size_t nb_str,
                                std::istringstream &line_conv, std::ofstream &idx_file, const std::vector<char> &colnature_vect)
-    : index_pos_(idx_file.is_open() ? idx_file.tellp() : 0)
+    : index_pos_(idx_file.is_open() ? static_cast<size_t>(idx_file.tellp()) : 0)
 {
     value_vect_.reserve(nb_value);
     count_vect_.reserve(nb_count);

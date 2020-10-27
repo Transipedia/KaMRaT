@@ -11,6 +11,7 @@
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include "utils/seq_coding.hpp"
+#include "utils/vec_operation.hpp"
 #include "data_struct/feature_tab_elem.hpp"
 #include "data_struct/feature_tab_header.hpp"
 #include "data_struct/contig_elem.hpp"
@@ -18,7 +19,7 @@
 #include "run_info_parser/merge.hpp"
 #include "run_info_parser/utils.hpp"
 
-void ScanCountTable(std::vector<FeatureTabElem> &feature_tab, FeatureTabHeader &feature_tab_header,
+void ScanCountTable(featuretab_t &feature_tab, FeatureTabHeader &feature_tab_header,
                     contigvect_t &contig_vect, code2serial_t &code2serial,
                     const size_t k_len, const bool stranded,
                     const std::string &kmer_count_path,
@@ -125,10 +126,10 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
 
 const bool DoExtension(contigvect_t &contig_vect,
                        const fix2knot_t &hashed_mergeknot_list,
-                       const CountTab &kmer_count_tab,
+                       featuretab_t &feature_count_tab,
                        const size_t n_overlap,
                        const std::string &interv_method, const float interv_thres,
-                       std::ifstream &idx_file)
+                       std::ifstream &idx_file, const size_t nb_count)
 {
     bool has_new_extensions(false);
     for (const auto &mk : hashed_mergeknot_list)
@@ -144,13 +145,22 @@ const bool DoExtension(contigvect_t &contig_vect,
             continue;
         }
         bool is_pred_rc = mk.second.IsRC("pred"), is_succ_rc = mk.second.IsRC("succ");
-        if (interv_method != "none" &&
-            kmer_count_tab.CalcCountDistance(contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc),
-                                             contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc),
-                                             interv_method, idx_file) >= interv_thres)
+        if (idx_file.is_open())
         {
+            feature_count_tab[contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc)].RestoreCountVect(idx_file, nb_count);
+            feature_count_tab[contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc)].RestoreCountVect(idx_file, nb_count);
+        }
+        if (interv_method != "none" &&
+            CalcXDist(feature_count_tab[contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc)].GetCountVect(),
+                      feature_count_tab[contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc)].GetCountVect(),
+                      interv_method) >= interv_thres)
+        {
+            feature_count_tab[contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc)].ClearCountVect();
+            feature_count_tab[contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc)].ClearCountVect();
             continue;
         }
+        feature_count_tab[contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc)].ClearCountVect();
+        feature_count_tab[contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc)].ClearCountVect();
         // merge by guaranting representative k-mer having minimum p-value or input order //
         if (contig_vect[pred_serial].GetScore("origin") <= contig_vect[succ_serial].GetScore("origin")) // merge right to left
         {
