@@ -3,8 +3,8 @@
 
 #include "feature_tab_header.hpp"
 
-FeatureTabHeader::FeatureTabHeader(const std::string &sample_info_path, const std::unordered_set<std::string> &preserved_cond_tags)
-    : nb_col_(0), nb_condi_(0), nb_value_(0), nb_count_(0), nb_str_(0)
+FeatureTabHeader::FeatureTabHeader(const std::string &sample_info_path, std::unordered_set<std::string> &&preserved_cond_tags)
+    : nb_value_(0), nb_count_(0), nb_str_(0), nb_col_(0), nb_condi_(0)
 {
     if (!sample_info_path.empty())
     {
@@ -136,19 +136,31 @@ const size_t FeatureTabHeader::GetNbCondition() const
     return nb_condi_;
 }
 
-const std::vector<std::string> &FeatureTabHeader::GetColNameVect() const
+const std::string &FeatureTabHeader::GetColNameAt(const size_t i) const
 {
-    return colname_vect_;
+    if (i > nb_col_)
+    {
+        throw std::domain_error("getting column name with an index exceeds column number");
+    }
+    return colname_vect_[i];
 }
 
-const std::vector<char> &FeatureTabHeader::GetColNatureVect() const
+const char FeatureTabHeader::GetColNatureAt(const size_t i) const
 {
-    return colnature_vect_;
+    if (i > nb_col_)
+    {
+        throw std::domain_error("getting column nature with an index exceeds column number");
+    }
+    return colnature_vect_[i];
 }
 
-const std::vector<size_t> &FeatureTabHeader::GetColSerialVect() const
+const size_t FeatureTabHeader::GetColSerialAt(const size_t i) const
 {
-    return colserial_vect_;
+    if (i > nb_col_)
+    {
+        throw std::domain_error("getting column serial with an index exceeds column number");
+    }
+    return colserial_vect_[i];
 }
 
 const bool FeatureTabHeader::IsSample(size_t i_col) const

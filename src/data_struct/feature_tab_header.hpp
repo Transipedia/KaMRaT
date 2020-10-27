@@ -15,7 +15,7 @@
 class FeatureTabHeader
 {
 public:
-    FeatureTabHeader(const std::string &sample_info_path, const std::unordered_set<std::string> &preserved_cond_tags);
+    FeatureTabHeader(const std::string &sample_info_path, std::unordered_set<std::string> &&preserved_cond_tags = std::unordered_set<std::string>());
 
     const size_t MakeColumnInfo(const std::string &header_line, const std::string &rep_colname);
 
@@ -25,9 +25,9 @@ public:
     const size_t GetNbCol() const;
     const size_t GetNbCondition() const;
 
-    const std::vector<std::string> &GetColNameVect() const;
-    const std::vector<char> &GetColNatureVect() const;
-    const std::vector<size_t> &GetColSerialVect() const;
+    const std::string &GetColNameAt(size_t i) const;
+    const char GetColNatureAt(size_t i) const;
+    const size_t GetColSerialAt(size_t i) const;
 
     const bool IsSample(size_t i_col) const;
     const void ParseSmpLabels(std::vector<size_t> &smp_labels);

@@ -61,7 +61,7 @@ inline float CalcSpearmanDist(const std::vector<countT> &x, const std::vector<co
     std::vector<float> x_rk, y_rk;
     CalcVectRank(x_rk, x);
     CalcVectRank(y_rk, y);
-    return (0.5 * (1 - CalcPearsonCorrelation(x_rk, y_rk)));
+    return CalcPearsonDist(x_rk, y_rk);
 }
 
 template <typename countT>

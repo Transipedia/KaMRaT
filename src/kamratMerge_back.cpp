@@ -1,30 +1,29 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <fstream>
-#include <sstream>
+#include <unordered_set>
 #include <ctime>
 #include <stdexcept>
+#include <bitset> // for debug
 
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include "utils/seq_coding.hpp"
-#include "utils/vec_operation.hpp"
-#include "data_struct/feature_tab_elem.hpp"
-#include "data_struct/feature_tab_header.hpp"
+#include "data_struct/count_tab.hpp"
 #include "data_struct/contig_elem.hpp"
 #include "data_struct/merge_knot.hpp"
 #include "run_info_parser/merge.hpp"
 #include "run_info_parser/utils.hpp"
 
-void ScanCountTable(featuretab_t &feature_tab, FeatureTabHeader &feature_tab_header,
+void ScanCountTable(CountTab &kmer_count_tab,
                     contigvect_t &contig_vect, code2serial_t &code2serial,
-                    const size_t k_len, const bool stranded,
                     const std::string &kmer_count_path,
                     const std::string &rep_colname,
-                    const std::string &idx_path)
+                    const std::string &smp_info_path)
 {
     std::ifstream kmer_count_file(kmer_count_path);
     if (!kmer_count_file.is_open())
@@ -40,11 +39,11 @@ void ScanCountTable(featuretab_t &feature_tab, FeatureTabHeader &feature_tab_hea
     inbuf.push(kmer_count_file);
     std::istream kmer_count_instream(&inbuf);
 
-    std::string line, seq;
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
+    std::string line, seq, idx_path = kmer_count_tab.GetIndexPath();
     std::getline(kmer_count_instream, line);
-    size_t rep_colpos = feature_tab_header.MakeColumnInfo(line, rep_colname),
-           nb_value = feature_tab_header.GetNbValue(), nb_count = feature_tab_header.GetNbCount(), nb_str = feature_tab_header.GetNbStr();
+    kmer_count_tab.MakeSmpCond(smp_info_path);
+    kmer_count_tab.MakeColumnInfo(line, rep_colname);
     //----- Dealing with Following k-mer Count Lines -----//
     std::ofstream count_idx_file;
     if (!idx_path.empty())
@@ -55,29 +54,41 @@ void ScanCountTable(featuretab_t &feature_tab, FeatureTabHeader &feature_tab_hea
             throw std::domain_error("error open file: " + idx_path);
         }
     }
-    std::istringstream conv;
-    for (size_t iline(0); std::getline(kmer_count_instream, line); ++iline)
+    for (size_t kmer_serial(0); std::getline(kmer_count_instream, line); ++kmer_serial)
     {
-        conv.str(line);
-        feature_tab.emplace_back(nb_value, nb_count, nb_str, conv, count_idx_file, feature_tab_header.GetColNatureVect());
-        float rep_val = (rep_colpos == 0 ? iline : feature_tab.back().GetValueAt(feature_tab_header.GetColSerialVect().at(rep_colpos)));
+        if (kmer_serial != kmer_count_tab.GetTableSize()) // for debug, should not happen
+        {
+            throw std::domain_error("kmer_count_tab not coherent with k-mer serial");
+        }
+        // parsing count vector => k-mer count table
+        float rep_val;
+        bool has_rep_val = kmer_count_tab.AddRowAsFields(rep_val, line, count_idx_file);
+        if (!has_rep_val) // if no representative k-mer column
+        {
+            rep_val = kmer_serial;
+        }
+        // dealing with sequence => contig vector
         seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
-        if (seq.size() != k_len)
+        if (seq.size() != kmer_count_tab.GetKLen())
         {
             throw std::domain_error("the given k-len parameter not coherent with input k-mer: " + seq);
         }
-        uint64_t kmer_uniqcode = Seq2Int(seq, seq.size(), stranded);
-        if (!code2serial.insert({kmer_uniqcode, iline}).second)
+        uint64_t kmer_uniqcode = Seq2Int(seq, seq.size(), kmer_count_tab.IsStranded());
+        if (!code2serial.insert({kmer_uniqcode, kmer_serial}).second)
         {
             throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
         }
-        contig_vect.emplace_back(std::move(seq), rep_val, kmer_uniqcode, iline);
+        if (kmer_serial != contig_vect.size()) // for debug, should not happen
+        {
+            throw std::domain_error("contig vector not coherent with k-mer serial");
+        }
+        contig_vect.emplace_back(std::move(seq), rep_val, kmer_uniqcode, kmer_serial);
     }
     if (count_idx_file.is_open())
     {
         count_idx_file.close();
     }
-    feature_tab.shrink_to_fit();
+    kmer_count_tab.ShrinkTab();
     contig_vect.shrink_to_fit();
     kmer_count_file.close();
 }
@@ -126,10 +137,10 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
 
 const bool DoExtension(contigvect_t &contig_vect,
                        const fix2knot_t &hashed_mergeknot_list,
-                       featuretab_t &feature_count_tab,
+                       const CountTab &kmer_count_tab,
                        const size_t n_overlap,
                        const std::string &interv_method, const float interv_thres,
-                       std::ifstream &idx_file, const size_t nb_count)
+                       std::ifstream &idx_file)
 {
     bool has_new_extensions(false);
     for (const auto &mk : hashed_mergeknot_list)
@@ -145,22 +156,13 @@ const bool DoExtension(contigvect_t &contig_vect,
             continue;
         }
         bool is_pred_rc = mk.second.IsRC("pred"), is_succ_rc = mk.second.IsRC("succ");
-        if (idx_file.is_open())
-        {
-            feature_count_tab[contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc)].RestoreCountVect(idx_file, nb_count);
-            feature_count_tab[contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc)].RestoreCountVect(idx_file, nb_count);
-        }
         if (interv_method != "none" &&
-            CalcXDist(feature_count_tab[contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc)].GetCountVect(),
-                      feature_count_tab[contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc)].GetCountVect(),
-                      interv_method) >= interv_thres)
+            kmer_count_tab.CalcCountDistance(contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc),
+                                             contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc),
+                                             interv_method, idx_file) >= interv_thres)
         {
-            feature_count_tab[contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc)].ClearCountVect();
-            feature_count_tab[contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc)].ClearCountVect();
             continue;
         }
-        feature_count_tab[contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc)].ClearCountVect();
-        feature_count_tab[contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc)].ClearCountVect();
         // merge by guaranting representative k-mer having minimum p-value or input order //
         if (contig_vect[pred_serial].GetScore("origin") <= contig_vect[succ_serial].GetScore("origin")) // merge right to left
         {
