@@ -137,9 +137,6 @@ const bool DoExtension(contigvect_t &contig_vect,
     bool has_new_extensions(false);
     for (const auto &mk : hashed_mergeknot_list)
     {
-        pred_count_vect.clear();
-        succ_count_vect.clear();
-        
         if (!mk.second.IsMergeable())
         {
             continue;
@@ -257,19 +254,16 @@ void PrintContigList(const contigvect_t &contig_vect,
         for (size_t i(1); i < tab_header.GetNbCol(); ++i)
         {
             size_t col_serial = tab_header.GetColSerialAt(i);
-            if (tab_header.GetColNatureAt(i) >= 0) // count column => output according to quant_mode
+            if (tab_header.GetColNatureAt(i) >= 'A' && tab_header.GetColNatureAt(i) <= 'Z') // count column => output according to quant_mode
             {
                 std::cout << "\t" << count_vect[col_serial];
             }
-            else if (tab_header.GetColNatureAt(i) == -1 || tab_header.GetColNatureAt(i) == -2) // value column => output that related with rep-k-mer
+            else if (tab_header.GetColNatureAt(i) == 'v') // value column => output that related with rep-k-mer
             {
                 std::cout << "\t" << value_vect[col_serial];
             }
         }
         std::cout << std::endl;
-        rep_kmer_seq.clear();
-        count_vect_x.clear();
-        value_vect_x.clear();
     }
     std::cout.rdbuf(backup_buf);
     if (out_file.is_open())

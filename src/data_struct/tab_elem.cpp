@@ -69,8 +69,6 @@ const void TabElem::GetVectsAndClear(std::vector<float> &count_vect, std::vector
 {
     if (idx_file.is_open())
     {
-        count_vect.clear();
-        value_vect.clear();
         count_vect.resize(nb_count);
         value_vect.resize(nb_value);
         idx_file.seekg(index_pos_);
