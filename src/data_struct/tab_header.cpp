@@ -1,10 +1,10 @@
 #include <fstream>
 #include <sstream>
 
-#include "feature_tab_header.hpp"
+#include "tab_header.hpp"
 
-FeatureTabHeader::FeatureTabHeader(const std::string &sample_info_path, std::unordered_set<std::string> &&preserved_cond_tags)
-    : nb_value_(0), nb_count_(0), nb_str_(0), nb_col_(0), nb_condi_(0)
+TabHeader::TabHeader(const std::string &sample_info_path, std::unordered_set<std::string> &&preserved_cond_tags)
+    : nb_value_(0), nb_count_(0), nb_str_(0), nb_col_(0), nb_condi_(0), rep_colpos_(0)
 {
     if (!sample_info_path.empty())
     {
@@ -46,21 +46,19 @@ FeatureTabHeader::FeatureTabHeader(const std::string &sample_info_path, std::uno
     }
 }
 
-const size_t FeatureTabHeader::MakeColumnInfo(const std::string &header_line, const std::string &rep_colname)
+const void TabHeader::MakeColumnInfo(const std::string &header_line, const std::string &rep_colname)
 {
     if (header_line.empty()) // quit if header line is empty
     {
         throw std::domain_error("cannot parse column information with an empty header line");
     }
-    size_t rep_colpos(0);
     std::istringstream conv(header_line);
     std::string term;
     // the first column is supposed to be feature string //
     conv >> term;
     colname_vect_.emplace_back(term);
+    colserial_vect_.emplace_back(nb_col_++); // place hoder: first column always as string
     colnature_vect_.emplace_back('s');
-    colserial_vect_.emplace_back(0); // place hoder: first column always as string
-    ++nb_col_;
     // following columns //
     if (condi2lab_.empty()) // if sample info file NOT provided, then all next columns are samples
     {
@@ -83,16 +81,11 @@ const size_t FeatureTabHeader::MakeColumnInfo(const std::string &header_line, co
                 colnature_vect_.emplace_back(iter->second);
                 colserial_vect_.emplace_back(nb_count_++);
             }
-            else if (term == "tag" || term == "feature" || term == "contig")
-            {
-                colnature_vect_.emplace_back('s');
-                colserial_vect_.emplace_back(nb_str_++);
-            }
             else
             {
                 if (term == rep_colname)
                 {
-                    rep_colpos = nb_col_;
+                    rep_colpos_ = nb_col_;
                 }
                 colnature_vect_.emplace_back('v');
                 colserial_vect_.emplace_back(nb_value_++);
@@ -108,35 +101,39 @@ const size_t FeatureTabHeader::MakeColumnInfo(const std::string &header_line, co
     {
         throw std::domain_error("colname, colserial, colnature sizes not coherent");
     }
-    return rep_colpos;
 }
 
-const size_t FeatureTabHeader::GetNbValue() const
+const size_t TabHeader::GetNbValue() const
 {
     return nb_value_;
 }
 
-const size_t FeatureTabHeader::GetNbCount() const
+const size_t TabHeader::GetNbCount() const
 {
     return nb_count_;
 }
 
-const size_t FeatureTabHeader::GetNbStr() const
+const size_t TabHeader::GetNbStr() const
 {
     return nb_str_;
 }
 
-const size_t FeatureTabHeader::GetNbCol() const
+const size_t TabHeader::GetNbCol() const
 {
     return nb_col_;
 }
 
-const size_t FeatureTabHeader::GetNbCondition() const
+const size_t TabHeader::GetNbCondition() const
 {
     return nb_condi_;
 }
 
-const std::string &FeatureTabHeader::GetColNameAt(const size_t i) const
+const size_t TabHeader::GetRepColPos() const
+{
+    return rep_colpos_;
+}
+
+const std::string &TabHeader::GetColNameAt(const size_t i) const
 {
     if (i > nb_col_)
     {
@@ -145,7 +142,7 @@ const std::string &FeatureTabHeader::GetColNameAt(const size_t i) const
     return colname_vect_[i];
 }
 
-const char FeatureTabHeader::GetColNatureAt(const size_t i) const
+const char TabHeader::GetColNatureAt(const size_t i) const
 {
     if (i > nb_col_)
     {
@@ -154,7 +151,7 @@ const char FeatureTabHeader::GetColNatureAt(const size_t i) const
     return colnature_vect_[i];
 }
 
-const size_t FeatureTabHeader::GetColSerialAt(const size_t i) const
+const size_t TabHeader::GetColSerialAt(const size_t i) const
 {
     if (i > nb_col_)
     {
@@ -163,7 +160,7 @@ const size_t FeatureTabHeader::GetColSerialAt(const size_t i) const
     return colserial_vect_[i];
 }
 
-const bool FeatureTabHeader::IsSample(size_t i_col) const
+const bool TabHeader::IsSample(size_t i_col) const
 {
     if (i_col > nb_col_)
     {
@@ -172,7 +169,7 @@ const bool FeatureTabHeader::IsSample(size_t i_col) const
     return (colnature_vect_[i_col] >= 'A' && colnature_vect_[i_col] <= 'Z');
 }
 
-const void FeatureTabHeader::ParseSmpLabels(std::vector<size_t> &smp_labels)
+const void TabHeader::ParseSmpLabels(std::vector<size_t> &smp_labels)
 {
     if (!smp_labels.empty())
     {
