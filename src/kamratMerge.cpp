@@ -89,9 +89,10 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
                          const bool stranded,
                          const size_t n_overlap)
 {
+    static std::string seq;
     for (size_t contig_serial(0); contig_serial < contig_vect.size(); ++contig_serial)
     {
-        std::string seq = contig_vect[contig_serial].GetSeq();
+        seq = contig_vect[contig_serial].GetSeq();
         if (seq.size() <= n_overlap) // for debug, should not happen
         {
             throw std::domain_error("k-mer size less than or equal to k-length");
@@ -115,13 +116,11 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
         }
         {
             auto iter = hashed_mergeknot_list.insert({prefix, MergeKnot()}).first;
-            std::string which_to_set = (is_prefix_rc ? "pred" : "succ");
-            iter->second.AddContig(contig_serial, is_prefix_rc, which_to_set);
+            iter->second.AddContig(contig_serial, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
         }
         {
             auto iter = hashed_mergeknot_list.insert({suffix, MergeKnot()}).first;
-            std::string which_to_set = (is_suffix_rc ? "succ" : "pred");
-            iter->second.AddContig(contig_serial, is_suffix_rc, which_to_set);
+            iter->second.AddContig(contig_serial, is_suffix_rc, (is_suffix_rc ? "succ" : "pred"));
         }
     }
 }
@@ -133,24 +132,27 @@ const bool DoExtension(contigvect_t &contig_vect,
                        const std::string &interv_method, const float interv_thres,
                        std::ifstream &idx_file, const TabHeader &tab_header)
 {
-    std::vector<float> pred_count_vect, succ_count_vect;
+    static std::vector<float> pred_count_vect, succ_count_vect;
     const size_t nb_counts = tab_header.GetNbCount();
     bool has_new_extensions(false);
     for (const auto &mk : hashed_mergeknot_list)
     {
+        pred_count_vect.clear();
+        succ_count_vect.clear();
+        
         if (!mk.second.IsMergeable())
         {
             continue;
         }
-        const uint64_t pred_serial = mk.second.GetSerial("pred"),
-                       succ_serial = mk.second.GetSerial("succ");
-        if (contig_vect[pred_serial].IsUsed() || contig_vect[succ_serial].IsUsed())
+        ContigElem &pred_contig = contig_vect[mk.second.GetSerial("pred")],
+                   &succ_contig = contig_vect[mk.second.GetSerial("succ")];
+        if (pred_contig.IsUsed() || succ_contig.IsUsed())
         {
             continue;
         }
         bool is_pred_rc = mk.second.IsRC("pred"), is_succ_rc = mk.second.IsRC("succ");
-        const TabElem &pred_feature_elem = feature_tab[contig_vect[pred_serial].GetRearKMerSerial(is_pred_rc)],
-                      &succ_feature_elem = feature_tab[contig_vect[succ_serial].GetHeadKMerSerial(is_succ_rc)];
+        const TabElem &pred_feature_elem = feature_tab[pred_contig.GetRearKMerSerial(is_pred_rc)],
+                      &succ_feature_elem = feature_tab[succ_contig.GetHeadKMerSerial(is_succ_rc)];
 
         if (interv_method != "none" &&
             CalcXDist(pred_feature_elem.GetCountVect(pred_count_vect, idx_file, nb_counts),
@@ -159,29 +161,29 @@ const bool DoExtension(contigvect_t &contig_vect,
             continue;
         }
         // merge by guaranting representative k-mer having minimum p-value or input order //
-        if (contig_vect[pred_serial].GetScore("origin") <= contig_vect[succ_serial].GetScore("origin")) // merge right to left
+        if (pred_contig.GetScore("origin") <= succ_contig.GetScore("origin")) // merge right to left
         {
             if (is_pred_rc) // prevent base contig from reverse-complement transformation, for being coherent with merging knot
             {
-                contig_vect[pred_serial].LeftExtend(contig_vect[succ_serial], !is_succ_rc, n_overlap);
+                pred_contig.LeftExtend(succ_contig, !is_succ_rc, n_overlap);
             }
             else
             {
-                contig_vect[pred_serial].RightExtend(contig_vect[succ_serial], is_succ_rc, n_overlap);
+                pred_contig.RightExtend(succ_contig, is_succ_rc, n_overlap);
             }
-            contig_vect[succ_serial].SetUsed();
+            succ_contig.SetUsed();
         }
         else // merge left to right
         {
             if (is_succ_rc) // prevent base contig from reverse-complement transformation, for being coherent with merging knot
             {
-                contig_vect[succ_serial].RightExtend(contig_vect[pred_serial], !is_pred_rc, n_overlap);
+                succ_contig.RightExtend(pred_contig, !is_pred_rc, n_overlap);
             }
             else
             {
-                contig_vect[succ_serial].LeftExtend(contig_vect[pred_serial], is_pred_rc, n_overlap);
+                succ_contig.LeftExtend(pred_contig, is_pred_rc, n_overlap);
             }
-            contig_vect[pred_serial].SetUsed();
+            pred_contig.SetUsed();
         }
         has_new_extensions = true;
     }
@@ -214,14 +216,13 @@ void PrintContigList(const contigvect_t &contig_vect,
     }
     std::cout << std::endl;
 
-    std::string contig_seq, rep_kmer_seq;
+    std::string rep_kmer_seq;
     size_t rep_uniqcode, rep_serial, nb_count = tab_header.GetNbCount(), nb_value = tab_header.GetNbValue();
     std::vector<float> count_vect, value_vect, count_vect_x, value_vect_x;
     for (const auto &elem : contig_vect)
     {
         rep_uniqcode = elem.GetUniqCode();
         rep_serial = code2serial.find(rep_uniqcode)->second;
-        contig_seq = elem.GetSeq();
         Int2Seq(rep_kmer_seq, rep_uniqcode, k_len);
 
         if (quant_mode == "rep")
@@ -252,7 +253,7 @@ void PrintContigList(const contigvect_t &contig_vect,
         {
             throw std::domain_error("unknown quant mode: " + quant_mode);
         }
-        std::cout << contig_seq << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq;
+        std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq;
         for (size_t i(1); i < tab_header.GetNbCol(); ++i)
         {
             size_t col_serial = tab_header.GetColSerialAt(i);

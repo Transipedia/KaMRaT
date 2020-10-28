@@ -13,23 +13,23 @@ TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file,
 
     static std::string term;
     line_conv >> term; // skip the first column which is k-mer/tag/contig/sequence
-    for (unsigned int i(1); line_conv >> term, i < tab_header.GetNbCol(); ++i)
+    for (unsigned int i(1); line_conv >> term; ++i)
     {
         char nat_ch = tab_header.GetColNatureAt(i);
         if (nat_ch == 'v') // v for values
         {
-            value_vect_.emplace_back(std::move(std::stof(term)));
+            value_vect_.emplace_back(std::stof(std::move(term)));
         }
         else if (nat_ch >= 'A' && nat_ch <= 'Z') // A-Z for sample conditions, maximally support 26 conditions
         {
-            count_vect_.emplace_back(std::move(std::stof(term)));
+            count_vect_.emplace_back(std::stof(std::move(term)));
         }
         else
         {
             throw std::invalid_argument("unknown column nature code: " + nat_ch);
         }
     }
-    static size_t rep_colpos, serial = 0;
+    size_t rep_colpos, serial = 0;
     rep_val = (0 == (rep_colpos = tab_header.GetRepColPos()) ? serial++ : value_vect_[tab_header.GetColSerialAt(rep_colpos)]);
     if (line_conv >> term) // should not happen, for debug
     {
