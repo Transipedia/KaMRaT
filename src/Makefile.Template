@@ -2,7 +2,7 @@ targets : kamrat contigEvaluate clean
 
 CPPFLAGS = -Wall -Werror -g -std=c++14
 
-kamrat : kamrat.cpp kamratNorm.o kamratMerge.o kamratMask.o kamratFilter.o kamratRank.o
+kamrat : kamrat.cpp kamratMerge.o kamratRank.o kamratMask.o kamratFilter.o kamratNorm.o
 	g++ -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams
 
 kamratNorm.o : kamratNorm.cpp data_struct/count_tab_header.cpp data_struct/sample_info.cpp 
@@ -17,8 +17,8 @@ kamratMask.o : kamratMask.cpp data_struct/seq_elem.cpp
 kamratFilter.o : kamratFilter.cpp data_struct/count_tab_header.cpp
 	g++ -c kamratFilter.cpp data_struct/count_tab_header.cpp -lboost_iostreams $(CPPFLAGS)
 
-kamratRank.o : kamratRank.cpp data_struct/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp data_struct/seq_elem.cpp
-	g++ -c kamratRank.cpp data_struct/scorer.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp data_struct/seq_elem.cpp -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams $(CPPFLAGS)
+kamratRank.o : kamratRank.cpp data_struct/scorer.cpp data_struct/tab_header.cpp data_struct/tab_elem.cpp data_struct/seq_elem.cpp
+	g++ -c kamratRank.cpp data_struct/scorer.cpp data_struct/tab_header.cpp data_struct/tab_elem.cpp data_struct/seq_elem.cpp -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams $(CPPFLAGS)
 
 contigEvaluate : contigEvaluate.cpp data_struct/seq_elem.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp
 	g++ -o ../bin/contigEvaluate contigEvaluate.cpp data_struct/seq_elem.cpp data_struct/count_tab_header.cpp data_struct/count_tab.cpp -lboost_iostreams $(CPPFLAGS)

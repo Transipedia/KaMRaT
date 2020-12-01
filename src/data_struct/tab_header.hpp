@@ -26,12 +26,13 @@ public:
     const size_t GetNbCondition() const;
     const size_t GetRepColPos() const;
 
+    const float ParseRowStr(std::vector<float> &count_vect, std::vector<float> &value_vect, std::istringstream &line_conv) const;
     const std::string &GetColNameAt(size_t i) const;
     const char GetColNatureAt(size_t i) const;
     const size_t GetColSerialAt(size_t i) const;
 
     const bool IsSample(size_t i_col) const;
-    const void ParseSmpLabels(std::vector<size_t> &smp_labels);
+    const void ParseSmpLabels(std::vector<size_t> &smp_labels) const;
 
 protected:
     size_t nb_value_, nb_count_, nb_str_, nb_col_, nb_condi_, rep_colpos_;   // number of values, counts, strings, columns, conditions

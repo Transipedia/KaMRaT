@@ -133,6 +133,36 @@ const size_t TabHeader::GetRepColPos() const
     return rep_colpos_;
 }
 
+const float TabHeader::ParseRowStr(std::vector<float> &count_vect, std::vector<float> &value_vect, std::istringstream &line_conv) const
+{
+    count_vect.reserve(nb_count_);
+    value_vect.reserve(nb_value_);
+
+    static std::string term;
+    line_conv >> term; // skip the first column which is k-mer/tag/contig/sequence
+    for (unsigned int i(1); i < nb_col_ && line_conv >> term; ++i)
+    {
+        char nat_ch = colnature_vect_[i];
+        if (nat_ch == 'v') // v for values
+        {
+            value_vect.emplace_back(std::stof(std::move(term)));
+        }
+        else if (nat_ch >= 'A' && nat_ch <= 'Z') // A-Z for sample conditions, maximally support 26 conditions
+        {
+            count_vect.emplace_back(std::stof(std::move(term)));
+        }
+        else
+        {
+            throw std::invalid_argument("unknown column nature code: " + nat_ch);
+        }
+    }
+    if (line_conv >> term) // should not happen, for debug
+    {
+        throw std::domain_error("parsing string line to fields failed");
+    }
+    return (0 == rep_colpos_ ? 0 : value_vect[colserial_vect_[rep_colpos_]]);
+}
+
 const std::string &TabHeader::GetColNameAt(const size_t i) const
 {
     if (i > nb_col_)
@@ -169,7 +199,7 @@ const bool TabHeader::IsSample(size_t i_col) const
     return (colnature_vect_[i_col] >= 'A' && colnature_vect_[i_col] <= 'Z');
 }
 
-const void TabHeader::ParseSmpLabels(std::vector<size_t> &smp_labels)
+const void TabHeader::ParseSmpLabels(std::vector<size_t> &smp_labels) const
 {
     if (!smp_labels.empty())
     {

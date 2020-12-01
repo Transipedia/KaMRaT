@@ -8,7 +8,7 @@
 
 inline void PrintRankHelper()
 {
-    std::cerr << "[USAGE]   kamrat rank [-idx-path STR] [-smp-info STR] [-score-method STR] [-sort-mode STR] [-top-num INT] [-ln] [-standard] STR" << std::endl
+    std::cerr << "[USAGE]   kamrat rank [-options] FEATURE_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]        -h,-help             Print the helper " << std::endl;
     std::cerr << "                -idx-path STR        Count index file path [default: ./counts.idx]" << std::endl;
@@ -20,11 +20,12 @@ inline void PrintRankHelper()
     std::cerr << "                -ln                  Apply ln(x + 1) transformation BEFORE score estimation [false]" << std::endl
               << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
     std::cerr << "                -standardize         Standarize count vector BEFORE score estimation [false]" << std::endl
-              << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl
+              << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
+    std::cerr << "                -out-path STR         Output contig count table path [default: std::cout (output to screen)]" << std::endl
               << std::endl;
     std::cerr << "[EVAL. METHOD]  sd                   Standard deviation (default method)" << std::endl;
     std::cerr << "                rsd                  Relative standard deviation" << std::endl;
-    std::cerr << "                ttest                T-test between conditions" << std::endl;
+    std::cerr << "                ttest                T-test between conditions (ln transformation is required)" << std::endl;
     std::cerr << "                es                   Effect size between conditions" << std::endl;
     std::cerr << "                lfc:mean             Log2 fold change by group mean, 'mean' can be omitted by default" << std::endl;
     std::cerr << "                lfc:median           Log2 fold change by group median" << std::endl;
@@ -55,7 +56,8 @@ inline void PrintRunInfo(const std::string &kmer_count_path,
                          const size_t nb_fold,
                          const size_t nb_sel,
                          const bool ln_transf,
-                         const bool standardize)
+                         const bool standardize,
+                         const std::string &out_path)
 {
     std::cerr << "k-mer count path:                             " << kmer_count_path << std::endl;
     std::cerr << "k-mer count index path:                       " << idx_path << std::endl;
@@ -95,6 +97,14 @@ inline void PrintRunInfo(const std::string &kmer_count_path,
     std::cerr << "Number of feature to output (0 for all):      " << nb_sel << std::endl;
     std::cerr << "Ln(x + 1) for score estiamtion:               " << (ln_transf ? "On" : "Off") << std::endl;
     std::cerr << "Standardize for score estimation:             " << (standardize ? "On" : "Off") << std::endl;
+    if (!out_path.empty())
+    {
+        std::cerr << "Output path:                                  " << out_path << std::endl;
+    }
+    else
+    {
+        std::cerr << "Output to screen" << std::endl;
+    }
     std::cerr << std::endl;
 }
 
@@ -108,6 +118,7 @@ inline void ParseOptions(int argc,
                          size_t &nb_sel,
                          bool &ln_transf,
                          bool &standardize,
+                         std::string &out_path,
                          std::string &kmer_count_path)
 {
     int i_opt(1);
@@ -148,6 +159,10 @@ inline void ParseOptions(int argc,
         {
             standardize = true;
         }
+        else if (arg == "-out-path" && i_opt + 1 < argc)
+        {
+            out_path = argv[++i_opt];
+        }
         else
         {
             PrintRankHelper();
@@ -166,17 +181,20 @@ inline void ParseOptions(int argc,
         PrintRankHelper();
         throw std::invalid_argument("unknown sort mode: " + sort_mode);
     }
-    if (score_method == "svm" && !standardize)
+    if (score_method == "svm" && !standardize && score_cmd != "F")
     {
-        throw std::invalid_argument("Standardization is required for SVM classification");
+        throw std::invalid_argument("Standardization is required for SVM classification\n"
+                                    "Put -score-method svm:F to force to run");
     }
     if (score_method == "ttest" && standardize)
     {
-        throw std::invalid_argument("Ttest is not compatible with standardized counts: log applied on negative values");
+        throw std::invalid_argument("Ttest is not compatible with standardized counts: log applied on negative values\n"
+                                    "And the forced running is not permitted either");
     }
-    if (score_method == "ttest" && !ln_transf)
+    if (score_method == "ttest" && !ln_transf && score_cmd != "F")
     {
-        throw std::invalid_argument("Ttest requires ln(x + 1) transformation");
+        throw std::invalid_argument("Ttest requires ln(x + 1) transformation\n"
+                                    "Put -score-method ttest:F to force to run");
     }
 }
 

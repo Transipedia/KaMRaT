@@ -8,33 +8,7 @@ TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file,
                  const TabHeader &tab_header)
     : index_pos_(idx_file.is_open() ? static_cast<size_t>(idx_file.tellp()) : 0)
 {
-    count_vect_.reserve(tab_header.GetNbCount());
-    value_vect_.reserve(tab_header.GetNbValue());
-
-    static std::string term;
-    line_conv >> term; // skip the first column which is k-mer/tag/contig/sequence
-    for (unsigned int i(1); line_conv >> term; ++i)
-    {
-        char nat_ch = tab_header.GetColNatureAt(i);
-        if (nat_ch == 'v') // v for values
-        {
-            value_vect_.emplace_back(std::stof(std::move(term)));
-        }
-        else if (nat_ch >= 'A' && nat_ch <= 'Z') // A-Z for sample conditions, maximally support 26 conditions
-        {
-            count_vect_.emplace_back(std::stof(std::move(term)));
-        }
-        else
-        {
-            throw std::invalid_argument("unknown column nature code: " + nat_ch);
-        }
-    }
-    size_t rep_colpos, serial = 0;
-    rep_val = (0 == (rep_colpos = tab_header.GetRepColPos()) ? serial++ : value_vect_[tab_header.GetColSerialAt(rep_colpos)]);
-    if (line_conv >> term) // should not happen, for debug
-    {
-        throw std::domain_error("parsing string line to fields failed");
-    }
+    rep_val = tab_header.ParseRowStr(count_vect_, value_vect_, line_conv);
     if (idx_file.is_open())
     {
         idx_file.write(reinterpret_cast<char *>(&count_vect_[0]), count_vect_.size() * sizeof(count_vect_[0])); // first counts
@@ -46,6 +20,23 @@ TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file,
     {
         count_vect_.shrink_to_fit();
         value_vect_.shrink_to_fit();
+    }
+}
+
+TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file,
+                 std::vector<float> &count_vect, float &rep_val,
+                 const TabHeader &tab_header)
+    : index_pos_(idx_file.is_open() ? static_cast<size_t>(idx_file.tellp()) : 0)
+{
+    rep_val = tab_header.ParseRowStr(count_vect, value_vect_, line_conv);
+    if (idx_file.is_open())
+    {
+        idx_file << line_conv.str();
+        std::vector<float>(std::move(value_vect_)); // clear and reallocate the vector
+    }
+    else // should not happen, for debug
+    {
+        throw std::domain_error("indexing as string but without index file opened");
     }
 }
 
@@ -80,4 +71,9 @@ const void TabElem::GetVectsAndClear(std::vector<float> &count_vect, std::vector
         count_vect = std::move(count_vect_);
         value_vect = std::move(value_vect_);
     }
+}
+
+const size_t TabElem::GetIndexPos() const
+{
+    return index_pos_;
 }

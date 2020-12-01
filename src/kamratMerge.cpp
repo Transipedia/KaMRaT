@@ -72,7 +72,14 @@ void ScanCountTable(featuretab_t &feature_tab, TabHeader &tab_header,
         {
             throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
         }
-        contig_vect.emplace_back(std::move(seq), rep_val, kmer_uniqcode, iline);
+        if (rep_colname.empty())
+        {
+            contig_vect.emplace_back(std::move(seq), iline, kmer_uniqcode, iline);
+        }
+        else
+        {
+            contig_vect.emplace_back(std::move(seq), rep_val, kmer_uniqcode, iline);
+        }
         conv.clear();
     }
     if (idx_file.is_open())
@@ -114,14 +121,8 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
                 is_suffix_rc = true;
             }
         }
-        {
-            auto iter = hashed_mergeknot_list.insert({prefix, MergeKnot()}).first;
-            iter->second.AddContig(contig_serial, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
-        }
-        {
-            auto iter = hashed_mergeknot_list.insert({suffix, MergeKnot()}).first;
-            iter->second.AddContig(contig_serial, is_suffix_rc, (is_suffix_rc ? "succ" : "pred"));
-        }
+        hashed_mergeknot_list.insert({prefix, MergeKnot()}).first->second.AddContig(contig_serial, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
+        hashed_mergeknot_list.insert({suffix, MergeKnot()}).first->second.AddContig(contig_serial, is_suffix_rc, (is_suffix_rc ? "succ" : "pred"));
     }
 }
 
@@ -206,6 +207,7 @@ void PrintContigList(const contigvect_t &contig_vect,
     {
         std::cout.rdbuf(out_file.rdbuf());
     }
+
     std::cout << "contig\tnb_merged_kmers";
     for (size_t i(0); i < tab_header.GetNbCol(); ++i)
     {
@@ -265,6 +267,7 @@ void PrintContigList(const contigvect_t &contig_vect,
         }
         std::cout << std::endl;
     }
+    
     std::cout.rdbuf(backup_buf);
     if (out_file.is_open())
     {

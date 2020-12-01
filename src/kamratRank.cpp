@@ -13,17 +13,18 @@
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include "data_struct/scorer.hpp"
-#include "data_struct/count_tab.hpp"
+#include "data_struct/tab_elem.hpp"
+#include "data_struct/tab_header.hpp"
 #include "data_struct/seq_elem.hpp"
 #include "run_info_parser/rank.hpp"
 
-void EvalScore(CountTab &feature_count_tab,
-               seqVect_t &feature_vect,
+void EvalScore(seqVect_t &feature_vect,
+               TabHeader &tab_header,
                const std::string &count_tab_path,
-               const std::string &smp_info_path,
                const std::unique_ptr<Scorer> &scorer,
                const bool ln_transf,
-               const bool standardize)
+               const bool standardize,
+               const std::string &idx_path)
 {
     std::ifstream count_tab_file(count_tab_path);
     if (!count_tab_file.is_open())
@@ -42,14 +43,13 @@ void EvalScore(CountTab &feature_count_tab,
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::string line;
     std::getline(kmer_count_instream, line);
-    feature_count_tab.MakeSmpCond(smp_info_path);
-    feature_count_tab.MakeColumnInfo(line, scorer->GetScoreCmd());
-    std::vector<size_t> smp_labels;
-    feature_count_tab.GetSmpLabels(smp_labels);
-    scorer->LoadSampleLabel(smp_labels, feature_count_tab.GetNbCondition());
-    // std::cout << "feature\tall.f1.binary\tall.f1.micro\tall.accuracy\tcv.f1.binary\tcv.f1.micro\tcv.accuracy\tcv.f1.na_to_0" << std::endl;
+    tab_header.MakeColumnInfo(line, (scorer->GetScoreMethod() == "user" ? scorer->GetScoreCmd() : ""));
+    scorer->LoadSampleLabel(tab_header);
     //----- Dealing with Following k-mer Count Lines -----//
-    const std::string idx_path = feature_count_tab.GetIndexPath();
+    if (idx_path.empty())
+    {
+        throw std::domain_error("index file path not provided");
+    }
     std::ofstream idx_file(idx_path); // create new index file because gz file does not support random access
     if (!idx_file.is_open())          // to ensure the file is opened
     {
@@ -63,7 +63,8 @@ void EvalScore(CountTab &feature_count_tab,
         // std::cout << feature_seq << "\t";
         float feature_score;
         std::vector<float> count_vect;
-        if (!feature_count_tab.AddRowAsString(feature_score, count_vect, line, idx_file) && scorer->GetScoreMethod() == "user") // firstly call AddRowAsString !
+        TabElem tab_elem(conv, idx_file, count_vect, feature_score, tab_header);
+        if (tab_header.GetRepColPos() == 0 && scorer->GetScoreMethod() == "user") // user scoring mode but not find a score column
         {
             throw std::domain_error("user score column not found:" + scorer->GetScoreCmd());
         }
@@ -78,7 +79,7 @@ void EvalScore(CountTab &feature_count_tab,
             }
             feature_score = scorer->CalcScore(count_vect, standardize);
         }
-        feature_vect.emplace_back(feature_seq, feature_serial, feature_score); // serial number as uniqcode
+        feature_vect.emplace_back(feature_seq, tab_elem.GetIndexPos(), feature_score); // index position as uniqcode
     }
     idx_file.close();
     count_tab_file.close();
@@ -133,12 +134,28 @@ void PValueAdjustmentBH(seqVect_t &feature_vect)
 void ModelPrint(const seqVect_t &feature_vect,
                 const std::string &idx_path,
                 const size_t nb_sel,
-                const CountTab &count_tab)
+                const TabHeader &tab_header,
+                const std::string &out_path)
 {
-    std::cout << count_tab.GetColName(0) << "\tscore";
-    for (size_t i(1); i < count_tab.GetNbColumn(); ++i)
+    std::ofstream out_file;
+    if (!out_path.empty())
     {
-        std::cout << "\t" << count_tab.GetColName(i);
+        out_file.open(out_path);
+        if (!out_file.is_open())
+        {
+            throw std::domain_error("cannot open file: " + out_path);
+        }
+    }
+    auto backup_buf = std::cout.rdbuf();
+    if (!out_path.empty()) // output to file if a path is given, to screen if not
+    {
+        std::cout.rdbuf(out_file.rdbuf());
+    }
+
+    std::cout << tab_header.GetColNameAt(0) << "\tscore";
+    for (size_t i(1); i < tab_header.GetNbCol(); ++i)
+    {
+        std::cout << "\t" << tab_header.GetColNameAt(i);
     }
     std::cout << std::endl;
 
@@ -152,20 +169,29 @@ void ModelPrint(const seqVect_t &feature_vect,
     for (size_t i(0); i < parsed_nb_sel; ++i)
     {
         std::string row_string;
-        count_tab.GetRowString(row_string, feature_vect[i].GetUniqCode(), idx_file, std::to_string(feature_vect[i].GetScore("final"))); // serial number was used as uniqcode
-        std::cout << row_string << std::endl;
+        idx_file.seekg(feature_vect[i].GetUniqCode());
+        std::getline(idx_file, row_string);
+        std::cout << row_string.substr(0, row_string.find_first_of(" \t") + 1)
+                  << feature_vect[i].GetScore("final")
+                  << row_string.substr(row_string.find_first_of(" \t")) << std::endl;
     }
+
     idx_file.close();
+    std::cout.rdbuf(backup_buf);
+    if (out_file.is_open())
+    {
+        out_file.close();
+    }
 }
 
 int RankMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
-    std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path("./counts.idx");
+    std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path("./counts.idx"), out_path;
     bool ln_transf(false), standardize(false);
     size_t nb_sel(0);
 
-    ParseOptions(argc, argv, idx_path, smp_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, standardize, count_tab_path);
+    ParseOptions(argc, argv, idx_path, smp_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, standardize, out_path, count_tab_path);
     std::unique_ptr<Scorer> scorer;
     if (score_method.empty() || score_method == "sd")
     {
@@ -218,17 +244,19 @@ int RankMain(int argc, char *argv[])
     }
 
     PrintRunInfo(count_tab_path, idx_path, smp_info_path, scorer->GetScoreMethod(), scorer->GetScoreCmd(), scorer->GetSortMode(), scorer->GetNbFold(),
-                 nb_sel, ln_transf, standardize);
-    CountTab count_tab(0, true, idx_path); // kamratRank does not care k-length and strandedness
+                 nb_sel, ln_transf, standardize, out_path);
+
+    featuretab_t count_tab;
+    TabHeader count_tab_header(smp_info_path);
     seqVect_t feature_vect;
 
-    EvalScore(count_tab, feature_vect, count_tab_path, smp_info_path, scorer, ln_transf, standardize);
+    EvalScore(feature_vect, count_tab_header, count_tab_path, scorer, ln_transf, standardize, idx_path);
     SortScore(feature_vect, scorer->GetSortMode());
     if (scorer->GetScoreMethod() == "ttest")
     {
         PValueAdjustmentBH(feature_vect);
     }
-    ModelPrint(feature_vect, idx_path, nb_sel, count_tab);
+    ModelPrint(feature_vect, idx_path, nb_sel, count_tab_header, out_path);
 
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
     return EXIT_SUCCESS;

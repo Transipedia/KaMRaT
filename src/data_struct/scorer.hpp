@@ -5,22 +5,14 @@
 #include <vector>
 #include <cmath>
 
-#include "mlpack/core/cv/k_fold_cv.hpp"
-#include "mlpack/core/cv/metrics/f1.hpp"
-#include "mlpack/core/cv/metrics/accuracy.hpp"
-#include "mlpack/methods/naive_bayes/naive_bayes_classifier.hpp"
-#include "mlpack/methods/logistic_regression/logistic_regression.hpp"
-#include "mlpack/methods/softmax_regression/softmax_regression.hpp"
-#include "mlpack/methods/linear_svm/linear_svm.hpp"
-#include "mlpack/methods/linear_svm/linear_svm_function.hpp"
 #include "armadillo"
-#include "boost/math/distributions/students_t.hpp"
+#include "tab_header.hpp"
 
 class Scorer
 {
 public:
     Scorer(const std::string &score_method, const std::string &score_cmd, const std::string &sort_mode, size_t nb_fold);
-    void LoadSampleLabel(const std::vector<size_t> &label_vect, const size_t nb_class);
+    void LoadSampleLabel(const TabHeader &tab_header);
     const std::string &GetScoreMethod() const;
     const std::string &GetSortMode() const;
     const std::string &GetScoreCmd() const;

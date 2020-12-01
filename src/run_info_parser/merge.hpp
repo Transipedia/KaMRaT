@@ -8,7 +8,7 @@
 
 inline void PrintMergeHelper()
 {
-    std::cerr << "[Usage]    kamrat merge -klen INT [-options] KMER_COUNT_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat merge -klen INT [-options] KMER_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help              Print the helper" << std::endl;
     std::cerr << "            -klen INT             k-mer length (max_value: 32)" << std::endl;

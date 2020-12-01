@@ -2,7 +2,16 @@
 #define KMEREVALUATE_EVALMETHODS_H
 
 #include <iostream>
-#include "scorer.hpp"
+
+#include "mlpack/core/cv/k_fold_cv.hpp"
+#include "mlpack/core/cv/metrics/f1.hpp"
+#include "mlpack/core/cv/metrics/accuracy.hpp"
+#include "mlpack/methods/naive_bayes/naive_bayes_classifier.hpp"
+#include "mlpack/methods/logistic_regression/logistic_regression.hpp"
+#include "mlpack/methods/linear_svm/linear_svm.hpp"
+#include "mlpack/methods/linear_svm/linear_svm_function.hpp"
+#include "boost/math/distributions/students_t.hpp"
+#include "scorer.hpp" // armadillo library need be included after mlpack
 
 #define MET_SD "sd"
 #define MET_RSD "relat.sd"
@@ -83,19 +92,20 @@ Scorer::Scorer(const std::string &score_method, const std::string &score_cmd, co
 {
 }
 
-void Scorer::LoadSampleLabel(const std::vector<size_t> &label_vect, const size_t nb_class)
+void Scorer::LoadSampleLabel(const TabHeader &tab_header)
 {
-    if (nb_class != 2 && (score_method_ == MET_TTEST || score_method_ == MET_ES || score_method_ == MET_LFC))
+    nb_class_ = tab_header.GetNbCondition();
+    if (nb_class_ != 2 && (score_method_ == MET_TTEST || score_method_ == MET_ES || score_method_ == MET_LFC))
     {
         throw std::domain_error("T-test, effect size, and log2FC scoring only accept binary sample condition");
     }
-    if (nb_class < 2 && (score_method_ == MET_NBF1 || score_method_ == MET_RGF1))
+    if (nb_class_ < 2 && (score_method_ == MET_NBF1 || score_method_ == MET_RGF1))
     {
         throw std::domain_error("Naive Bayes or regression classfiers only accept condition number >= 2");
-    }
-    nb_class_ = nb_class;
+    }    
+    std::vector<size_t> label_vect;
+    tab_header.ParseSmpLabels(label_vect);
     sample_labels_ = arma::conv_to<arma::Row<size_t>>::from(label_vect); // each column is an observation
-    // sample_labels_.print("Sample labels: ");
 }
 
 const std::string &Scorer::GetScoreMethod() const
