@@ -187,7 +187,7 @@ void ModelPrint(const seqVect_t &feature_vect,
 int RankMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
-    std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path("./counts.idx"), out_path;
+    std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path, out_path;
     bool ln_transf(false), standardize(false);
     size_t nb_sel(0);
 

@@ -8,10 +8,10 @@
 
 inline void PrintRankHelper()
 {
-    std::cerr << "[USAGE]   kamrat rank [-options] FEATURE_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]   kamrat rank -idx-path STR [-options] FEATURE_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]        -h,-help             Print the helper " << std::endl;
-    std::cerr << "                -idx-path STR        Count index file path [default: ./counts.idx]" << std::endl;
+    std::cerr << "                -idx-path STR        Temporary file path for saving count index, mandatory" << std::endl;
     std::cerr << "                -smp-info STR        Path to sample-condition or sample file, without header line" << std::endl
               << "                                         if absent, all columns except the first in the count table are regarded as sample" << std::endl;
     std::cerr << "                -score-method STR    Evaluation method to use and its parameter, seperated by \':\' (cf. [EVAL. METHOD])" << std::endl;
@@ -21,7 +21,7 @@ inline void PrintRankHelper()
               << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
     std::cerr << "                -standardize         Standarize count vector BEFORE score estimation [false]" << std::endl
               << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
-    std::cerr << "                -out-path STR         Output contig count table path [default: std::cout (output to screen)]" << std::endl
+    std::cerr << "                -out-path STR        Output table path [default: output to screen]" << std::endl
               << std::endl;
     std::cerr << "[EVAL. METHOD]  sd                   Standard deviation (default method)" << std::endl;
     std::cerr << "                rsd                  Relative standard deviation" << std::endl;
@@ -176,6 +176,11 @@ inline void ParseOptions(int argc,
         throw std::invalid_argument("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
+    if (idx_path.empty())
+    {
+        PrintRankHelper();
+        throw std::invalid_argument("temporary index file path is mandatory");
+    }
     if (!sort_mode.empty() && SORT_MODE_UNIV.find(sort_mode) == SORT_MODE_UNIV.cend())
     {
         PrintRankHelper();
