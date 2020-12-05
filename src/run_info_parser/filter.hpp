@@ -1,5 +1,5 @@
-#ifndef KAMRAT_RUNINFOPARSER_RANK_HPP
-#define KAMRAT_RUNINFOPARSER_RANK_HPP
+#ifndef KAMRAT_RUNINFOPARSER_FILTER_HPP
+#define KAMRAT_RUNINFOPARSER_FILTER_HPP
 
 #include <iostream>
 #include <string>
@@ -8,7 +8,7 @@
 
 inline void PrintFilterHelper()
 {
-    std::cerr << "[USAGE]    kamrat filter -express-name STR -silent-name STR -express-thres INT_REC:INT_ABD -silent-thres INT_REC:INT_ABD [-smp-info STR] KMER_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]    kamrat filter -express-name STR -silent-name STR -express-thres INT_REC:INT_ABD -silent-thres INT_REC:INT_ABD [-options] KMER_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]   -h,-help                                  Print the helper" << std::endl;
     std::cerr << "           -express-name all/rest/STR:cond/STR:smp   String indicating samples considered for express filter" << std::endl
@@ -28,7 +28,8 @@ inline void PrintFilterHelper()
               << "                                                         keep the feature with at least (>=) INT_REC samples labeled as silent-name whose count <= INT_ABD" << std::endl
               << "                                                         if silent-name indicates a sample name, INT_REC must be 1" << std::endl;
     std::cerr << "           -smp-info STR                             Path to sample-condition file, without header line" << std::endl
-              << "                                                         if abscent, all columns except the first are regarded as samples and labeled as \"all\"" << std::endl
+              << "                                                         if abscent, all columns except the first are regarded as samples and labeled as \"all\"" << std::endl;
+    std::cerr << "           -out-path                                 Output table path [default: output to screen]" << std::endl
               << std::endl;
 }
 
@@ -41,6 +42,7 @@ inline void PrintRunInfo(const std::string &count_tab_path,
                          const std::string &silent_name,
                          const int silent_min_rec,
                          const int silent_max_abd,
+                         const std::string &out_path,
                          const std::string &sample_info_path)
 {
     std::cerr << "k-mer count path:                           " << count_tab_path << std::endl;
@@ -54,6 +56,7 @@ inline void PrintRunInfo(const std::string &count_tab_path,
     std::cerr << "Silent level:                               " << silent_level << std::endl;
     std::cerr << "Silent name:                                " << silent_name << std::endl;
     std::cerr << "\tat least (>=) " << silent_min_rec << " samples with count <= " << silent_max_abd << std::endl;
+    std::cerr << "Output path:                                " << out_path << std::endl;
     std::cerr << std::endl;
 }
 
@@ -68,6 +71,7 @@ inline void ParseOptions(int argc,
                          std::string &silent_name,
                          int &silent_min_rec,
                          int &silent_max_abd,
+                         std::string &out_path,
                          std::string &sample_info_path)
 {
     int i_opt(1);
@@ -131,6 +135,10 @@ inline void ParseOptions(int argc,
         {
             sample_info_path = argv[++i_opt];
         }
+        else if (arg == "-out-path" && i_opt + 1 < argc)
+        {
+            out_path = argv[++i_opt];
+        }
         else
         {
             PrintFilterHelper();
@@ -176,4 +184,4 @@ inline void ParseOptions(int argc,
     }
 }
 
-#endif //KAMRAT_RUNINFOPARSER_RANK_HPP
+#endif //KAMRAT_RUNINFOPARSER_FILTER_HPP

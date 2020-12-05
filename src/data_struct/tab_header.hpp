@@ -26,6 +26,7 @@ public:
     const size_t GetNbCondition() const;
     const size_t GetRepColPos() const;
 
+    const char GetConditionLabel(const std::string &condi) const;
     const float ParseRowStr(std::vector<float> &count_vect, std::vector<float> &value_vect, std::istringstream &line_conv) const;
     const std::string &GetColNameAt(size_t i) const;
     const char GetColNatureAt(size_t i) const;

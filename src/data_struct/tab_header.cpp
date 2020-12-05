@@ -133,6 +133,12 @@ const size_t TabHeader::GetRepColPos() const
     return rep_colpos_;
 }
 
+const char TabHeader::GetConditionLabel(const std::string &condi) const
+{
+    auto iter = condi2lab_.find(condi);
+    return (iter == condi2lab_.cend() ? iter->second : '\0');
+}
+
 const float TabHeader::ParseRowStr(std::vector<float> &count_vect, std::vector<float> &value_vect, std::istringstream &line_conv) const
 {
     count_vect.reserve(nb_count_);
