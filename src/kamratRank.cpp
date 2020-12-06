@@ -58,8 +58,7 @@ void EvalScore(seqVect_t &feature_vect,
     for (uint64_t feature_serial(0); std::getline(kmer_count_instream, line); ++feature_serial)
     {
         std::istringstream conv(line);
-        std::string feature_seq;
-        conv >> feature_seq; // first column as feature (string)
+        std::string feature_seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
         // std::cout << feature_seq << "\t";
         float feature_score;
         std::vector<float> count_vect;

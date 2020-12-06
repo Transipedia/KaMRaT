@@ -58,7 +58,7 @@ const void TabHeader::MakeColumnInfo(const std::string &header_line, const std::
     conv >> term;
     colname_vect_.emplace_back(term);
     colserial_vect_.emplace_back(nb_col_++); // place hoder: first column always as string
-    colnature_vect_.emplace_back('s');
+    colnature_vect_.emplace_back('s'); // place hoder: first column always as string
     // following columns //
     if (condi2lab_.empty()) // if sample info file NOT provided, then all next columns are samples
     {
@@ -146,7 +146,7 @@ const float TabHeader::ParseRowStr(std::vector<float> &count_vect, std::vector<f
 
     static std::string term;
     line_conv >> term; // skip the first column which is k-mer/tag/contig/sequence
-    for (unsigned int i(1); i < nb_col_ && line_conv >> term; ++i)
+    for (unsigned int i(1); i < nb_col_ && (line_conv >> term); ++i)
     {
         char nat_ch = colnature_vect_[i];
         if (nat_ch == 'v') // v for values

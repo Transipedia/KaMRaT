@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "tab_elem.hpp"
 #include "statistics.hpp"
 
@@ -31,7 +29,7 @@ TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file,
     rep_val = tab_header.ParseRowStr(count_vect, value_vect_, line_conv);
     if (idx_file.is_open())
     {
-        idx_file << line_conv.str();
+        idx_file << line_conv.str() << std::endl;
         std::vector<float>(std::move(value_vect_)); // clear and reallocate the vector
     }
     else // should not happen, for debug
