@@ -131,10 +131,9 @@ const bool DoExtension(contigvect_t &contig_vect,
                        featuretab_t &feature_tab,
                        const size_t n_overlap,
                        const std::string &interv_method, const float interv_thres,
-                       std::ifstream &idx_file, const TabHeader &tab_header)
+                       std::ifstream &idx_file, const size_t nb_counts)
 {
     static std::vector<float> pred_count_vect, succ_count_vect;
-    const size_t nb_counts = tab_header.GetNbCount();
     bool has_new_extensions(false);
     for (const auto &mk : hashed_mergeknot_list)
     {
@@ -267,7 +266,7 @@ void PrintContigList(const contigvect_t &contig_vect,
         }
         std::cout << std::endl;
     }
-    
+
     std::cout.rdbuf(backup_buf);
     if (out_file.is_open())
     {
@@ -327,7 +326,7 @@ int MergeMain(int argc, char **argv)
             //         std::cout << fix << ": " << contig_pred << " ======= " << contig_succ << std::endl;
             //     }
             // }
-            has_new_extensions = DoExtension(contig_vect, hashed_mergeknot_list, feature_tab, n_overlap, interv_method, interv_thres, idx_file, tab_header);
+            has_new_extensions = DoExtension(contig_vect, hashed_mergeknot_list, feature_tab, n_overlap, interv_method, interv_thres, idx_file, tab_header.GetNbCount());
             contig_vect.erase(std::remove_if(contig_vect.begin(), contig_vect.end(),
                                              [](const ContigElem &elem) { return elem.IsUsed(); }),
                               contig_vect.end());

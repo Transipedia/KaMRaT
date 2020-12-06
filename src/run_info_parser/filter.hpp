@@ -56,7 +56,14 @@ inline void PrintRunInfo(const std::string &count_tab_path,
     std::cerr << "Silent level:                               " << silent_level << std::endl;
     std::cerr << "Silent name:                                " << silent_name << std::endl;
     std::cerr << "\tat least (>=) " << silent_min_rec << " samples with count <= " << silent_max_abd << std::endl;
-    std::cerr << "Output path:                                " << out_path << std::endl;
+    if (!out_path.empty())
+    {
+        std::cerr << "Output path:                   " << out_path << std::endl;
+    }
+    else
+    {
+        std::cerr << "Output to screen" << std::endl;
+    }
     std::cerr << std::endl;
 }
 
