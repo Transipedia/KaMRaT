@@ -1,7 +1,7 @@
 #ifndef KMEREVALUATE_EVALMETHODS_H
 #define KMEREVALUATE_EVALMETHODS_H
 
-#include <iostream>
+#include <cmath>
 
 #include "mlpack/core/cv/k_fold_cv.hpp"
 #include "mlpack/core/cv/metrics/f1.hpp"
@@ -23,44 +23,23 @@
 #define MET_SVM "svm.hingeloss"
 #define MET_USER "user"
 
-inline float calc_mean(const arma::mat &sample_counts)
+inline float calc_stat(const arma::mat &sample_counts, const std::string &stat_name)
 {
-    float mean = arma::mean(arma::conv_to<arma::vec>::from(sample_counts));
-    return mean;
-}
-
-inline float calc_median(const arma::mat &sample_counts)
-{
-    float median = arma::median(arma::conv_to<arma::vec>::from(sample_counts));
-    return median;
-}
-
-inline float calc_sd(const arma::mat &sample_counts)
-{
-    float sd = arma::stddev(arma::conv_to<arma::vec>::from(sample_counts), 0);
-    return sd;
-}
-
-inline void Conv2Arma(arma::mat &arma_count_vect, const std::vector<float> &count_vect, const bool to_standardize)
-{
-    size_t nb_sample = count_vect.size();
-    arma_count_vect.zeros(1, nb_sample);
-    for (size_t i = 0; i < nb_sample; ++i)
+    if (stat_name == "mean")
     {
-        arma_count_vect(0, i) = count_vect[i];
+        return (arma::mean(arma::conv_to<arma::vec>::from(sample_counts)));
     }
-    if (to_standardize)
+    else if (stat_name == "median")
     {
-        float mean = calc_mean(arma_count_vect), sd = calc_sd(arma_count_vect);
-        if (sd == 0) // in case of a constant count vector
-        {
-            std::cerr << "[warning]:    a constant count vector appears, turing it to all zeros." << std::endl;
-            sd = 1;
-        }
-        for (size_t i = 0; i < nb_sample; ++i)
-        {
-            arma_count_vect(0, i) = (arma_count_vect(0, i) - mean) / sd;
-        }
+        return (arma::median(arma::conv_to<arma::vec>::from(sample_counts)));
+    }
+    else if (stat_name == "sd")
+    {
+        return (arma::stddev(arma::conv_to<arma::vec>::from(sample_counts), 0));
+    }
+    else
+    {
+        throw std::domain_error("unknown stats name");
     }
 }
 
@@ -92,22 +71,6 @@ Scorer::Scorer(const std::string &score_method, const std::string &score_cmd, co
 {
 }
 
-void Scorer::LoadSampleLabel(const TabHeader &tab_header)
-{
-    nb_class_ = tab_header.GetNbCondition();
-    if (nb_class_ != 2 && (score_method_ == MET_TTEST || score_method_ == MET_ES || score_method_ == MET_LFC))
-    {
-        throw std::domain_error("T-test, effect size, and log2FC scoring only accept binary sample condition");
-    }
-    if (nb_class_ < 2 && (score_method_ == MET_NBF1 || score_method_ == MET_RGF1))
-    {
-        throw std::domain_error("Naive Bayes or regression classfiers only accept condition number >= 2");
-    }    
-    std::vector<size_t> label_vect;
-    tab_header.ParseSmpLabels(label_vect);
-    sample_labels_ = arma::conv_to<arma::Row<size_t>>::from(label_vect); // each column is an observation
-}
-
 const std::string &Scorer::GetScoreMethod() const
 {
     return score_method_;
@@ -133,7 +96,62 @@ const size_t Scorer::GetNbClass() const
     return nb_class_;
 }
 
-const float Scorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const // no implement, but virtual method must be defined
+void Scorer::LoadSampleLabel(const TabHeader &tab_header)
+{
+    nb_class_ = tab_header.GetNbCondition();
+    if (nb_class_ != 2 && (score_method_ == MET_TTEST || score_method_ == MET_ES || score_method_ == MET_LFC))
+    {
+        throw std::domain_error("T-test, effect size, and log2FC scoring only accept binary sample condition");
+    }
+    if (nb_class_ < 2 && (score_method_ == MET_NBF1 || score_method_ == MET_RGF1))
+    {
+        throw std::domain_error("Naive Bayes or regression classfiers only accept condition number >= 2");
+    }
+    std::vector<size_t> label_vect;
+    tab_header.ParseSmpLabels(label_vect);
+    sample_labels_ = arma::conv_to<arma::Row<size_t>>::from(label_vect); // each column is an observation
+}
+
+void Scorer::LoadSampleCount(const std::vector<float> &count_vect, const bool to_ln, const bool to_standard)
+{
+    condi_sample_counts_.clear();
+    size_t nb_sample = count_vect.size();
+    sample_counts_.zeros(1, nb_sample);
+    for (size_t i = 0; i < nb_sample; ++i)
+    {
+        sample_counts_(0, i) = (to_ln ? log(count_vect[i] + 1) : count_vect[i]);
+    }
+    if (to_standard)
+    {
+        float mean = calc_stat(sample_counts_, "mean"), sd = calc_stat(sample_counts_, "sd");
+        if (sd == 0) // in case of a constant count vector
+        {
+            std::cerr << "[warning]:    a constant count vector appears, turing it to all zeros." << std::endl;
+            sd = 1;
+        }
+        for (size_t i = 0; i < nb_sample; ++i)
+        {
+            sample_counts_(0, i) = (sample_counts_(0, i) - mean) / sd;
+        }
+    }
+    // sample_counts_.print("Sample counts: ");
+    for (size_t i(0); i < nb_class_; ++i)
+    {
+        // arma::find(sample_labels_ == i).print("condition labels: ");
+        condi_sample_counts_.emplace_back(sample_counts_.elem(arma::find(sample_labels_ == i)));
+        // condi_sample_counts_[i].print("Condition " + std::to_string(i) + ": ");
+    }
+}
+
+const void Scorer::CalcCondiMeans(std::vector<float> &condi_means) const
+{
+    for (size_t i(0); i < nb_class_; ++i)
+    {
+        condi_means.emplace_back(calc_stat(condi_sample_counts_[i], "mean"));
+    }
+}
+
+const float Scorer::EvaluateScore() const // no implement, but virtual method must be defined
 {
     return 0;
 }
@@ -144,11 +162,9 @@ SDScorer::SDScorer(const std::string &sort_mode)
 {
 }
 
-const float SDScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
+const float SDScorer::EvaluateScore() const
 {
-    arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
-    float sd = calc_sd(arma_sample_counts);
+    float sd = calc_stat(sample_counts_, "sd");
     return sd;
 }
 
@@ -158,14 +174,10 @@ RelatSDScorer::RelatSDScorer(const std::string &sort_mode)
 {
 }
 
-const float RelatSDScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
+const float RelatSDScorer::EvaluateScore() const
 {
-    arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
-    float sd = calc_sd(arma_sample_counts),
-          mean = calc_mean(arma_sample_counts),
-          score = (mean <= 1 ? sd : sd / mean);
-    return ((isnan(score) || isinf(score)) ? 0.0 : score);
+    float mean = calc_stat(sample_counts_, "mean"), sd = calc_stat(sample_counts_, "sd"), score = (mean <= 1 ? sd : sd / mean);
+    return ((std::isnan(score) || std::isinf(score)) ? 0.0 : score);
 }
 
 // =====> T-test Scoring <===== //
@@ -174,24 +186,13 @@ TtestScorer::TtestScorer(const std::string &sort_mode)
 {
 }
 
-const float TtestScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
+const float TtestScorer::EvaluateScore() const
 {
-    arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
-    arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
-              cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
-    // for (size_t i = 0; i < cond1_counts.size(); ++i)
-    // {
-    //     cond1_counts(i, 0) = log(cond1_counts(i, 0) + 1);
-    // }
-    // for (size_t i = 0; i < cond2_counts.size(); ++i)
-    // {
-    //     cond2_counts(i, 0) = log(cond2_counts(i, 0) + 1);
-    // }
-    size_t cond1_num = cond1_counts.size(), cond2_num = cond2_counts.size();
-    float cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts),
-          cond1_sd = calc_sd(cond1_counts), cond2_sd = calc_sd(cond2_counts),
-          pvalue;
+    size_t cond1_num = condi_sample_counts_[0].size(), cond2_num = condi_sample_counts_[1].size();
+    float cond1_mean = calc_stat(condi_sample_counts_[0], "mean"),
+          cond2_mean = calc_stat(condi_sample_counts_[1], "mean"),
+          cond1_sd = calc_stat(condi_sample_counts_[0], "sd"),
+          cond2_sd = calc_stat(condi_sample_counts_[1], "sd"), pvalue;
     if (cond1_sd == 0 && cond2_sd == 0)
     {
         pvalue = 1;
@@ -209,9 +210,7 @@ const float TtestScorer::CalcScore(const std::vector<float> &sample_counts, cons
         }
         catch (const std::exception &)
         {
-            cond1_counts.print("Condition 1 counts:");
-            cond2_counts.print("Condition 2 counts:");
-            arma_sample_counts.print("Sample counts:");
+            sample_counts_.print("Sample counts:");
             sample_labels_.print("Sample labels:");
             std::cout << cond1_num << "\t" << cond1_mean << "\t" << cond1_sd << "\t" << t1 << "\t" << t2 << "\t" << df << "\t" << t_stat << std::endl;
             throw std::domain_error("");
@@ -226,16 +225,14 @@ EffectSizeScorer::EffectSizeScorer(const std::string &sort_mode)
 {
 }
 
-const float EffectSizeScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
+const float EffectSizeScorer::EvaluateScore() const
 {
-    arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
-    arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
-              cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
-    float cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts),
-          cond1_sd = calc_sd(cond1_counts), cond2_sd = calc_sd(cond2_counts),
+    float cond1_mean = calc_stat(condi_sample_counts_[0], "mean"),
+          cond2_mean = calc_stat(condi_sample_counts_[1], "mean"),
+          cond1_sd = calc_stat(condi_sample_counts_[0], "sd"),
+          cond2_sd = calc_stat(condi_sample_counts_[1], "sd"),
           score = (cond2_mean - cond1_mean) / (cond1_sd + cond2_sd);
-    return ((isnan(score) || isinf(score)) ? 0.0 : score);
+    return ((std::isnan(score) || std::isinf(score)) ? 0.0 : score);
 }
 
 // =====> Log2FC Scorer <===== //
@@ -244,28 +241,12 @@ LFCScorer::LFCScorer(const std::string &score_cmd, const std::string &sort_mode)
 {
 }
 
-const float LFCScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
+const float LFCScorer::EvaluateScore() const
 {
-    arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
-    arma::mat cond1_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 0)),
-              cond2_counts = arma_sample_counts.elem(arma::find(sample_labels_ == 1));
-    float score;
-    if (score_cmd_ == "mean")
-    {
-        float cond1_mean = calc_mean(cond1_counts), cond2_mean = calc_mean(cond2_counts);
-        score = log2(cond2_mean / cond1_mean);
-    }
-    else if (score_cmd_ == "median")
-    {
-        float cond1_median = calc_median(cond1_counts), cond2_median = calc_median(cond2_counts);
-        score = log2(cond2_median / cond1_median);
-    }
-    else
-    {
-        throw std::domain_error("unknown log2FC command: " + score_cmd_);
-    }
-    return ((isnan(score) || isinf(score)) ? 0.0 : score);
+    float cond1_val = calc_stat(condi_sample_counts_[0], score_cmd_),
+          cond2_val = calc_stat(condi_sample_counts_[1], score_cmd_),
+          score = log2(cond2_val / cond1_val);
+    return ((std::isnan(score) || std::isinf(score)) ? 0.0 : score);
 }
 
 // =====> Naive Bayes Scorer <===== //
@@ -274,81 +255,79 @@ NaiveBayesScorer::NaiveBayesScorer(const std::string &sort_mode, const size_t nb
 {
 }
 
-inline void CompareScore(const arma::mat &arma_sample_counts, const arma::Row<size_t> &sample_labels, const size_t nb_class, const size_t nb_fold)
-{
-    // Binary F1 all samples
-    {
-        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels, nb_class);
-        arma::Row<size_t> pred_class(sample_labels.size());
-        nbc.Classify(arma_sample_counts, pred_class);
-        mlpack::cv::F1<mlpack::cv::Binary> F1;
-        std::cout << "\t" << F1.Evaluate(nbc, arma_sample_counts, sample_labels);
-    }
-    // Micro F1 all samples
-    {
-        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels, nb_class);
-        arma::Row<size_t> pred_class(sample_labels.size());
-        nbc.Classify(arma_sample_counts, pred_class);
-        mlpack::cv::F1<mlpack::cv::Micro> F1;
-        std::cout << "\t" << F1.Evaluate(nbc, arma_sample_counts, sample_labels);
-    }
-    // Accuracy all samples
-    {
-        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels, nb_class);
-        arma::Row<size_t> pred_class(sample_labels.size());
-        nbc.Classify(arma_sample_counts, pred_class);
-        mlpack::cv::Accuracy accuracy;
-        std::cout << "\t" << accuracy.Evaluate(nbc, arma_sample_counts, sample_labels);
-    }
-    // Binary F1 cross-validation
-    {
-        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Binary>>
-            score_data(nb_fold, arma_sample_counts, sample_labels, nb_class);
-        std::cout << "\t" << score_data.Evaluate();
-    }
-    // Micro F1 cross-validation
-    {
-        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Micro>>
-            score_data(nb_fold, arma_sample_counts, sample_labels, nb_class);
-        std::cout << "\t" << score_data.Evaluate();
-    }
-    // Accuracy cross-validation
-    {
-        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::Accuracy>
-            score_data(nb_fold, arma_sample_counts, sample_labels, nb_class);
-        std::cout << "\t" << score_data.Evaluate();
-    }
-    // Binary F1 cross-validation with -nan replaced by 0 in folds
-    {
-        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, MLMetrics>
-            score_data(nb_fold, arma_sample_counts, sample_labels, nb_class);
-        std::cout << "\t" << score_data.Evaluate() << std::endl;
-    }
-}
+// inline void CompareScore(const arma::mat &sample_counts, const arma::Row<size_t> &sample_labels, const size_t nb_class, const size_t nb_fold)
+// {
+//     // Binary F1 all samples
+//     {
+//         mlpack::naive_bayes::NaiveBayesClassifier<> nbc(sample_counts, sample_labels, nb_class);
+//         arma::Row<size_t> pred_class(sample_labels.size());
+//         nbc.Classify(sample_counts, pred_class);
+//         mlpack::cv::F1<mlpack::cv::Binary> F1;
+//         std::cout << "\t" << F1.Evaluate(nbc, sample_counts, sample_labels);
+//     }
+//     // Micro F1 all samples
+//     {
+//         mlpack::naive_bayes::NaiveBayesClassifier<> nbc(sample_counts, sample_labels, nb_class);
+//         arma::Row<size_t> pred_class(sample_labels.size());
+//         nbc.Classify(sample_counts, pred_class);
+//         mlpack::cv::F1<mlpack::cv::Micro> F1;
+//         std::cout << "\t" << F1.Evaluate(nbc, sample_counts, sample_labels);
+//     }
+//     // Accuracy all samples
+//     {
+//         mlpack::naive_bayes::NaiveBayesClassifier<> nbc(sample_counts, sample_labels, nb_class);
+//         arma::Row<size_t> pred_class(sample_labels.size());
+//         nbc.Classify(sample_counts, pred_class);
+//         mlpack::cv::Accuracy accuracy;
+//         std::cout << "\t" << accuracy.Evaluate(nbc, sample_counts, sample_labels);
+//     }
+//     // Binary F1 cross-validation
+//     {
+//         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Binary>>
+//             score_data(nb_fold, sample_counts, sample_labels, nb_class);
+//         std::cout << "\t" << score_data.Evaluate();
+//     }
+//     // Micro F1 cross-validation
+//     {
+//         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::F1<mlpack::cv::Micro>>
+//             score_data(nb_fold, sample_counts, sample_labels, nb_class);
+//         std::cout << "\t" << score_data.Evaluate();
+//     }
+//     // Accuracy cross-validation
+//     {
+//         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::Accuracy>
+//             score_data(nb_fold, sample_counts, sample_labels, nb_class);
+//         std::cout << "\t" << score_data.Evaluate();
+//     }
+//     // Binary F1 cross-validation with -nan replaced by 0 in folds
+//     {
+//         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, MLMetrics>
+//             score_data(nb_fold, sample_counts, sample_labels, nb_class);
+//         std::cout << "\t" << score_data.Evaluate() << std::endl;
+//     }
+// }
 
-const float NaiveBayesScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
+const float NaiveBayesScorer::EvaluateScore() const
 {
-    arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
-    // CompareScore(arma_sample_counts, sample_labels_, nb_class_, nb_fold_);
+    // CompareScore(sample_counts_, sample_labels_, nb_class_, nb_fold_);
     const size_t nb_fold_final = (nb_fold_ == 0 ? sample_labels_.size() : nb_fold_);
     float score;
     if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
     {
-        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_sample_counts, sample_labels_, nb_class_);
+        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(sample_counts_, sample_labels_, nb_class_);
         MLMetrics my_f1;
-        score = my_f1.Evaluate(nbc, arma_sample_counts, sample_labels_);
+        score = my_f1.Evaluate(nbc, sample_counts_, sample_labels_);
     }
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, MLMetrics>
-            score_data(nb_fold_final, arma_sample_counts, sample_labels_, nb_class_);
+            score_data(nb_fold_final, sample_counts_, sample_labels_, nb_class_);
         score = score_data.Evaluate();
     }
-    if (isnan(score) || isinf(score))
+    if (std::isnan(score) || std::isinf(score))
     {
         std::cout << score << std::endl;
-        arma_sample_counts.print("Sample counts: ");
+        sample_counts_.print("Sample counts: ");
         sample_labels_.print("Sample labels: ");
         throw std::domain_error("F1 score is NaN or Inf in naive Bayes model");
     }
@@ -361,32 +340,30 @@ RegressionScorer::RegressionScorer(const std::string &sort_mode, const size_t nb
 {
 }
 
-const float RegressionScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
+const float RegressionScorer::EvaluateScore() const
 {
     if (nb_class_ != 2)
     {
         throw std::domain_error("Regression classifier accepts only binary condition for now");
     }
-    arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
     const size_t nb_fold_final = (nb_fold_ == 0 ? sample_labels_.size() : nb_fold_);
     float score;
     if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
     {
-        mlpack::regression::LogisticRegression<> rgc(arma_sample_counts, sample_labels_);
+        mlpack::regression::LogisticRegression<> rgc(sample_counts_, sample_labels_);
         MLMetrics my_f1;
-        score = my_f1.Evaluate(rgc, arma_sample_counts, sample_labels_);
+        score = my_f1.Evaluate(rgc, sample_counts_, sample_labels_);
     }
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
         mlpack::cv::KFoldCV<mlpack::regression::LogisticRegression<>, MLMetrics>
-            score_data(nb_fold_final, arma_sample_counts, sample_labels_);
+            score_data(nb_fold_final, sample_counts_, sample_labels_);
         score = score_data.Evaluate();
     }
-    if (isnan(score) || isinf(score))
+    if (std::isnan(score) || std::isinf(score))
     {
         std::cout << score << std::endl;
-        arma_sample_counts.print("Sample counts: ");
+        sample_counts_.print("Sample counts: ");
         sample_labels_.print("Sample labels: ");
         throw std::domain_error("F1 score is NaN or Inf in regression model");
     }
@@ -400,20 +377,18 @@ SVMScorer::SVMScorer(const std::string &sort_mode)
 {
 }
 
-const float SVMScorer::CalcScore(const std::vector<float> &sample_counts, const bool to_standardize) const
+const float SVMScorer::EvaluateScore() const
 {
-    arma::mat arma_sample_counts;
-    Conv2Arma(arma_sample_counts, sample_counts, to_standardize);
-    mlpack::svm::LinearSVM<> lsvm(arma_sample_counts, sample_labels_, nb_class_);
+    mlpack::svm::LinearSVM<> lsvm(sample_counts_, sample_labels_, nb_class_);
     // MLMetrics my_f1;
-    // float score = my_f1.Evaluate(lsvm, arma_sample_counts, sample_labels_);
-    mlpack::svm::LinearSVMFunction<> lsvm_fun(arma_sample_counts, sample_labels_, nb_class_);
+    // float score = my_f1.Evaluate(lsvm, sample_counts, sample_labels_);
+    mlpack::svm::LinearSVMFunction<> lsvm_fun(sample_counts_, sample_labels_, nb_class_);
     float score = lsvm_fun.Evaluate(lsvm.Parameters());
     // lsvm.Parameters().print("Parameters:");
-    // arma_sample_counts.print("Sample counts:");
+    // sample_counts.print("Sample counts:");
     // sample_labels_.print("Real labels:");
     // arma::Row<size_t> pred_class(sample_labels_.size());
-    // lsvm.Classify(arma_sample_counts, pred_class);
+    // lsvm.Classify(sample_counts, pred_class);
     // pred_class.print("Predicted labels:");
     return score;
 }

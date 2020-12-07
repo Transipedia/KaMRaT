@@ -15,10 +15,10 @@
 #include "data_struct/scorer.hpp"
 #include "data_struct/tab_elem.hpp"
 #include "data_struct/tab_header.hpp"
-#include "data_struct/seq_elem.hpp"
+#include "data_struct/feature_elem.hpp"
 #include "run_info_parser/rank.hpp"
 
-void EvalScore(seqVect_t &feature_vect,
+void EvalScore(featureVect_t &feature_vect,
                TabHeader &tab_header,
                const std::string &count_tab_path,
                const std::unique_ptr<Scorer> &scorer,
@@ -55,55 +55,54 @@ void EvalScore(seqVect_t &feature_vect,
     {
         throw std::domain_error("error open file: " + idx_path);
     }
+    std::istringstream conv;
+    std::vector<float> count_vect;
     for (uint64_t feature_serial(0); std::getline(kmer_count_instream, line); ++feature_serial)
     {
-        std::istringstream conv(line);
-        std::string feature_seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
-        // std::cout << feature_seq << "\t";
+        conv.str(line);
         float feature_score;
-        std::vector<float> count_vect;
         TabElem tab_elem(conv, idx_file, count_vect, feature_score, tab_header);
-        if (tab_header.GetRepColPos() == 0 && scorer->GetScoreMethod() == "user") // user scoring mode but not find a score column
+        if (scorer->GetScoreMethod() == "user") // user scoring mode but not find a score column
         {
-            throw std::domain_error("user score column not found:" + scorer->GetScoreCmd());
-        }
-        else if (scorer->GetScoreMethod() != "user")
-        {
-            if (ln_transf)
+            if (tab_header.GetRepColPos() == 0)
             {
-                for (size_t i(0); i < count_vect.size(); ++i)
-                {
-                    count_vect[i] = log(count_vect[i] + 1);
-                }
+                throw std::domain_error("user score column not found:" + scorer->GetScoreCmd());
             }
-            feature_score = scorer->CalcScore(count_vect, standardize);
+            feature_vect.emplace_back(tab_elem.GetIndexPos(), feature_score, scorer); // directly assign score with the given column
         }
-        feature_vect.emplace_back(feature_seq, tab_elem.GetIndexPos(), feature_score); // index position as uniqcode
+        else
+        {
+            // std::cout << count_vect.size() << std::endl;
+            scorer->LoadSampleCount(count_vect, ln_transf, standardize);
+            feature_vect.emplace_back(tab_elem.GetIndexPos(), scorer); // index position as uniqcode
+        }
+        count_vect.clear();
+        conv.clear();
     }
     idx_file.close();
     count_tab_file.close();
 }
 
-void SortScore(seqVect_t &feature_vect, const std::string &sort_mode)
+void SortScore(featureVect_t &feature_vect, const std::string &sort_mode)
 {
     if (sort_mode == "dec:abs")
     {
-        auto comp = [](SeqElem feature1, SeqElem feature2) -> bool { return fabs(feature1.GetScore("origin")) > fabs(feature2.GetScore("origin")); };
+        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetScore()) > fabs(feature2.GetScore()); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else if (sort_mode == "dec")
     {
-        auto comp = [](SeqElem feature1, SeqElem feature2) -> bool { return feature1.GetScore("origin") > feature2.GetScore("origin"); };
+        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetScore() > feature2.GetScore(); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else if (sort_mode == "inc:abs")
     {
-        auto comp = [](SeqElem feature1, SeqElem feature2) -> bool { return fabs(feature1.GetScore("origin")) < fabs(feature2.GetScore("origin")); };
+        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetScore()) < fabs(feature2.GetScore()); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else if (sort_mode == "inc")
     {
-        auto comp = [](SeqElem feature1, SeqElem feature2) -> bool { return feature1.GetScore("origin") < feature2.GetScore("origin"); };
+        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetScore() < feature2.GetScore(); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else
@@ -112,7 +111,7 @@ void SortScore(seqVect_t &feature_vect, const std::string &sort_mode)
     }
 }
 
-void PValueAdjustmentBH(seqVect_t &feature_vect)
+void PValueAdjustmentBH(featureVect_t &feature_vect)
 {
     double tot_num = feature_vect.size();
     for (size_t i(0); i < tot_num; ++i)
@@ -122,15 +121,15 @@ void PValueAdjustmentBH(seqVect_t &feature_vect)
     }
     for (auto iter = feature_vect.rbegin() + 1; iter < feature_vect.rend(); ++iter)
     {
-        double last_score = (iter - 1)->GetScore("final");
-        if (iter->GetScore("final") > last_score)
+        double last_score = (iter - 1)->GetScore();
+        if (iter->GetScore() > last_score)
         {
             iter->ScaleScore(1, last_score, last_score);
         }
     }
 }
 
-void ModelPrint(const seqVect_t &feature_vect,
+void ModelPrint(const featureVect_t &feature_vect,
                 const std::string &idx_path,
                 const size_t nb_sel,
                 const TabHeader &tab_header,
@@ -152,6 +151,10 @@ void ModelPrint(const seqVect_t &feature_vect,
     }
 
     std::cout << tab_header.GetColNameAt(0) << "\tscore";
+    for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
+    {
+        std::cout << "\tmean" << static_cast<char>('A' + i);
+    }
     for (size_t i(1); i < tab_header.GetNbCol(); ++i)
     {
         std::cout << "\t" << tab_header.GetColNameAt(i);
@@ -164,15 +167,17 @@ void ModelPrint(const seqVect_t &feature_vect,
     {
         throw std::domain_error("cannot open count index file: " + idx_path);
     }
-    // std::cout << nb_sel << "\t" << parsed_nb_sel << std::endl;
+    std::string row_string;
     for (size_t i(0); i < parsed_nb_sel; ++i)
     {
-        std::string row_string;
         idx_file.seekg(feature_vect[i].GetUniqCode());
         std::getline(idx_file, row_string);
-        std::cout << row_string.substr(0, row_string.find_first_of(" \t") + 1)
-                  << feature_vect[i].GetScore("final")
-                  << row_string.substr(row_string.find_first_of(" \t")) << std::endl;
+        std::cout << row_string.substr(0, row_string.find_first_of(" \t") + 1) << feature_vect[i].GetScore();
+        for (const auto m : feature_vect[i].GetCondiMeans())
+        {
+            std::cout << "\t" << m;
+        }
+        std::cout << row_string.substr(row_string.find_first_of(" \t")) << std::endl;
     }
 
     idx_file.close();
@@ -247,13 +252,15 @@ int RankMain(int argc, char *argv[])
 
     featuretab_t count_tab;
     TabHeader count_tab_header(smp_info_path);
-    seqVect_t feature_vect;
+    featureVect_t feature_vect;
 
     EvalScore(feature_vect, count_tab_header, count_tab_path, scorer, ln_transf, standardize, idx_path);
     SortScore(feature_vect, scorer->GetSortMode());
-    if (scorer->GetScoreMethod() == "ttest")
+    if (score_method == "ttest")
     {
         PValueAdjustmentBH(feature_vect);
+        std::cerr << "p-value adjusted by BH method..." << std::endl
+                  << std::endl;
     }
     ModelPrint(feature_vect, idx_path, nb_sel, count_tab_header, out_path);
 

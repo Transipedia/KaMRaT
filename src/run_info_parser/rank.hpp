@@ -186,6 +186,11 @@ inline void ParseOptions(int argc,
         PrintRankHelper();
         throw std::invalid_argument("unknown sort mode: " + sort_mode);
     }
+    if ((score_method == "sd" || score_method == "rsd") && standardize)
+    {
+        throw std::invalid_argument("Standard deviation score should not be applied on standardized counts\n"
+                                    "And the forced running is not permitted either");
+    }
     if (score_method == "svm" && !standardize && score_cmd != "F")
     {
         throw std::invalid_argument("Standardization is required for SVM classification\n"
