@@ -37,7 +37,6 @@
 #include "utils/vec_operation.hpp"
 #include "data_struct/tab_header.hpp"
 #include "data_struct/tab_elem.hpp"
-#include "data_struct/seq_elem.hpp"
 #include "run_info_parser/evaluate.hpp"
 
 const float MIN_DISTANCE = 0, MAX_DISTANCE = 1 - MIN_DISTANCE;
@@ -102,7 +101,8 @@ void ScanCountTable(TabHeader &tab_header, featuretab_t &kmer_count_tab, code2se
     kmer_count_file.close();
 }
 
-void EstablishSeqListFromMultilineFasta(name2seq_t &name2seq, const std::string &contig_fasta_path)
+void EstablishSeqListFromMultilineFasta(std::unordered_map<std::string, std::string> &name2seq,
+                                        const std::string &contig_fasta_path)
 {
     std::ifstream contig_list_file(contig_fasta_path);
     if (!contig_list_file.is_open())
@@ -120,13 +120,13 @@ void EstablishSeqListFromMultilineFasta(name2seq_t &name2seq, const std::string 
         }
         else if (line[0] == '>') // reading in middle of the file
         {
-            name2seq.insert({seq_name, SeqElem(seq, nline, 0)});
+            name2seq.insert({seq_name, seq});
             seq_name = line.substr(1);
             seq.clear();
         }
         else if (contig_list_file.eof()) // reading the last line
         {
-            name2seq.insert({seq_name, SeqElem(seq, nline, 0)});
+            name2seq.insert({seq_name, seq});
             seq.clear();
             break;
         }
@@ -256,14 +256,14 @@ int main(int argc, char **argv)
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    name2seq_t name2seq;
+    std::unordered_map<std::string, std::string> name2seq;
     EstablishSeqListFromMultilineFasta(name2seq, contig_fasta_path);
     std::cerr << "Number of sequence for evaluation: " << name2seq.size() << std::endl;
 
     std::cout << "name\teval_dist\tkmer1\tkmer2" << std::endl;
     for (const auto &ns_pair : name2seq)
     {
-        auto name = ns_pair.first, seq = ns_pair.second.GetSeq();
+        auto name = ns_pair.first, seq = ns_pair.second;
         if (seq.size() == k_len && code2serial.find(Seq2Int(seq, k_len, stranded)) != code2serial.cend()) // if seq is a k-mer and is in k-mer count table
         {
             std::cout << name << "\t" << MIN_DISTANCE << "\t" << seq << "\t" << seq << std::endl;

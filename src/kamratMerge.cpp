@@ -158,7 +158,7 @@ const bool DoExtension(contigvect_t &contig_vect,
             continue;
         }
         // merge by guaranting representative k-mer having minimum p-value or input order //
-        if (pred_contig.GetScore("origin") <= succ_contig.GetScore("origin")) // merge right to left
+        if (pred_contig.GetRepValue() <= succ_contig.GetRepValue()) // merge right to left
         {
             if (is_pred_rc) // prevent base contig from reverse-complement transformation, for being coherent with merging knot
             {
@@ -219,7 +219,7 @@ void PrintContigList(const contigvect_t &contig_vect,
     std::vector<float> count_vect, value_vect, count_vect_x, value_vect_x;
     for (const auto &elem : contig_vect)
     {
-        rep_uniqcode = elem.GetUniqCode();
+        rep_uniqcode = elem.GetRepUniqcode();
         rep_serial = code2serial.find(rep_uniqcode)->second;
         Int2Seq(rep_kmer_seq, rep_uniqcode, k_len);
 
