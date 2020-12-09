@@ -6,18 +6,19 @@
 
 inline void PrintNormHelper()
 {
-    std::cerr << "[Usage]    kamrat norm -base CHAR [-smp-info STR] [-ln] [-smp-sum STR] COUNT_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat norm -base CHAR [-options] COUNT_TAB_PATH" << std::endl
               << std::endl;
-    std::cerr << "[Option]    -h,-help       Print the helper" << std::endl;
-    std::cerr << "            -base CHAR     BASE for normalization (MANDATORY)" << std::endl
-              << "                               B: count per billion" << std::endl
-              << "                               M: count per million" << std::endl
-              << "                               K: count per thousand" << std::endl;
-    std::cerr << "            -smp-info STR  Sample-info path" << std::endl
-              << "                               if absent, all columns except the first will be normalized" << std::endl;
-    std::cerr << "            -ln            Apply ln(x + 1) transformation after normalization [false]" << std::endl
-              << "                               hint: please remember to unlog for original counts after kamratReduce or other analysis" << std::endl;
-    std::cerr << "            -smp-sum STR   Path for outputing sample sum [./sample_sum.tsv]" << std::endl
+    std::cerr << "[Option]    -h,-help         Print the helper" << std::endl;
+    std::cerr << "            -base CHAR       BASE for normalization, mandatory" << std::endl
+              << "                                 B: count per billion" << std::endl
+              << "                                 M: count per million" << std::endl
+              << "                                 K: count per thousand" << std::endl;
+    std::cerr << "            -smp-info STR    Sample-info path" << std::endl
+              << "                                 if absent, all columns except the first will be normalized" << std::endl;
+    std::cerr << "            -ln              Apply ln(x + 1) transformation after normalization [false]" << std::endl
+              << "                                 hint: please remember to unlog for original counts after kamratReduce or other analysis" << std::endl;
+    std::cerr << "            -smp-sum STR     Path for outputing sample sum [./sample_sum.tsv]" << std::endl;
+    std::cerr << "            -out-path STR    Output table path [default: output to screen]" << std::endl
               << std::endl;
 }
 
@@ -25,6 +26,7 @@ inline void PrintRunInfo(const size_t &baseN,
                          const std::string &sample_info_path,
                          const bool ln_trans,
                          const std::string &sample_sum_path,
+                         const std::string &out_path,
                          const std::string &count_tab_path)
 {
     std::cerr << std::endl;
@@ -35,6 +37,14 @@ inline void PrintRunInfo(const size_t &baseN,
     }
     std::cerr << "Ln transformation:      " << (ln_trans ? "On" : "Off") << std::endl;
     std::cerr << "Sample sum path:        " << sample_sum_path << std::endl;
+    if (!out_path.empty())
+    {
+        std::cerr << "Output path:                   " << out_path << std::endl;
+    }
+    else
+    {
+        std::cerr << "Output to screen" << std::endl;
+    }
     std::cerr << "k-mer count path:       " << count_tab_path << std::endl
               << std::endl;
 }
@@ -45,6 +55,7 @@ inline void ParseOptions(int argc,
                          std::string &sample_info_path,
                          bool &ln_trans,
                          std::string &sample_sum_path,
+                         std::string &out_path,
                          std::string &count_tab_path)
 {
     int i_opt = 1;
@@ -86,6 +97,10 @@ inline void ParseOptions(int argc,
         {
             sample_sum_path = argv[++i_opt];
         }
+        else if (arg == "-out-path" && i_opt + 1 < argc)
+        {
+            out_path = argv[++i_opt];
+        }
         else
         {
             PrintNormHelper();
@@ -99,11 +114,10 @@ inline void ParseOptions(int argc,
         throw std::domain_error("k-mer count table path is mandatory");
     }
     count_tab_path = argv[i_opt++];
-
     if (baseN == 0)
     {
         PrintNormHelper();
-        throw std::domain_error("base mode is missing or failed to be parsed");
+        throw std::domain_error("base mode is mandatory");
     }
 }
 
