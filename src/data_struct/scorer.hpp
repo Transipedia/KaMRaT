@@ -11,7 +11,7 @@
 class Scorer
 {
 public:
-    Scorer(const std::string &score_method, const std::string &score_cmd, const std::string &sort_mode, size_t nb_fold);
+    Scorer(const std::string &score_method, const std::string &score_cmd, const std::string &sort_mode, size_t nb_fold, bool to_ln, bool to_standardize);
 
     const std::string &GetScoreMethod() const;
     const std::string &GetSortMode() const;
@@ -20,18 +20,21 @@ public:
     const size_t GetNbClass() const;
 
     void LoadSampleLabel(const TabHeader &tab_header);
-    void LoadSampleCount(const std::vector<float> &sample_counts, const bool to_ln, const bool to_standard);
+    void LoadSampleCount(const std::vector<float> &sample_counts, const std::vector<double> &nf_vect);
+    void ClearSampleCount();
 
     const void CalcCondiMeans(std::vector<float> &condi_means) const;
+    const void TransformCounts();
     virtual const float EvaluateScore() const;
 
 protected:
-    const std::string score_method_;  // nb, lr, sd, rsd, ttest, es, lfc, user
-    const std::string sort_mode_;     // dec, dec::abs, inc, inc::abs
-    const std::string score_cmd_;     // to nb_fold_ if nb or lr; else for mean or median in lfc or for score colname in user
-    const size_t nb_fold_;            // for naive Bayes and logistic regression
-    size_t nb_class_;                 // number of conditions
-    arma::Row<size_t> sample_labels_; // sample labels
+    const bool to_ln_, to_standardize_; // Evaluate Feature with count log transformed or standardized
+    const std::string score_method_;    // nb, lr, sd, rsd, ttest, es, lfc, user
+    const std::string sort_mode_;       // dec, dec::abs, inc, inc::abs
+    const std::string score_cmd_;       // to nb_fold_ if nb or lr; else for mean or median in lfc or for score colname in user
+    const size_t nb_fold_;              // for naive Bayes and logistic regression
+    size_t nb_class_;                   // number of conditions
+    arma::Row<size_t> sample_labels_;   // sample labels
 
     arma::mat sample_counts_;                       // temporary variables for reducing re-allocation
     std::vector<arma::colvec> condi_sample_counts_; // temporary variables for reducing re-allocation

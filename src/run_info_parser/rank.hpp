@@ -8,20 +8,21 @@
 
 inline void PrintRankHelper()
 {
-    std::cerr << "[USAGE]   kamrat rank -idx-path STR [-options] FEATURE_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]   kamrat rank -idx-path STR -nf-path STR [-options] FEATURE_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]        -h,-help             Print the helper " << std::endl;
     std::cerr << "                -idx-path STR        Temporary file path for saving count index, mandatory" << std::endl;
+    std::cerr << "                -nf-path             Output path for nomalization factor, mandatory" << std::endl;
     std::cerr << "                -smp-info STR        Path to sample-condition or sample file, without header line" << std::endl
               << "                                         if absent, all columns except the first in the count table are regarded as sample" << std::endl;
     std::cerr << "                -score-method STR    Evaluation method to use and its parameter, seperated by \':\' (cf. [EVAL. METHOD])" << std::endl;
     std::cerr << "                -sort-mode STR       Mode for score sorting, default value depends on evaluation method (cf. [SORT MODE])" << std::endl;
     std::cerr << "                -top-num INT         Number of top features to select" << std::endl;
-    std::cerr << "                -ln                  Apply ln(x + 1) transformation BEFORE score estimation [false]" << std::endl
-              << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
-    std::cerr << "                -standardize         Standarize count vector BEFORE score estimation [false]" << std::endl
-              << "                                         this applies only for score estimation, will NOT affect output counts" << std::endl;
+    std::cerr << "                -ln                  Apply ln(x + 1) transformation BEFORE score estimation [false]" << std::endl;
+    std::cerr << "                -standardize         Standarize count vector BEFORE score estimation [false]" << std::endl;
     std::cerr << "                -out-path STR        Output table path [default: output to screen]" << std::endl
+              << "                                         the output counts are same as the input counts," << std::endl
+              << "                                         normalization, log transformation, or standardization affects only score evaluation, not output counts" << std::endl
               << std::endl;
     std::cerr << "[EVAL. METHOD]  sd                   Standard deviation (default method)" << std::endl;
     std::cerr << "                rsd                  Relative standard deviation" << std::endl;
@@ -49,6 +50,7 @@ inline void PrintRankHelper()
 
 inline void PrintRunInfo(const std::string &kmer_count_path,
                          const std::string &idx_path,
+                         const std::string &nf_path,
                          const std::string &smp_info_path,
                          const std::string &score_method,
                          const std::string &score_cmd,
@@ -97,6 +99,7 @@ inline void PrintRunInfo(const std::string &kmer_count_path,
     std::cerr << "Number of feature to output (0 for all):      " << nb_sel << std::endl;
     std::cerr << "Ln(x + 1) for score estiamtion:               " << (ln_transf ? "On" : "Off") << std::endl;
     std::cerr << "Standardize for score estimation:             " << (standardize ? "On" : "Off") << std::endl;
+    std::cerr << "Nomalization factor to path:                  " << nf_path << std::endl;
     if (!out_path.empty())
     {
         std::cerr << "Output path:                                  " << out_path << std::endl;
@@ -111,6 +114,7 @@ inline void PrintRunInfo(const std::string &kmer_count_path,
 inline void ParseOptions(int argc,
                          char *argv[],
                          std::string &idx_path,
+                         std::string &nf_path,
                          std::string &smp_info_path,
                          std::string &score_method,
                          std::string &score_cmd,
@@ -159,6 +163,10 @@ inline void ParseOptions(int argc,
         {
             standardize = true;
         }
+        else if (arg == "-nf-path" && i_opt + 1 < argc)
+        {
+            nf_path = argv[++i_opt];
+        }
         else if (arg == "-out-path" && i_opt + 1 < argc)
         {
             out_path = argv[++i_opt];
@@ -185,6 +193,11 @@ inline void ParseOptions(int argc,
     {
         PrintRankHelper();
         throw std::invalid_argument("unknown sort mode: " + sort_mode);
+    }
+    if (nf_path.empty())
+    {
+        PrintRankHelper();
+        throw std::invalid_argument("Path for normalization factor is mandatory");
     }
     if ((score_method == "sd" || score_method == "rsd") && standardize)
     {

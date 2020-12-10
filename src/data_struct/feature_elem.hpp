@@ -5,23 +5,21 @@
 #include <memory>
 
 #include "scorer.hpp"
+#include "tab_elem.hpp"
 
 class FeatureElem
 {
 public:
-    FeatureElem(const size_t uniq_code, const std::unique_ptr<Scorer> &scorer);
-    FeatureElem(const size_t uniq_code, const float score, const std::unique_ptr<Scorer> &scorer);
-    const size_t GetUniqCode() const;
+    const void MakeFeatureElem(const std::unique_ptr<Scorer> &scorer, float score_from_tab);
     const float GetScore() const;
     void ScaleScore(float fact, float lower_lim, float upper_lim);
     const std::vector<float> &GetCondiMeans() const;
 
 private:
-    size_t uniq_code_;
     float score_;
     std::vector<float> condi_means_;
 };
 
-using featureVect_t = std::vector<FeatureElem>;
+using featureVect_t = std::vector<std::pair<size_t, FeatureElem>>;
 
 #endif //KAMRAT_DATASTRUCT_FEATUREELEM_HPP

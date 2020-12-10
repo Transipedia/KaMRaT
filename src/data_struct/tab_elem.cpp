@@ -1,10 +1,10 @@
 #include "tab_elem.hpp"
 
-TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file,
-                 float &rep_val,
-                 const TabHeader &tab_header)
-    : index_pos_(idx_file.is_open() ? static_cast<size_t>(idx_file.tellp()) : 0)
+const void TabElem::ParseTabElem(std::istringstream &line_conv, std::ofstream &idx_file,
+                                 float &rep_val,
+                                 const TabHeader &tab_header)
 {
+    index_pos_ = (idx_file.is_open() ? static_cast<size_t>(idx_file.tellp()) : 0);
     rep_val = tab_header.ParseRowStr(count_vect_, value_vect_, line_conv);
     if (idx_file.is_open())
     {
@@ -20,21 +20,20 @@ TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file,
     }
 }
 
-TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file,
-                 std::vector<float> &count_vect, float &rep_val,
-                 const TabHeader &tab_header)
-    : index_pos_(idx_file.is_open() ? static_cast<size_t>(idx_file.tellp()) : 0)
+const float TabElem::ParseTabElem(std::istringstream &line_conv, std::ofstream &idx_file,
+                                  std::vector<float> &count_vect,
+                                  const TabHeader &tab_header)
 {
-    rep_val = tab_header.ParseRowStr(count_vect, value_vect_, line_conv);
+    index_pos_ = (idx_file.is_open() ? static_cast<size_t>(idx_file.tellp()) : 0);
     if (idx_file.is_open())
     {
         idx_file << line_conv.str() << std::endl;
-        std::vector<float>(std::move(value_vect_)); // clear and reallocate the vector
     }
-    else // should not happen, for debug
+    else
     {
-        throw std::domain_error("indexing as string but without index file opened");
+        throw std::domain_error("Forcing indexing without index file opened");
     }
+    return(tab_header.ParseRowStr(count_vect, value_vect_, line_conv));
 }
 
 const std::vector<float> &TabElem::GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, const size_t nb_count) const
@@ -49,6 +48,23 @@ const std::vector<float> &TabElem::GetCountVect(std::vector<float> &count_vect, 
     else
     {
         return count_vect_;
+    }
+}
+
+const float TabElem::GetValueAt(std::ifstream &idx_file, const size_t value_serial, const size_t nb_count) const
+{
+    if (idx_file.is_open())
+    {
+        float value;
+        idx_file.seekg(index_pos_ +
+                       nb_count * sizeof(decltype(count_vect_)::value_type) +
+                       value_serial * sizeof(decltype(value_vect_)::value_type));
+        idx_file.read(reinterpret_cast<char *>(&value), sizeof(decltype(value_vect_)::value_type));
+        return value;
+    }
+    else
+    {
+        return value_vect_[value_serial];
     }
 }
 

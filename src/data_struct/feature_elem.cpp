@@ -1,21 +1,21 @@
 #include "feature_elem.hpp"
 
-FeatureElem::FeatureElem(const size_t index_pos, const std::unique_ptr<Scorer> &scorer)
-    : uniq_code_(index_pos)
+const void FeatureElem::MakeFeatureElem(const std::unique_ptr<Scorer> &scorer, const float score_from_tab)
 {
-    scorer->CalcCondiMeans(condi_means_);
-    score_ = scorer->EvaluateScore();
+    if (scorer->GetScoreMethod() != "user")
+    {
+        scorer->TransformCounts();
+        score_ = scorer->EvaluateScore();
+    }
+    else
+    {
+        score_ = score_from_tab;
+    }
 }
 
-FeatureElem::FeatureElem(const size_t uniq_code, const float score, const std::unique_ptr<Scorer> &scorer)
-    : uniq_code_(uniq_code), score_(score)
+const uint64_t FeatureElem::GetIdxPos() const
 {
-    scorer->CalcCondiMeans(condi_means_);
-}
-
-const uint64_t FeatureElem::GetUniqCode() const
-{
-    return uniq_code_;
+    return idx_pos_;
 }
 
 const float FeatureElem::GetScore() const

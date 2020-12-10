@@ -19,7 +19,7 @@
 #include "run_info_parser/merge.hpp"
 #include "run_info_parser/utils.hpp"
 
-void ScanCountTable(featuretab_t &feature_tab, TabHeader &tab_header,
+void ScanCountTable(countTab_t &feature_tab, TabHeader &tab_header,
                     contigvect_t &contig_vect, code2serial_t &code2serial,
                     const size_t k_len, const bool stranded,
                     const std::string &kmer_count_path,
@@ -128,7 +128,7 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
 
 const bool DoExtension(contigvect_t &contig_vect,
                        const fix2knot_t &hashed_mergeknot_list,
-                       featuretab_t &feature_tab,
+                       countTab_t &feature_tab,
                        const size_t n_overlap,
                        const std::string &interv_method, const float interv_thres,
                        std::ifstream &idx_file, const size_t nb_counts)
@@ -188,7 +188,7 @@ const bool DoExtension(contigvect_t &contig_vect,
 }
 
 void PrintContigList(const contigvect_t &contig_vect,
-                     TabHeader &tab_header, featuretab_t &feature_tab, const code2serial_t &code2serial,
+                     TabHeader &tab_header, countTab_t &feature_tab, const code2serial_t &code2serial,
                      const size_t k_len, const std::string &quant_mode,
                      std::ifstream &idx_file, const std::string &out_path)
 {
@@ -292,7 +292,7 @@ int MergeMain(int argc, char **argv)
     contigvect_t contig_vect;            // list of contigs for extension
     code2serial_t code2serial;           // from contig's representative k-mer code to serial number in contig list
     TabHeader tab_header(smp_info_path); // the header of feature table
-    featuretab_t feature_tab;            // feature count table
+    countTab_t feature_tab;            // feature count table
 
     ScanCountTable(feature_tab, tab_header, contig_vect, code2serial, k_len, stranded, kmer_count_path, rep_colname, idx_path);
 

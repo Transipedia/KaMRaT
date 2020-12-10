@@ -18,69 +18,94 @@
 #include "data_struct/feature_elem.hpp"
 #include "run_info_parser/rank.hpp"
 
-void EvalScore(featureVect_t &feature_vect,
-               TabHeader &tab_header,
-               const std::string &count_tab_path,
-               const std::unique_ptr<Scorer> &scorer,
-               const bool ln_transf,
-               const bool standardize,
-               const std::string &idx_path)
+void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &nf_vect, TabHeader &tab_header,
+                        const std::string &raw_counts_path, const std::string &idx_path, const bool assign_score)
 {
-    std::ifstream count_tab_file(count_tab_path);
-    if (!count_tab_file.is_open())
+    std::ifstream raw_counts_file(raw_counts_path);
+    if (!raw_counts_file.is_open())
     {
-        throw std::domain_error("count table file " + count_tab_path + " is not found");
+        throw std::domain_error("count table " + raw_counts_path + " was not found");
     }
-    size_t pos = count_tab_path.find_last_of(".");
     boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
-    if (pos != std::string::npos && count_tab_path.substr(pos + 1) == "gz")
     {
-        inbuf.push(boost::iostreams::gzip_decompressor());
+        size_t pos = raw_counts_path.find_last_of(".");
+        if (pos != std::string::npos && raw_counts_path.substr(pos + 1) == "gz")
+        {
+            inbuf.push(boost::iostreams::gzip_decompressor());
+        }
     }
-    inbuf.push(count_tab_file);
+    inbuf.push(raw_counts_file);
     std::istream kmer_count_instream(&inbuf);
 
-    //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
-    std::string line;
+    std::string line, str_x;
     std::getline(kmer_count_instream, line);
-    tab_header.MakeColumnInfo(line, (scorer->GetScoreMethod() == "user" ? scorer->GetScoreCmd() : ""));
-    scorer->LoadSampleLabel(tab_header);
-    //----- Dealing with Following k-mer Count Lines -----//
-    if (idx_path.empty())
-    {
-        throw std::domain_error("index file path not provided");
-    }
-    std::ofstream idx_file(idx_path); // create new index file because gz file does not support random access
-    if (!idx_file.is_open())          // to ensure the file is opened
+    tab_header.MakeColumnInfo(line, "");
+    nf_vect.resize(tab_header.GetNbCount(), 0);
+    std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
+
+    std::ofstream idx_file(idx_path);
+    if (!idx_file.is_open()) // to ensure the file is opened
     {
         throw std::domain_error("error open file: " + idx_path);
     }
-    std::istringstream conv;
+
     std::vector<float> count_vect;
-    for (uint64_t feature_serial(0); std::getline(kmer_count_instream, line); ++feature_serial)
+    std::istringstream conv;
+    TabElem tab_elem;
+    double mean_sample_sum(0); // mean of sample-sum vector
+    while (std::getline(kmer_count_instream, line))
     {
+        float score;
         conv.str(line);
-        float feature_score;
-        TabElem tab_elem(conv, idx_file, count_vect, feature_score, tab_header);
-        if (scorer->GetScoreMethod() == "user") // user scoring mode but not find a score column
+        score = tab_elem.ParseTabElem(conv, idx_file, count_vect, tab_header);
+        for (size_t i(0); i < count_vect.size(); ++i)
         {
-            if (tab_header.GetRepColPos() == 0)
-            {
-                throw std::domain_error("user score column not found:" + scorer->GetScoreCmd());
-            }
-            feature_vect.emplace_back(tab_elem.GetIndexPos(), feature_score, scorer); // directly assign score with the given column
+            nf_vect[i] += (count_vect[i] + 1);      // + 1 for we will add an offset 1 to raw count for avoiding log(0)
+            mean_sample_sum += (count_vect[i] + 1); // + 1 for we will add an offset 1 to raw count for avoiding log(0)
         }
-        else
-        {
-            // std::cout << count_vect.size() << std::endl;
-            scorer->LoadSampleCount(count_vect, ln_transf, standardize);
-            feature_vect.emplace_back(tab_elem.GetIndexPos(), scorer); // index position as uniqcode
-        }
+        feature_vect.emplace_back(tab_elem.GetIndexPos(), score);
         count_vect.clear();
         conv.clear();
     }
+    mean_sample_sum /= nf_vect.size(); // mean of sample-sum vector
+    for (size_t i(0); i < nf_vect.size(); ++i)
+    {
+        nf_vect[i] /= mean_sample_sum;
+    }
+    raw_counts_file.close();
     idx_file.close();
-    count_tab_file.close();
+}
+
+void EvalScore(featureVect_t &feature_vect,
+               std::ifstream &idx_file, const TabHeader &tab_header, const countTab_t &count_tab, const std::vector<double> nf_vect,
+               const std::unique_ptr<Scorer> &scorer, const bool ln_transf, const bool standardize)
+{
+    std::vector<float> count_vect;
+    for (size_t i_feature(0); i_feature < count_tab.size(); ++i_feature)
+    {
+        count_tab[i_feature].GetCountVect(count_vect, idx_file, tab_header.GetNbCount());
+        for (size_t i_smp(0); i_smp < count_vect.size(); ++i_smp)
+        {
+            count_vect[i_smp] = (count_vect[i_smp] + 1) * nf_vect[i_smp];
+        }
+        scorer->LoadSampleCount(count_vect, ln_transf, standardize);
+        if (scorer->GetScoreMethod() == "user") // user scoring mode but not find a score column
+        {
+            size_t rep_pos = tab_header.GetRepColPos();
+            if (rep_pos == 0)
+            {
+                throw std::domain_error("user score column not found:" + scorer->GetScoreCmd());
+            }
+            feature_vect.emplace_back(i_feature,
+                                      count_tab[i_feature].GetValueAt(idx_file, tab_header.GetColSerialAt(rep_pos), tab_header.GetNbCount()),
+                                      scorer); // directly assign score with the given column
+        }
+        else
+        {
+            feature_vect.emplace_back(i_feature, scorer); // index position as uniqcode
+        }
+        count_vect.clear();
+    }
 }
 
 void SortScore(featureVect_t &feature_vect, const std::string &sort_mode)
@@ -153,7 +178,7 @@ void ModelPrint(const featureVect_t &feature_vect,
     std::cout << tab_header.GetColNameAt(0) << "\tscore";
     for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
     {
-        std::cout << "\tmean" << static_cast<char>('A' + i);
+        std::cout << "\tnorm.mean" << static_cast<char>('A' + i);
     }
     for (size_t i(1); i < tab_header.GetNbCol(); ++i)
     {
@@ -167,11 +192,24 @@ void ModelPrint(const featureVect_t &feature_vect,
     {
         throw std::domain_error("cannot open count index file: " + idx_path);
     }
-    std::string row_string;
+    std::vector<float> count_vect, value_vect;
     for (size_t i(0); i < parsed_nb_sel; ++i)
     {
-        idx_file.seekg(feature_vect[i].GetUniqCode());
-        std::getline(idx_file, row_string);
+        size_t i_feature = feature_vect[i].GetSerialInTab();
+        count_tab[i_feature].GetVectsAndClear(count_vect, value_vect, idx_file, tab_header.GetNbCount(), tab_header.GetNbValue());
+        for (size_t j(1); j < tab_header.GetNbCol(); ++j)
+        {
+            size_t col_serial = tab_header.GetColSerialAt(j);
+            if (tab_header.GetColNatureAt(i) >= 'A' && tab_header.GetColNatureAt(i) <= 'Z') // count column => output according to quant_mode
+            {
+                std::cout << "\t" << count_vect[col_serial];
+            }
+            else if (tab_header.GetColNatureAt(i) == 'v') // value column => output that related with rep-k-mer
+            {
+                std::cout << "\t" << value_vect[col_serial];
+            }
+        }
+        std::cout << std::endl;
         std::cout << row_string.substr(0, row_string.find_first_of(" \t") + 1) << feature_vect[i].GetScore();
         for (const auto m : feature_vect[i].GetCondiMeans())
         {
@@ -191,11 +229,11 @@ void ModelPrint(const featureVect_t &feature_vect,
 int RankMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
-    std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path, out_path;
+    std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path, nf_path, out_path;
     bool ln_transf(false), standardize(false);
     size_t nb_sel(0);
 
-    ParseOptions(argc, argv, idx_path, smp_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, standardize, out_path, count_tab_path);
+    ParseOptions(argc, argv, idx_path, nf_path, smp_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, standardize, out_path, count_tab_path);
     std::unique_ptr<Scorer> scorer;
     if (score_method.empty() || score_method == "sd")
     {
@@ -247,14 +285,17 @@ int RankMain(int argc, char *argv[])
         throw std::invalid_argument("unknown scoring method: " + score_method);
     }
 
-    PrintRunInfo(count_tab_path, idx_path, smp_info_path, scorer->GetScoreMethod(), scorer->GetScoreCmd(), scorer->GetSortMode(), scorer->GetNbFold(),
+    PrintRunInfo(count_tab_path, idx_path, nf_path, smp_info_path,
+                 scorer->GetScoreMethod(), scorer->GetScoreCmd(), scorer->GetSortMode(), scorer->GetNbFold(),
                  nb_sel, ln_transf, standardize, out_path);
 
-    featuretab_t count_tab;
     TabHeader count_tab_header(smp_info_path);
-    featureVect_t feature_vect;
+    countTab_t count_tab;
+    std::vector<double> sample_nf;
+    IndexCountComputeNF(count_tab, sample_nf, count_tab_header, count_tab_path, idx_path);
 
-    EvalScore(feature_vect, count_tab_header, count_tab_path, scorer, ln_transf, standardize, idx_path);
+    featureVect_t feature_vect;
+    EvalScore(feature_vect, count_tab_header, count_tab, scorer, ln_transf, standardize, idx_path);
     SortScore(feature_vect, scorer->GetSortMode());
     if (score_method == "ttest")
     {
