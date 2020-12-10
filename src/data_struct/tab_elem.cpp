@@ -1,5 +1,4 @@
 #include "tab_elem.hpp"
-#include "statistics.hpp"
 
 TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file,
                  float &rep_val,
