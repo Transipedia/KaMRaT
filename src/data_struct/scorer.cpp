@@ -111,7 +111,7 @@ void Scorer::LoadSampleLabel(const TabHeader &tab_header)
         throw std::domain_error("Naive Bayes or regression classfiers only accept condition number >= 2");
     }
     std::vector<size_t> label_vect;
-    tab_header.ParseSmpLabels(label_vect);
+    tab_header.GetSmpLabels(label_vect);
     sample_labels_ = arma::conv_to<arma::Row<size_t>>::from(label_vect); // each column is an observation
 }
 
@@ -141,12 +141,13 @@ void Scorer::ClearSampleCount()
     condi_sample_counts_.clear();
 }
 
-const void Scorer::CalcCondiMeans(std::vector<float> &condi_means) const
+const std::vector<float> &Scorer::CalcNormCondiMeans(std::vector<float> &norm_condi_means) const
 {
     for (size_t i(0); i < nb_class_; ++i)
     {
-        condi_means.emplace_back(calc_stat(condi_sample_counts_[i], "mean"));
+        norm_condi_means.emplace_back(calc_stat(condi_sample_counts_[i], "mean"));
     }
+    return norm_condi_means;
 }
 
 const void Scorer::TransformCounts() // first log then standardize
@@ -180,8 +181,8 @@ const float Scorer::EvaluateScore() const // no implement, but virtual method mu
 }
 
 // =====> Standard Deviation Scoring <===== //
-SDScorer::SDScorer(const std::string &sort_mode)
-    : Scorer(MET_SD, "", (sort_mode.empty() ? "dec" : sort_mode), 1, to_ln_, to_standardize_)
+SDScorer::SDScorer(const std::string &sort_mode, const bool to_ln, const bool to_standardize)
+    : Scorer(MET_SD, "", (sort_mode.empty() ? "dec" : sort_mode), 1, to_ln, to_standardize)
 {
 }
 
@@ -192,8 +193,8 @@ const float SDScorer::EvaluateScore() const
 }
 
 // =====> Relative Standard Deviation Scoring <===== //
-RelatSDScorer::RelatSDScorer(const std::string &sort_mode)
-    : Scorer(MET_RSD, "", (sort_mode.empty() ? "dec" : sort_mode), 1, to_ln_, to_standardize_)
+RelatSDScorer::RelatSDScorer(const std::string &sort_mode, const bool to_ln, const bool to_standardize)
+    : Scorer(MET_RSD, "", (sort_mode.empty() ? "dec" : sort_mode), 1, to_ln, to_standardize)
 {
 }
 
@@ -204,8 +205,8 @@ const float RelatSDScorer::EvaluateScore() const
 }
 
 // =====> T-test Scoring <===== //
-TtestScorer::TtestScorer(const std::string &sort_mode)
-    : Scorer(MET_TTEST, "", (sort_mode.empty() ? "inc" : sort_mode), 1, to_ln_, to_standardize_)
+TtestScorer::TtestScorer(const std::string &sort_mode, const bool to_ln, const bool to_standardize)
+    : Scorer(MET_TTEST, "", (sort_mode.empty() ? "inc" : sort_mode), 1, to_ln, to_standardize)
 {
 }
 
@@ -243,8 +244,8 @@ const float TtestScorer::EvaluateScore() const
 }
 
 // =====> Effect Size Scorer <===== //
-EffectSizeScorer::EffectSizeScorer(const std::string &sort_mode)
-    : Scorer(MET_ES, "", (sort_mode.empty() ? "dec:abs" : sort_mode), 1, to_ln_, to_standardize_)
+EffectSizeScorer::EffectSizeScorer(const std::string &sort_mode, const bool to_ln, const bool to_standardize)
+    : Scorer(MET_ES, "", (sort_mode.empty() ? "dec:abs" : sort_mode), 1, to_ln, to_standardize)
 {
 }
 
@@ -259,8 +260,8 @@ const float EffectSizeScorer::EvaluateScore() const
 }
 
 // =====> Log2FC Scorer <===== //
-LFCScorer::LFCScorer(const std::string &score_cmd, const std::string &sort_mode)
-    : Scorer(MET_LFC, score_cmd, (sort_mode.empty() ? "dec:abs" : sort_mode), 1, to_ln_, to_standardize_)
+LFCScorer::LFCScorer(const std::string &score_cmd, const std::string &sort_mode, const bool to_ln, const bool to_standardize)
+    : Scorer(MET_LFC, score_cmd, (sort_mode.empty() ? "dec:abs" : sort_mode), 1, to_ln, to_standardize)
 {
 }
 
@@ -273,8 +274,8 @@ const float LFCScorer::EvaluateScore() const
 }
 
 // =====> Naive Bayes Scorer <===== //
-NaiveBayesScorer::NaiveBayesScorer(const std::string &sort_mode, const size_t nb_fold)
-    : Scorer(MET_NBF1, "", (sort_mode.empty() ? "dec" : sort_mode), nb_fold, to_ln_, to_standardize_)
+NaiveBayesScorer::NaiveBayesScorer(const std::string &sort_mode, const size_t nb_fold, const bool to_ln, const bool to_standardize)
+    : Scorer(MET_NBF1, "", (sort_mode.empty() ? "dec" : sort_mode), nb_fold, to_ln, to_standardize)
 {
 }
 
@@ -358,8 +359,8 @@ const float NaiveBayesScorer::EvaluateScore() const
 }
 
 // =====> Regression Scorer <===== //
-RegressionScorer::RegressionScorer(const std::string &sort_mode, const size_t nb_fold)
-    : Scorer(MET_RGF1, "", (sort_mode.empty() ? "dec" : sort_mode), nb_fold, to_ln_, to_standardize_)
+RegressionScorer::RegressionScorer(const std::string &sort_mode, const size_t nb_fold, const bool to_ln, const bool to_standardize)
+    : Scorer(MET_RGF1, "", (sort_mode.empty() ? "dec" : sort_mode), nb_fold, to_ln, to_standardize)
 {
 }
 
@@ -395,8 +396,8 @@ const float RegressionScorer::EvaluateScore() const
 
 // =====> SVM Scorer <===== //
 
-SVMScorer::SVMScorer(const std::string &sort_mode)
-    : Scorer(MET_SVM, "", (sort_mode.empty() ? "inc" : sort_mode), 0, to_ln_, to_standardize_)
+SVMScorer::SVMScorer(const std::string &sort_mode, const bool to_ln, const bool to_standardize)
+    : Scorer(MET_SVM, "", (sort_mode.empty() ? "inc" : sort_mode), 0, to_ln, to_standardize)
 {
 }
 
@@ -418,7 +419,7 @@ const float SVMScorer::EvaluateScore() const
 
 // =====> User Scorer <===== //
 UserScorer::UserScorer(const std::string &sort_mode)
-    : Scorer(MET_USER, "", (sort_mode.empty() ? "dec" : sort_mode), 0, to_ln_, to_standardize_)
+    : Scorer(MET_USER, "", (sort_mode.empty() ? "dec" : sort_mode), 0, false, false)
 {
 }
 

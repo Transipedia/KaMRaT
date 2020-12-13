@@ -4,7 +4,6 @@
 int FilterMain(int argc, char *argv[]);
 int MaskMain(int argc, char *argv[]);
 int MergeMain(int argc, char *argv[]);
-int NormMain(int argc, char *argv[]);
 int RankMain(int argc, char *argv[]);
 
 const void Welcome()
@@ -24,7 +23,6 @@ const void PrintHelper()
               << "    filter:    filter count table according to occurence among samples" << std::endl
               << "    mask:      mask/select count table according to given sequences" << std::endl
               << "    merge:     merge k-mer count table into contig count table" << std::endl
-              << "    norm:      normalize count table" << std::endl 
               << "    rank:      rank count table features according to association to sample condition" << std::endl
               << std::endl;
 }
@@ -44,9 +42,6 @@ int main(int argc, char *argv[])
     }
     else if (strcmp(argv[1], "merge") == 0) {
         MergeMain(argc - 1, &(argv[1]));
-    }
-    else if (strcmp(argv[1], "norm") == 0) {
-        NormMain(argc - 1, &(argv[1]));
     }
     else if (strcmp(argv[1], "rank") == 0) {
         RankMain(argc - 1, &(argv[1]));

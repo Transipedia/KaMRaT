@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <string>
+#include <fstream>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -15,33 +17,33 @@
 class TabHeader
 {
 public:
-    TabHeader(const std::string &sample_info_path, std::unordered_set<std::string> &&preserved_cond_tags = std::unordered_set<std::string>());
+    TabHeader();                                 // all columns except the first are about sample count
+    TabHeader(const std::string &smp_info_path); // to indicate which columns are about sample count
 
-    const void MakeColumnInfo(const std::string &header_line, const std::string &rep_colname);
+    const void MakeColumnInfo(std::istringstream &line_conv, const std::string &rep_colname); // Parse the header row string
 
-    const size_t GetNbValue() const;
-    const size_t GetNbCount() const;
-    const size_t GetNbStr() const;
-    const size_t GetNbCol() const;
-    const size_t GetNbCondition() const;
-    const size_t GetRepColPos() const;
+    const std::string &MakeOutputHeaderStr(std::string &header) const; // Reorganize header string: firstly non-count columns, then count columns
 
-    const char GetConditionLabel(const std::string &condi) const;
-    const float ParseRowStr(std::vector<float> &count_vect, std::vector<float> &value_vect, std::istringstream &line_conv) const;
-    const std::string &GetColNameAt(size_t i) const;
-    const char GetColNatureAt(size_t i) const;
-    const size_t GetColSerialAt(size_t i) const;
+    const size_t GetNbCondition() const;                            // Number of conditions
+    const size_t GetConditionLabel(const std::string &condi) const; // Get condition label from condition name
+    const size_t GetNbCol() const;                                  // Number of columns
+    const size_t GetNbCount() const;                                // Number of count columns
+    const size_t GetRepColPos() const;                              // Position of representative value column
+    const std::string &GetColNameAt(size_t i) const;                // Get column name at given column number
+    const bool IsCount(size_t i_col) const;                         // Is given column number a count column
+    const size_t GetColLabelAt(size_t i) const;                     // Get column label at given column number
 
-    const bool IsSample(size_t i_col) const;
-    const void ParseSmpLabels(std::vector<size_t> &smp_labels) const;
+    const float ParseRowStr(std::vector<float> &count_vect, std::string &non_count_str,
+                            std::istringstream &line_conv) const;   // Parse the table row string
+    const void GetSmpLabels(std::vector<size_t> &smp_labels) const; // Get sample labels
+
+    const void PrintSmp2Lab() const; // Print sample-label map, for debug
 
 protected:
-    size_t nb_value_, nb_count_, nb_str_, nb_col_, nb_condi_, rep_colpos_;   // number of values, counts, strings, columns, conditions
-    std::unordered_map<std::string, char> smp2lab_, condi2lab_; // sample name to label, condition name to label
-
-    std::vector<std::string> colname_vect_; // column name vector parsed from the header line
-    std::vector<char> colnature_vect_;      // column nature vector, cf. above for nature code
-    std::vector<size_t> colserial_vect_;    // column serial vector, serial number is assigned SEPARATELY to count or to value
+    size_t nb_count_, rep_colpos_, nb_condi_;                     // number of values, counts, strings, columns, conditions
+    std::unordered_map<std::string, size_t> smp2lab_, condi2lab_; // sample name to label, condition name to label
+    std::vector<std::string> colname_vect_;                       // column name vector parsed from the header line
+    std::vector<size_t> colcondi_vect_;                           // 0 means not a sample, positive number indicates condition
 };
 
 #endif //KAMRAT_DATASTRUCT_TABHEADER_HPP

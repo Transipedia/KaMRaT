@@ -14,24 +14,12 @@
 #include "data_struct/tab_header.hpp"
 #include "run_info_parser/filter.hpp"
 
-const long GetSampleSerial(const std::string &sample_name, const TabHeader &tab_header)
-{
-    for (size_t i(0); i < tab_header.GetNbCol(); ++i)
-    {
-        if (tab_header.GetColNameAt(i) == sample_name)
-        {
-            return tab_header.GetColSerialAt(i);
-        }
-    }
-    throw std::domain_error("unknown sample names for expressed sample filter: " + sample_name);
-}
-
 const bool IsSampleToCount(const std::string &this_level,
                            const std::string &this_name,
-                           const char this_label,
+                           const size_t this_label,
                            const std::string &other_level,
                            const std::string &other_name,
-                           const char other_label,
+                           const size_t other_label,
                            const TabHeader &tab_header,
                            const size_t i_col)
 {
@@ -43,7 +31,7 @@ const bool IsSampleToCount(const std::string &this_level,
     {
         return true;
     }
-    else if (this_name == "rest" && other_level == "cond" && tab_header.GetColNatureAt(i_col) != other_label) // simples other than silent condition
+    else if (this_name == "rest" && other_level == "cond" && tab_header.GetColLabelAt(i_col) != other_label) // simples other than silent condition
     {
         return true;
     }
@@ -51,7 +39,7 @@ const bool IsSampleToCount(const std::string &this_level,
     {
         return true;
     }
-    else if (this_level == "cond" && tab_header.GetColNatureAt(i_col) == this_label) // samples in expressed condition
+    else if (this_level == "cond" && tab_header.GetColLabelAt(i_col) == this_label) // samples in expressed condition
     {
         return true;
     }
@@ -101,23 +89,20 @@ void ScanCountTab(TabHeader &tab_header,
         std::cout.rdbuf(out_file.rdbuf());
     }
 
-    //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
-    std::set<std::string> preserved_condition_names{"all", "rest"};
-    std::string line;
-    char express_label = (express_level == "cond" ? tab_header.GetConditionLabel(express_name) : '\0'),
-         silent_label = (silent_level == "cond" ? tab_header.GetConditionLabel(silent_name) : '\0');
+    std::string line, term;
     std::getline(kmer_count_instream, line);
-    tab_header.MakeColumnInfo(line, "");
+    std::istringstream conv(line);
+    tab_header.MakeColumnInfo(conv, "");
     std::cout << line << std::endl;
-    //----- Dealing with Following k-mer Count Lines -----//
+
+    size_t express_label = (express_level == "cond" ? tab_header.GetConditionLabel(express_name) : '\0'),
+           silent_label = (silent_level == "cond" ? tab_header.GetConditionLabel(silent_name) : '\0');
     while (std::getline(kmer_count_instream, line))
     {
-        std::istringstream conv(line);
-        std::string term;
         size_t express_rec(0), silent_rec(0);
         for (size_t i(0); conv >> term && i < tab_header.GetNbCol(); ++i)
         {
-            if (!tab_header.IsSample(i))
+            if (!tab_header.IsCount(i))
             {
                 continue;
             }
@@ -164,7 +149,7 @@ int FilterMain(int argc, char *argv[])
     PrintRunInfo(count_tab_path, express_level, express_name, express_min_rec, express_min_abd,
                  silent_level, silent_name, silent_min_rec, silent_max_abd, sample_info_path, out_path);
 
-    TabHeader tab_header(sample_info_path, {"all", "rest"});
+    TabHeader tab_header(sample_info_path);
     ScanCountTab(tab_header, count_tab_path, express_level, express_name, express_min_abd, express_min_rec,
                  silent_level, silent_name, silent_max_abd, silent_min_rec, out_path);
 

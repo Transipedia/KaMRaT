@@ -12,26 +12,26 @@
 class TabElem
 {
 public:
-    const void ParseTabElem(std::istringstream &line_conv, std::ofstream &idx_file,
-                            float &rep_val,
-                            const TabHeader &tab_header); // Index and get the score value ---> for KaMRaT merge
-    const float ParseTabElem(std::istringstream &line_conv, std::ofstream &idx_file,
-                             std::vector<float> &count_vect,
-                             const TabHeader &tab_header); // Index and get the count vector ---> for KaMRaT rank
+    TabElem(std::istringstream &line_conv, std::ofstream &idx_file, const TabHeader &tab_header);              // Index the table row
+    TabElem(std::vector<float> &count_vect, std::string &non_count_str, float value, std::ofstream &idx_file); // Index with given vector, string, and value
 
-    const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, size_t nb_count) const;
-    const float GetValueAt(std::ifstream &idx_file, size_t value_serial, size_t nb_count) const;
-    const void GetVectsAndClear(std::vector<float> &count_vect, std::vector<float> &value_vect,
-                                std::ifstream &idx_file, size_t nb_count, size_t nb_value);
-    const size_t GetIndexPos() const;
+    /* Reorganize header string: firstly non-count columns, then count columns */
+    const std::string &MakeOutputRowStr(std::string &row_str, std::ifstream &idx_file, size_t nb_count); // with indexed info
+    const std::string &MakeOutputRowStr(std::string &row_str, const std::vector<float> &count_vect, std::ifstream &idx_file); // with given count vector
 
-private:
-    std::vector<float> value_vect_; // value vector ------ used both in inMem or onDsk
+    const float GetValue() const;                                                                                           // Get row value
+    const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, size_t nb_count) const; // Get count vector
+    const std::string &GetNonCountStr(std::string &non_count_str, std::ifstream &idx_file, size_t nb_count) const;          // Get non-count string
+    const size_t GetIdxPos() const;                                                                                         // Get index position
+
+protected:
+    float value_;                   // representative value or score
     std::vector<float> count_vect_; // count vector ------ only used in inMem
-    size_t index_pos_;              // indexed position for k-mer count ------ only used in onDsk
+    std::string non_count_str_;     // non-count string ------ only used in inMem
+    size_t idx_pos_;                // row index position ------ only used in onDsk
 };
 
-using code2serial_t = std::unordered_map<uint64_t, size_t>; // external dictionary to link k-mer with row serial number
 using countTab_t = std::vector<TabElem>;                    // feature table
+using code2serial_t = std::unordered_map<uint64_t, size_t>; // external dictionary to link k-mer with row serial number
 
 #endif //KAMRAT_DATASTRUCT_TABELEM_HPP

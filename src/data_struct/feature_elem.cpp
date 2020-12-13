@@ -1,36 +1,28 @@
 #include "feature_elem.hpp"
 
-const void FeatureElem::MakeFeatureElem(const std::unique_ptr<Scorer> &scorer, const float score_from_tab)
+FeatureElem::FeatureElem(std::vector<float> &count_vect, std::string &non_count_str, const float value, std::ofstream &idx_file)
+    : TabElem(count_vect, non_count_str, value, idx_file)
 {
+}
+
+const void FeatureElem::EvalFeatureElem(const std::unique_ptr<Scorer> &scorer)
+{
+    scorer->CalcNormCondiMeans(norm_condi_means_);
     if (scorer->GetScoreMethod() != "user")
     {
         scorer->TransformCounts();
-        score_ = scorer->EvaluateScore();
-    }
-    else
-    {
-        score_ = score_from_tab;
+        value_ = scorer->EvaluateScore();
     }
 }
 
-const uint64_t FeatureElem::GetIdxPos() const
+void FeatureElem::ScaleValue(float fact, float lower_lim, float upper_lim)
 {
-    return idx_pos_;
+    value_ *= fact;
+    value_ = (value_ < lower_lim) ? lower_lim : value_;
+    value_ = (value_ > upper_lim) ? upper_lim : value_;
 }
 
-const float FeatureElem::GetScore() const
+const std::vector<float> &FeatureElem::GetNormCondiMeans() const
 {
-    return score_;
-}
-
-void FeatureElem::ScaleScore(float fact, float lower_lim, float upper_lim)
-{
-    score_ *= fact;
-    score_ = (score_ < lower_lim) ? lower_lim : score_;
-    score_ = (score_ > upper_lim) ? upper_lim : score_;
-}
-
-const std::vector<float> &FeatureElem::GetCondiMeans() const
-{
-    return condi_means_;
+    return norm_condi_means_;
 }

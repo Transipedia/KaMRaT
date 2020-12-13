@@ -23,17 +23,17 @@ public:
     void LoadSampleCount(const std::vector<float> &sample_counts, const std::vector<double> &nf_vect);
     void ClearSampleCount();
 
-    const void CalcCondiMeans(std::vector<float> &condi_means) const;
+    const std::vector<float> &CalcNormCondiMeans(std::vector<float> &norm_condi_means) const;
     const void TransformCounts();
     virtual const float EvaluateScore() const;
 
 protected:
-    const bool to_ln_, to_standardize_; // Evaluate Feature with count log transformed or standardized
     const std::string score_method_;    // nb, lr, sd, rsd, ttest, es, lfc, user
     const std::string sort_mode_;       // dec, dec::abs, inc, inc::abs
     const std::string score_cmd_;       // to nb_fold_ if nb or lr; else for mean or median in lfc or for score colname in user
     const size_t nb_fold_;              // for naive Bayes and logistic regression
     size_t nb_class_;                   // number of conditions
+    const bool to_ln_, to_standardize_; // Evaluate Feature with count log transformed or standardized
     arma::Row<size_t> sample_labels_;   // sample labels
 
     arma::mat sample_counts_;                       // temporary variables for reducing re-allocation
@@ -43,56 +43,56 @@ protected:
 class SDScorer : public Scorer
 {
 public:
-    SDScorer(const std::string &sort_mode);
+    SDScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
     const float EvaluateScore() const override;
 };
 
 class RelatSDScorer : public Scorer
 {
 public:
-    RelatSDScorer(const std::string &sort_mode);
+    RelatSDScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
     const float EvaluateScore() const override;
 };
 
 class TtestScorer : public Scorer
 {
 public:
-    TtestScorer(const std::string &sort_mode);
+    TtestScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
     const float EvaluateScore() const override;
 };
 
 class EffectSizeScorer : public Scorer
 {
 public:
-    EffectSizeScorer(const std::string &sort_mode);
+    EffectSizeScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
     const float EvaluateScore() const override;
 };
 
 class LFCScorer : public Scorer
 {
 public:
-    LFCScorer(const std::string &score_cmd, const std::string &sort_mode);
+    LFCScorer(const std::string &score_cmd, const std::string &sort_mode, bool to_ln, bool to_standardize);
     const float EvaluateScore() const override;
 };
 
 class NaiveBayesScorer : public Scorer
 {
 public:
-    NaiveBayesScorer(const std::string &sort_mode, size_t nb_fold);
+    NaiveBayesScorer(const std::string &sort_mode, size_t nb_fold, bool to_ln, bool to_standardize);
     const float EvaluateScore() const override;
 };
 
 class RegressionScorer : public Scorer
 {
 public:
-    RegressionScorer(const std::string &sort_mode, size_t nb_fold);
+    RegressionScorer(const std::string &sort_mode, size_t nb_fold, bool to_ln, bool to_standardize);
     const float EvaluateScore() const override;
 };
 
 class SVMScorer : public Scorer
 {
 public:
-    SVMScorer(const std::string &sort_mode);
+    SVMScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
     const float EvaluateScore() const override;
 };
 

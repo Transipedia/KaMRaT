@@ -1,126 +1,110 @@
-#include <fstream>
-#include <sstream>
+#include <iostream>
 
 #include "tab_header.hpp"
 
-TabHeader::TabHeader(const std::string &sample_info_path, std::unordered_set<std::string> &&preserved_cond_tags)
-    : nb_value_(0), nb_count_(0), nb_str_(0), nb_col_(0), nb_condi_(0), rep_colpos_(0)
+TabHeader::TabHeader()
+    : nb_count_(0), rep_colpos_(0), nb_condi_(1)
 {
-    if (!sample_info_path.empty())
+}
+
+TabHeader::TabHeader(const std::string &smp_info_path)
+    : nb_count_(0), rep_colpos_(0)
+{
+    std::ifstream smp_info_file(smp_info_path);
+    if (!smp_info_file.is_open())
     {
-        std::ifstream sample_info_file(sample_info_path);
-        if (!sample_info_file.is_open())
+        throw std::domain_error("error open sample-info file: " + smp_info_path);
+    }
+    std::string sample_info_line, sample, condition;
+    std::istringstream conv;
+    nb_condi_ = 0;
+    while (std::getline(smp_info_file, sample_info_line))
+    {
+        conv.str(sample_info_line);
+        conv >> sample >> condition;
+        if (conv.fail())
         {
-            throw std::domain_error("could not open sample-info file: " + sample_info_path);
+            condition = ""; // empty string indicating the unique condition
         }
-        std::string sample_info_line, sample, condition;
-        std::istringstream conv;
-        while (std::getline(sample_info_file, sample_info_line))
+        const auto &ins_pair = condi2lab_.insert({condition, nb_condi_ + 1});
+        if (ins_pair.second) // if a new condition is added to the dictionary
         {
-            conv.str(sample_info_line);
-            conv >> sample >> condition;
-            if (conv.fail())
-            {
-                condition = ""; // empty string indicating the unique condition
-            }
-            if (preserved_cond_tags.find(condition) != preserved_cond_tags.cend())
-            {
-                throw std::domain_error("condition name (" + condition + ") is preserved by KaMRaT, please change another name for this condition");
-            }
-            auto ins = condi2lab_.insert({condition, 'A' + nb_condi_}); // try to add the condition into the condition dictionary
-            if (ins.second)                                             // if a new condition is added to the dictionary
-            {
-                ++nb_condi_;
-            }
-            if (!smp2lab_.insert({sample, ins.first->second}).second) // associate the sample with its condition label
-            {
-                throw std::domain_error("sample-info file has duplicated sample name: " + sample);
-            }
-            conv.clear();
+            ++nb_condi_;
         }
-        sample_info_file.close();
-        if (nb_condi_ != condi2lab_.size()) // should not happen, for debug
+        if (!smp2lab_.insert({sample, ins_pair.first->second}).second) // associate the sample with its condition label
         {
-            throw std::domain_error("number of condition not consistent");
+            throw std::domain_error("sample-info file has duplicated sample name: " + sample);
         }
+        conv.clear();
+    }
+    smp_info_file.close();
+    if (nb_condi_ != condi2lab_.size()) // should not happen, for debug
+    {
+        throw std::domain_error("number of condition not consistent");
     }
 }
 
-const void TabHeader::MakeColumnInfo(const std::string &header_line, const std::string &rep_colname)
+const void TabHeader::MakeColumnInfo(std::istringstream &line_conv, const std::string &rep_colname)
 {
-    if (header_line.empty()) // quit if header line is empty
-    {
-        throw std::domain_error("cannot parse column information with an empty header line");
-    }
-    std::istringstream conv(header_line);
     std::string term;
     // the first column is supposed to be feature string //
-    conv >> term;
+    line_conv >> term;
     colname_vect_.emplace_back(term);
-    colserial_vect_.emplace_back(nb_col_++); // place hoder: first column always as string
-    colnature_vect_.emplace_back('s'); // place hoder: first column always as string
+    colcondi_vect_.emplace_back(0);
     // following columns //
-    if (condi2lab_.empty()) // if sample info file NOT provided, then all next columns are samples
+    if (smp2lab_.empty())
     {
-        while (conv >> term)
+        while (line_conv >> term)
         {
             colname_vect_.emplace_back(term);
-            colnature_vect_.emplace_back('A');
-            colserial_vect_.emplace_back(nb_count_++);
-            ++nb_col_;
+            colcondi_vect_.emplace_back(1);
+            ++nb_count_;
         }
     }
-    else // sample info file provided => next columns may contain non-sample values
+    else
     {
-        while (conv >> term)
+        while (line_conv >> term)
         {
             colname_vect_.emplace_back(term);
-            auto iter = smp2lab_.find(term);
+            const auto &iter = smp2lab_.find(term);
             if (iter != smp2lab_.cend())
             {
-                colnature_vect_.emplace_back(iter->second);
-                colserial_vect_.emplace_back(nb_count_++);
+                colcondi_vect_.emplace_back(iter->second);
+                ++nb_count_;
             }
             else
             {
-                if (term == rep_colname)
+                if (rep_colname == term)
                 {
-                    rep_colpos_ = nb_col_;
+                    rep_colpos_ = colname_vect_.size() - 1; // minus 1 for the current column position
                 }
-                colnature_vect_.emplace_back('v');
-                colserial_vect_.emplace_back(nb_value_++);
+                colcondi_vect_.emplace_back(0);
             }
-            ++nb_col_;
         }
     }
-    if (nb_count_ == 0)
+    if (colcondi_vect_.size() != colname_vect_.size()) // should not happen, for debug
     {
-        throw std::domain_error("no sample column found");
-    }
-    if (nb_col_ != colname_vect_.size() || nb_col_ != colserial_vect_.size() || nb_col_ != colnature_vect_.size()) // should not happen, for debug
-    {
-        throw std::domain_error("colname, colserial, colnature sizes not coherent");
+        throw std::domain_error("colname and column condition sizes not coherent");
     }
 }
 
-const size_t TabHeader::GetNbValue() const
+const std::string &TabHeader::MakeOutputHeaderStr(std::string &header) const
 {
-    return nb_value_;
-}
-
-const size_t TabHeader::GetNbCount() const
-{
-    return nb_count_;
-}
-
-const size_t TabHeader::GetNbStr() const
-{
-    return nb_str_;
-}
-
-const size_t TabHeader::GetNbCol() const
-{
-    return nb_col_;
+    for (size_t i(0); i < colname_vect_.size(); ++i)
+    {
+        if (!IsCount(i))
+        {
+            header += colname_vect_[i];
+        }
+    }
+    for (size_t i(0); i < colname_vect_.size(); ++i)
+    {
+        if (IsCount(i))
+        {
+            header += colname_vect_[i];
+        }
+    }
+    return header;
 }
 
 const size_t TabHeader::GetNbCondition() const
@@ -128,94 +112,90 @@ const size_t TabHeader::GetNbCondition() const
     return nb_condi_;
 }
 
-const size_t TabHeader::GetRepColPos() const
-{
-    return rep_colpos_;
-}
-
-const char TabHeader::GetConditionLabel(const std::string &condi) const
+const size_t TabHeader::GetConditionLabel(const std::string &condi) const
 {
     auto iter = condi2lab_.find(condi);
     return (iter == condi2lab_.cend() ? iter->second : '\0');
 }
 
-const float TabHeader::ParseRowStr(std::vector<float> &count_vect, std::vector<float> &value_vect, std::istringstream &line_conv) const
+const size_t TabHeader::GetNbCol() const
 {
-    count_vect.reserve(nb_count_);
-    value_vect.reserve(nb_value_);
+    return colname_vect_.size();
+}
 
-    static std::string term;
-    line_conv >> term; // skip the first column which is k-mer/tag/contig/sequence
-    for (unsigned int i(1); i < nb_col_ && (line_conv >> term); ++i)
-    {
-        char nat_ch = colnature_vect_[i];
-        if (nat_ch == 'v') // v for values
-        {
-            value_vect.emplace_back(std::stof(std::move(term)));
-        }
-        else if (nat_ch >= 'A' && nat_ch <= 'Z') // A-Z for sample conditions, maximally support 26 conditions
-        {
-            count_vect.emplace_back(std::stof(std::move(term)));
-        }
-        else
-        {
-            throw std::invalid_argument("unknown column nature code: " + nat_ch);
-        }
-    }
-    if (line_conv >> term) // should not happen, for debug
-    {
-        throw std::domain_error("parsing string line to fields failed");
-    }
-    return (0 == rep_colpos_ ? 0 : value_vect[colserial_vect_[rep_colpos_]]);
+const size_t TabHeader::GetNbCount() const
+{
+    return nb_count_;
+}
+
+const size_t TabHeader::GetRepColPos() const
+{
+    return rep_colpos_;
 }
 
 const std::string &TabHeader::GetColNameAt(const size_t i) const
 {
-    if (i > nb_col_)
-    {
-        throw std::domain_error("getting column name with an index exceeds column number");
-    }
     return colname_vect_[i];
 }
 
-const char TabHeader::GetColNatureAt(const size_t i) const
+const bool TabHeader::IsCount(const size_t i) const
 {
-    if (i > nb_col_)
-    {
-        throw std::domain_error("getting column nature with an index exceeds column number");
-    }
-    return colnature_vect_[i];
+    return (colcondi_vect_[i] > 0);
 }
 
-const size_t TabHeader::GetColSerialAt(const size_t i) const
+const size_t TabHeader::GetColLabelAt(const size_t i) const
 {
-    if (i > nb_col_)
-    {
-        throw std::domain_error("getting column serial with an index exceeds column number");
-    }
-    return colserial_vect_[i];
+    return (colcondi_vect_[i]);
 }
 
-const bool TabHeader::IsSample(size_t i_col) const
+const float TabHeader::ParseRowStr(std::vector<float> &count_vect, std::string &non_count_str, std::istringstream &line_conv) const
 {
-    if (i_col > nb_col_)
+    count_vect.reserve(nb_count_);
+    float rep_val(0);
+    static std::string term;
+    line_conv >> term; // skip the first column which is k-mer/tag/contig/sequence
+    non_count_str += term;
+    for (size_t i(1); (i < colname_vect_.size()) && (line_conv >> term); ++i)
     {
-        throw std::domain_error("column number in search exceeds table's column number");
-    }
-    return (colnature_vect_[i_col] >= 'A' && colnature_vect_[i_col] <= 'Z');
-}
-
-const void TabHeader::ParseSmpLabels(std::vector<size_t> &smp_labels) const
-{
-    if (!smp_labels.empty())
-    {
-        throw std::domain_error("sample label vector not empty before adding sample labels");
-    }
-    for (size_t i(0); i < colnature_vect_.size(); ++i)
-    {
-        if (colnature_vect_[i] >= 'A' && colnature_vect_[i] <= 'Z')
+        if (IsCount(i))
         {
-            smp_labels.emplace_back(colnature_vect_[i] - 'A');
+            count_vect.emplace_back(std::stof(term));
         }
+        else
+        {
+            non_count_str += ("\t" + term);
+            if (i == rep_colpos_)
+            {
+                rep_val = std::stof(term);
+            }
+        }
+    }
+    if (count_vect.size() != nb_count_) // should not happen, for debug
+    {
+        throw std::domain_error("parsing string line to fields failed");
+    }
+    return rep_val;
+}
+
+const void TabHeader::GetSmpLabels(std::vector<size_t> &smp_labels) const
+{
+    for (size_t i(0); i < colcondi_vect_.size(); ++i)
+    {
+        if (colcondi_vect_[i] > 0)
+        {
+            smp_labels.emplace_back(colcondi_vect_[i]);
+        }
+    }
+    if (smp_labels.size() != nb_count_) // should not happen, for debug
+    {
+        throw std::domain_error("parsing string line to fields failed");
+    }
+}
+
+const void TabHeader::PrintSmp2Lab() const
+{
+    for (const auto &p : smp2lab_)
+    {
+        std::cerr << p.first << "\t" << p.second << std::endl;
     }
 }

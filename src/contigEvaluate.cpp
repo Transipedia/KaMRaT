@@ -41,7 +41,7 @@
 
 const float MIN_DISTANCE = 0, MAX_DISTANCE = 1 - MIN_DISTANCE;
 
-void ScanCountTable(TabHeader &tab_header, featuretab_t &kmer_count_tab, code2serial_t &code2serial,
+void ScanCountTable(TabHeader &tab_header, countTab_t &kmer_count_tab, code2serial_t &code2serial,
                     const size_t k_len, const bool stranded,
                     const std::string &kmer_count_path, const std::string &idx_path)
 {
@@ -64,7 +64,8 @@ void ScanCountTable(TabHeader &tab_header, featuretab_t &kmer_count_tab, code2se
     std::string line, seq;
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::getline(kmer_count_instream, line);
-    tab_header.MakeColumnInfo(line, "");
+    std::istringstream conv(line);
+    tab_header.MakeColumnInfo(conv, "");
     //----- Dealing with Following k-mer Count Lines -----//
     std::ofstream idx_file;
     if (!idx_path.empty())
@@ -75,12 +76,10 @@ void ScanCountTable(TabHeader &tab_header, featuretab_t &kmer_count_tab, code2se
             throw std::domain_error("error open file: " + idx_path);
         }
     }
-    std::istringstream conv;
-    float _;
     for (size_t iline(0); std::getline(kmer_count_instream, line); ++iline)
     {
         conv.str(line);
-        kmer_count_tab.emplace_back(conv, idx_file, _, tab_header);
+        kmer_count_tab.emplace_back(conv, idx_file, tab_header);
         seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
         if (seq.size() != k_len)
         {
@@ -141,7 +140,7 @@ void EstablishSeqListFromMultilineFasta(std::unordered_map<std::string, std::str
 
 const void EvaluatePrintSeqElemFarthest(const std::string &name, const std::string &seq,
                                         const size_t k_len, const bool stranded, const std::string &eval_method,
-                                        const featuretab_t &kmer_count_tab, const code2serial_t &code2serial,
+                                        const countTab_t &kmer_count_tab, const code2serial_t &code2serial,
                                         const std::string &idx_path, const size_t nb_count)
 {
     static std::vector<float> pred_count_vect, succ_count_vect;
@@ -176,7 +175,7 @@ const void EvaluatePrintSeqElemFarthest(const std::string &name, const std::stri
 
 const void EvaluatePrintSeqElemWorstAdj(const std::string &name, const std::string &seq,
                                         const size_t k_len, const bool stranded, const std::string &eval_method,
-                                        const featuretab_t &kmer_count_tab, const code2serial_t &code2serial,
+                                        const countTab_t &kmer_count_tab, const code2serial_t &code2serial,
                                         const std::string &idx_path, const size_t nb_count)
 {
     static std::vector<float> pred_count_vect, succ_count_vect;
@@ -249,7 +248,7 @@ int main(int argc, char **argv)
     inter_time = clock();
 
     TabHeader tab_header(colname_list_path);
-    featuretab_t kmer_count_tab;
+    countTab_t kmer_count_tab;
     code2serial_t code2serial;
     ScanCountTable(tab_header, kmer_count_tab, code2serial, k_len, stranded, kmer_count_path, idx_path);
 

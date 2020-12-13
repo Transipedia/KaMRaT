@@ -19,7 +19,7 @@
 #include "run_info_parser/merge.hpp"
 #include "run_info_parser/utils.hpp"
 
-void ScanCountTable(countTab_t &feature_tab, TabHeader &tab_header,
+void ScanCountTable(countTab_t &count_tab, TabHeader &tab_header,
                     contigvect_t &contig_vect, code2serial_t &code2serial,
                     const size_t k_len, const bool stranded,
                     const std::string &kmer_count_path,
@@ -43,10 +43,10 @@ void ScanCountTable(countTab_t &feature_tab, TabHeader &tab_header,
     std::istream kmer_count_instream(&inbuf);
 
     std::string line, seq;
-    //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::getline(kmer_count_instream, line);
-    tab_header.MakeColumnInfo(line, rep_colname);
-    //----- Dealing with Following k-mer Count Lines -----//
+    std::istringstream conv(line);
+    tab_header.MakeColumnInfo(conv, "");
+
     std::ofstream idx_file;
     if (!idx_path.empty())
     {
@@ -56,12 +56,10 @@ void ScanCountTable(countTab_t &feature_tab, TabHeader &tab_header,
             throw std::domain_error("error open file: " + idx_path);
         }
     }
-    std::istringstream conv;
-    float rep_val;
     for (size_t iline(0); std::getline(kmer_count_instream, line); ++iline)
     {
         conv.str(line);
-        feature_tab.emplace_back(conv, idx_file, rep_val, tab_header);
+        count_tab.emplace_back(conv, idx_file, tab_header);
         seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
         if (seq.size() != k_len)
         {
@@ -78,7 +76,7 @@ void ScanCountTable(countTab_t &feature_tab, TabHeader &tab_header,
         }
         else
         {
-            contig_vect.emplace_back(std::move(seq), rep_val, kmer_uniqcode, iline);
+            contig_vect.emplace_back(std::move(seq), count_tab[iline].GetValue(), kmer_uniqcode, iline);
         }
         conv.clear();
     }
@@ -86,7 +84,7 @@ void ScanCountTable(countTab_t &feature_tab, TabHeader &tab_header,
     {
         idx_file.close();
     }
-    feature_tab.shrink_to_fit();
+    count_tab.shrink_to_fit();
     contig_vect.shrink_to_fit();
     kmer_count_file.close();
 }
@@ -128,7 +126,7 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list,
 
 const bool DoExtension(contigvect_t &contig_vect,
                        const fix2knot_t &hashed_mergeknot_list,
-                       countTab_t &feature_tab,
+                       countTab_t &count_tab,
                        const size_t n_overlap,
                        const std::string &interv_method, const float interv_thres,
                        std::ifstream &idx_file, const size_t nb_counts)
@@ -148,8 +146,8 @@ const bool DoExtension(contigvect_t &contig_vect,
             continue;
         }
         bool is_pred_rc = mk.second.IsRC("pred"), is_succ_rc = mk.second.IsRC("succ");
-        const TabElem &pred_feature_elem = feature_tab[pred_contig.GetRearKMerSerial(is_pred_rc)],
-                      &succ_feature_elem = feature_tab[succ_contig.GetHeadKMerSerial(is_succ_rc)];
+        const TabElem &pred_feature_elem = count_tab[pred_contig.GetRearKMerSerial(is_pred_rc)],
+                      &succ_feature_elem = count_tab[succ_contig.GetHeadKMerSerial(is_succ_rc)];
 
         if (interv_method != "none" &&
             CalcXDist(pred_feature_elem.GetCountVect(pred_count_vect, idx_file, nb_counts),
@@ -188,7 +186,7 @@ const bool DoExtension(contigvect_t &contig_vect,
 }
 
 void PrintContigList(const contigvect_t &contig_vect,
-                     TabHeader &tab_header, countTab_t &feature_tab, const code2serial_t &code2serial,
+                     TabHeader &tab_header, countTab_t &count_tab, const code2serial_t &code2serial,
                      const size_t k_len, const std::string &quant_mode,
                      std::ifstream &idx_file, const std::string &out_path)
 {
@@ -207,7 +205,8 @@ void PrintContigList(const contigvect_t &contig_vect,
         std::cout.rdbuf(out_file.rdbuf());
     }
 
-    std::cout << "contig\tnb_merged_kmers";
+    std::string output_row_str;
+    std::cout << "contig\tnb_merged_kmers\t" << tab_header.MakeOutputHeaderStr(output_row_str) << std::endl;
     for (size_t i(0); i < tab_header.GetNbCol(); ++i)
     {
         std::cout << "\t" << tab_header.GetColNameAt(i);
@@ -215,56 +214,44 @@ void PrintContigList(const contigvect_t &contig_vect,
     std::cout << std::endl;
 
     std::string rep_kmer_seq;
-    size_t rep_uniqcode, rep_serial, nb_count = tab_header.GetNbCount(), nb_value = tab_header.GetNbValue();
-    std::vector<float> count_vect, value_vect, count_vect_x, value_vect_x;
-    for (const auto &elem : contig_vect)
+    size_t rep_uniqcode, rep_serial, nb_count = tab_header.GetNbCount();
+    if (quant_mode == "rep")
     {
-        rep_uniqcode = elem.GetRepUniqcode();
-        rep_serial = code2serial.find(rep_uniqcode)->second;
-        Int2Seq(rep_kmer_seq, rep_uniqcode, k_len);
-
-        if (quant_mode == "rep")
+        for (const auto &elem : contig_vect)
         {
-            feature_tab[rep_serial].GetVectsAndClear(count_vect, value_vect, idx_file, nb_count, nb_value);
+            rep_uniqcode = elem.GetRepUniqcode();
+            rep_serial = code2serial.find(rep_uniqcode)->second;
+            Int2Seq(rep_kmer_seq, rep_uniqcode, k_len);
+            std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq << "\t"
+                      << count_tab[rep_serial].MakeOutputRowStr(output_row_str, idx_file, nb_count) << std::endl;
         }
-        else if (quant_mode == "mean")
+    }
+    else if (quant_mode == "mean" || quant_mode == "median")
+    {
+        std::vector<float> count_vect;
+        std::vector<std::vector<float>> count_vect_vect;
+        for (const auto &elem : contig_vect)
         {
-            count_vect.assign(nb_count, 0);
+            rep_uniqcode = elem.GetRepUniqcode();
+            rep_serial = code2serial.find(rep_uniqcode)->second;
+            Int2Seq(rep_kmer_seq, rep_uniqcode, k_len);
+            count_vect_vect.resize(nb_count, std::vector<float>(elem.GetNbKMer()));
             for (size_t rs : elem.GetMemKMerSerialVect())
             {
-                feature_tab[rs].GetVectsAndClear(count_vect_x, value_vect_x, idx_file, nb_count, nb_value);
-                for (size_t col_serial(0); col_serial < nb_count; ++col_serial)
+                count_tab[rs].GetCountVect(count_vect, idx_file, nb_count);
+                for (size_t i(0); i < nb_count; ++i)
                 {
-                    count_vect[col_serial] += count_vect_x[col_serial];
-                }
-                if (rs == rep_serial)
-                {
-                    value_vect = std::move(value_vect_x);
+                    count_vect_vect[i].emplace_back(count_vect[i]);
                 }
             }
-            for (size_t col_serial(0); col_serial < nb_count; ++col_serial)
-            {
-                count_vect[col_serial] /= elem.GetMemKMerSerialVect().size();
-            }
+            std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq << "\t"
+                      << count_tab[rep_serial].MakeOutputRowStr(output_row_str, CalcVectsRes(count_vect, count_vect_vect, quant_mode), idx_file)
+                      << std::endl;
         }
-        else
-        {
-            throw std::domain_error("unknown quant mode: " + quant_mode);
-        }
-        std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t" << rep_kmer_seq;
-        for (size_t i(1); i < tab_header.GetNbCol(); ++i)
-        {
-            size_t col_serial = tab_header.GetColSerialAt(i);
-            if (tab_header.GetColNatureAt(i) >= 'A' && tab_header.GetColNatureAt(i) <= 'Z') // count column => output according to quant_mode
-            {
-                std::cout << "\t" << count_vect[col_serial];
-            }
-            else if (tab_header.GetColNatureAt(i) == 'v') // value column => output that related with rep-k-mer
-            {
-                std::cout << "\t" << value_vect[col_serial];
-            }
-        }
-        std::cout << std::endl;
+    }
+    else
+    {
+        throw std::domain_error("unknown quant mode: " + quant_mode);
     }
 
     std::cout.rdbuf(backup_buf);
@@ -292,11 +279,11 @@ int MergeMain(int argc, char **argv)
     contigvect_t contig_vect;            // list of contigs for extension
     code2serial_t code2serial;           // from contig's representative k-mer code to serial number in contig list
     TabHeader tab_header(smp_info_path); // the header of feature table
-    countTab_t feature_tab;            // feature count table
+    countTab_t count_tab;                // feature count table
 
-    ScanCountTable(feature_tab, tab_header, contig_vect, code2serial, k_len, stranded, kmer_count_path, rep_colname, idx_path);
+    ScanCountTable(count_tab, tab_header, contig_vect, code2serial, k_len, stranded, kmer_count_path, rep_colname, idx_path);
 
-    std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
+    std::cerr << "Count table scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
     std::ifstream idx_file;
@@ -326,7 +313,7 @@ int MergeMain(int argc, char **argv)
             //         std::cout << fix << ": " << contig_pred << " ======= " << contig_succ << std::endl;
             //     }
             // }
-            has_new_extensions = DoExtension(contig_vect, hashed_mergeknot_list, feature_tab, n_overlap, interv_method, interv_thres, idx_file, tab_header.GetNbCount());
+            has_new_extensions = DoExtension(contig_vect, hashed_mergeknot_list, count_tab, n_overlap, interv_method, interv_thres, idx_file, tab_header.GetNbCount());
             contig_vect.erase(std::remove_if(contig_vect.begin(), contig_vect.end(),
                                              [](const ContigElem &elem) { return elem.IsUsed(); }),
                               contig_vect.end());
@@ -338,7 +325,7 @@ int MergeMain(int argc, char **argv)
     std::cerr << "Contig extension finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    PrintContigList(contig_vect, tab_header, feature_tab, code2serial, k_len, quant_mode, idx_file, out_path);
+    PrintContigList(contig_vect, tab_header, count_tab, code2serial, k_len, quant_mode, idx_file, out_path);
     if (idx_file.is_open())
     {
         idx_file.close();
