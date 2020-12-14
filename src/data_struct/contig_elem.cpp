@@ -28,22 +28,11 @@ static inline const void ReverseComplementSeq(std::string &seq)
     ToComplement(seq);
 }
 
-ContigElem::ContigElem(const std::string &seq, const float rep_value, const uint64_t init_uniqcode, const size_t init_serial)
-    : rep_uniqcode_(init_uniqcode), rep_value_(rep_value),
-      is_used_(false), seq_(seq),
-      head_kmer_serial_(init_serial), rear_kmer_serial_(init_serial)
+ContigElem::ContigElem(const std::string &seq, const size_t init_serial)
+    : is_used_(false), seq_(seq),
+      head_kmer_serial_(init_serial), rep_kmer_serial_(init_serial), rear_kmer_serial_(init_serial)
 {
     mem_kmer_serial_vect_.push_back(init_serial);
-}
-
-const uint64_t ContigElem::GetRepUniqcode() const
-{
-    return rep_uniqcode_;
-}
-
-const float ContigElem::GetRepValue() const
-{
-    return rep_value_;
 }
 
 const bool ContigElem::IsUsed() const
@@ -69,6 +58,11 @@ const unsigned int ContigElem::GetNbKMer() const
 const size_t ContigElem::GetHeadKMerSerial(const bool if_need_reverse) const
 {
     return (if_need_reverse ? rear_kmer_serial_ : head_kmer_serial_);
+}
+
+const uint64_t ContigElem::GetRepKMerSerial() const
+{
+    return rep_kmer_serial_;
 }
 
 const size_t ContigElem::GetRearKMerSerial(const bool if_need_reverse) const

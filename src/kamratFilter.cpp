@@ -93,6 +93,7 @@ void ScanCountTab(TabHeader &tab_header,
     std::getline(kmer_count_instream, line);
     std::istringstream conv(line);
     tab_header.MakeColumnInfo(conv, "");
+    conv.clear();
     std::cout << line << std::endl;
 
     size_t express_label = (express_level == "cond" ? tab_header.GetConditionLabel(express_name) : '\0'),

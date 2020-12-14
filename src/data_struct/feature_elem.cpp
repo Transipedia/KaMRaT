@@ -1,7 +1,7 @@
 #include "feature_elem.hpp"
 
-FeatureElem::FeatureElem(std::vector<float> &count_vect, std::string &non_count_str, const float value, std::ofstream &idx_file)
-    : TabElem(count_vect, non_count_str, value, idx_file)
+FeatureElem::FeatureElem(std::istringstream &line_conv, std::vector<float> &count_vect, std::ofstream &idx_file, const TabHeader &tab_header)
+    : TabElem(line_conv, count_vect, idx_file, tab_header)
 {
 }
 

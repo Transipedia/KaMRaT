@@ -10,9 +10,9 @@ TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file, const T
     {
         idx_file.write(reinterpret_cast<char *>(&count_vect_[0]), count_vect_.size() * sizeof(count_vect_[0])); // first counts columns
         idx_file << non_count_str_ << std::endl;                                                                // then non-count columns
-        std::vector<float>(std::move(count_vect_));                                                             // clear and reallocate the vector
-        std::string(std::move(non_count_str_));                                                                 // clear and reallocate the vector
-        std::cout << count_vect_.capacity() << "\t" << non_count_str_.capacity() << std::endl;
+        std::vector<float>().swap(count_vect_);                                                                 // clear and reallocate the vector
+        std::string().swap(non_count_str_);                                                                     // clear and reallocate the vector
+        // std::cout << count_vect_.capacity() << "\t" << non_count_str_.capacity() << std::endl;
     }
     else
     {
@@ -21,19 +21,17 @@ TabElem::TabElem(std::istringstream &line_conv, std::ofstream &idx_file, const T
     }
 }
 
-TabElem::TabElem(std::vector<float> &count_vect, std::string &non_count_str, const float value, std::ofstream &idx_file)
+TabElem::TabElem(std::istringstream &line_conv, std::vector<float> &count_vect, std::ofstream &idx_file, const TabHeader &tab_header)
 {
     idx_pos_ = (idx_file.is_open() ? static_cast<size_t>(idx_file.tellp()) : 0);
-    value_ = value;
+    value_ = tab_header.ParseRowStr(count_vect, non_count_str_, line_conv);
     if (idx_file.is_open())
     {
         idx_file.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(count_vect[0])); // first counts columns
-        idx_file << non_count_str << std::endl;                                                              // then non-count columns
-        std::vector<float>(std::move(count_vect));                                                           // clear and reallocate the vector
-        std::string(std::move(non_count_str));                                                               // clear and reallocate the vector
-        std::cout << count_vect.capacity() << "\t" << non_count_str.capacity() << std::endl;
+        idx_file << non_count_str_ << std::endl;                                                             // then non-count columns
+        std::string().swap(non_count_str_);                                                                  // clear and reallocate the vector
     }
-    else
+    else // should not happen, for debug
     {
         throw std::domain_error("Forcing indexing without index file opened");
     }
@@ -41,6 +39,7 @@ TabElem::TabElem(std::vector<float> &count_vect, std::string &non_count_str, con
 
 const std::string &TabElem::MakeOutputRowStr(std::string &row_str, std::ifstream &idx_file, const size_t nb_count)
 {
+    row_str.clear();
     if (idx_file.is_open())
     {
         count_vect_.resize(nb_count);
@@ -57,7 +56,8 @@ const std::string &TabElem::MakeOutputRowStr(std::string &row_str, std::ifstream
 
 const std::string &TabElem::MakeOutputRowStr(std::string &row_str, const std::vector<float> &count_vect, std::ifstream &idx_file)
 {
-    size_t nb_count = count_vect.size();
+    row_str.clear();
+    const size_t nb_count = count_vect.size();
     GetNonCountStr(row_str, idx_file, nb_count);
     for (size_t i(0); i < nb_count; ++i)
     {
@@ -73,31 +73,33 @@ const float TabElem::GetValue() const
 
 const std::vector<float> &TabElem::GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, const size_t nb_count) const
 {
+    count_vect.clear();
     if (idx_file.is_open())
     {
         count_vect.resize(nb_count);
         idx_file.seekg(idx_pos_);
         idx_file.read(reinterpret_cast<char *>(&count_vect[0]), nb_count * sizeof(count_vect[0]));
-        return count_vect;
     }
     else
     {
-        return count_vect_;
+        count_vect = count_vect_;
     }
+    return count_vect;
 }
 
 const std::string &TabElem::GetNonCountStr(std::string &non_count_str, std::ifstream &idx_file, const size_t nb_count) const
 {
+    non_count_str.clear();
     if (idx_file.is_open())
     {
         idx_file.seekg(idx_pos_ + nb_count * sizeof(decltype(count_vect_)::value_type));
         std::getline(idx_file, non_count_str);
-        return non_count_str;
     }
     else
     {
-        return non_count_str_;
+        non_count_str = non_count_str_;
     }
+    return non_count_str;
 }
 
 const size_t TabElem::GetIdxPos() const

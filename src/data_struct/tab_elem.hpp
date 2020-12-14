@@ -12,11 +12,11 @@
 class TabElem
 {
 public:
-    TabElem(std::istringstream &line_conv, std::ofstream &idx_file, const TabHeader &tab_header);              // Index the table row
-    TabElem(std::vector<float> &count_vect, std::string &non_count_str, float value, std::ofstream &idx_file); // Index with given vector, string, and value
+    TabElem(std::istringstream &line_conv, std::ofstream &idx_file, const TabHeader &tab_header);                                 // Index the table row
+    TabElem(std::istringstream &line_conv, std::vector<float> &count_vect, std::ofstream &idx_file, const TabHeader &tab_header); // Index with given vector, string, and value
 
     /* Reorganize header string: firstly non-count columns, then count columns */
-    const std::string &MakeOutputRowStr(std::string &row_str, std::ifstream &idx_file, size_t nb_count); // with indexed info
+    const std::string &MakeOutputRowStr(std::string &row_str, std::ifstream &idx_file, size_t nb_count);                      // with indexed info
     const std::string &MakeOutputRowStr(std::string &row_str, const std::vector<float> &count_vect, std::ifstream &idx_file); // with given count vector
 
     const float GetValue() const;                                                                                           // Get row value

@@ -85,22 +85,16 @@ inline float CalcSpearmanDist(const std::vector<countT> &x, const std::vector<co
 template <typename countT>
 inline float CalcMACDist(const std::vector<countT> &x, const std::vector<countT> &y)
 {
-    static std::vector<float> ctrst;
     const size_t nb_sample(x.size());
-    ctrst.resize(nb_sample);
+    float ctrst = 0.0;
     for (size_t i(0); i < nb_sample; ++i)
     {
-        if (x[i] == y[i]) // including the case when x[i] = y[i] = 0
+        if (x[i] != y[i]) // if x[i] == y[i], then ctrst += 0.0
         {
-            ctrst[i] = 0.0;
-        }
-        else
-        {
-            ctrst[i] = fabs(static_cast<float>(x[i] - y[i])) / (x[i] + y[i]);
+            ctrst += fabs(static_cast<float>(x[i] - y[i])) / (x[i] + y[i]);
         }
     }
-    ctrst.clear();
-    return CalcVectMean(ctrst);
+    return (ctrst / nb_sample);
 }
 
 template <typename countT>

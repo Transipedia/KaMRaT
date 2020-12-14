@@ -2,6 +2,7 @@
 #define KMEREVALUATE_EVALMETHODS_H
 
 #include <cmath>
+#include <iostream>
 
 #include "mlpack/core/cv/k_fold_cv.hpp"
 #include "mlpack/core/cv/metrics/f1.hpp"
@@ -125,7 +126,7 @@ void Scorer::LoadSampleCount(const std::vector<float> &count_vect, const std::ve
         sample_counts_(0, i) = nf_vect[i] * (count_vect[i] + 1);
     }
     sample_counts_.print("Normalized sample counts: ");
-    for (size_t i(0); i < nb_class_; ++i)
+    for (size_t i(1); i <= nb_class_; ++i)
     {
         condi_sample_counts_.emplace_back(sample_counts_.elem(arma::find(sample_labels_ == i)));
     }

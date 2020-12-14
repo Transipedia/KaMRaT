@@ -10,7 +10,7 @@
 class FeatureElem : public TabElem
 {
 public:
-    FeatureElem(std::vector<float> &count_vect, std::string &non_count_str, float value, std::ofstream &idx_file);
+    FeatureElem(std::istringstream &line_conv, std::vector<float> &count_vect, std::ofstream &idx_file, const TabHeader &tab_header);
 
     const void EvalFeatureElem(const std::unique_ptr<Scorer> &scorer);
     void ScaleValue(float fact, float lower_lim, float upper_lim);

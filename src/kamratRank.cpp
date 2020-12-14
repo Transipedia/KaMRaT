@@ -40,7 +40,7 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     std::getline(kmer_count_instream, line);
     std::istringstream conv(line);
     tab_header.MakeColumnInfo(conv, "");
-    nf_vect.resize(tab_header.GetNbCount(), 0);
+    conv.clear();
     std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
 
     std::ofstream idx_file(idx_path);
@@ -48,22 +48,19 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     {
         throw std::domain_error("error open file: " + idx_path);
     }
-    float score;
     std::vector<float> count_vect;
-    std::string non_count_str;
+    nf_vect.resize(tab_header.GetNbCount(), 0);
     double mean_sample_sum(0); // mean of sample-sum vector
     while (std::getline(kmer_count_instream, line))
     {
         conv.str(line);
-        score = tab_header.ParseRowStr(count_vect, non_count_str, conv);
-        feature_vect.emplace_back(count_vect, non_count_str, score, idx_file);
+        feature_vect.emplace_back(conv, count_vect, idx_file, tab_header);
         for (size_t i(0); i < count_vect.size(); ++i)
         {
             nf_vect[i] += (count_vect[i] + 1);      // + 1 for we will add an offset 1 to raw count for avoiding log(0)
             mean_sample_sum += (count_vect[i] + 1); // + 1 for we will add an offset 1 to raw count for avoiding log(0)
         }
         count_vect.clear();
-        non_count_str.clear();
         conv.clear();
     }
     mean_sample_sum /= nf_vect.size(); // mean of sample-sum vector
@@ -75,6 +72,21 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     idx_file.close();
 }
 
+void PrintNF(const std::string &smp_sum_outpath,
+             const std::vector<double> &nf_vect,
+             const TabHeader &tab_header)
+{
+    std::ofstream sum_out(smp_sum_outpath);
+    for (size_t i(1), j(0); i < tab_header.GetNbCol(); ++i)
+    {
+        if (tab_header.IsCount(i))
+        {
+            sum_out << tab_header.GetColNameAt(i) << "\t" << nf_vect[j++] << std::endl;
+        }
+    }
+    sum_out.close();
+}
+
 void EvalScore(featureVect_t &feature_vect,
                std::ifstream &idx_file, const std::vector<double> nf_vect,
                const std::unique_ptr<Scorer> &scorer, const bool ln_transf, const bool standardize)
@@ -84,10 +96,6 @@ void EvalScore(featureVect_t &feature_vect,
     for (size_t i_feature(0); i_feature < feature_vect.size(); ++i_feature)
     {
         feature_vect[i_feature].GetCountVect(count_vect, idx_file, nb_count);
-        for (size_t i_smp(0); i_smp < count_vect.size(); ++i_smp)
-        {
-            count_vect[i_smp] = (count_vect[i_smp] + 1) * nf_vect[i_smp];
-        }
         scorer->LoadSampleCount(count_vect, nf_vect);
         if (scorer->GetScoreMethod() != "user") // user scoring mode but not find a score column
         {
@@ -170,7 +178,8 @@ void ModelPrint(featureVect_t &feature_vect,
         std::cout << "\tnorm.mean" << static_cast<char>('A' + i);
     }
     std::string row_str;
-    std::cout << "\t" << tab_header.MakeOutputHeaderStr(row_str) << std::endl;
+    tab_header.MakeOutputHeaderStr(row_str);
+    std::cout << row_str.substr(row_str.find_first_of("\t")) << std::endl;
 
     size_t parsed_nb_sel = (nb_sel == 0) ? feature_vect.size() : nb_sel;
     std::string out_row_str;
@@ -179,8 +188,8 @@ void ModelPrint(featureVect_t &feature_vect,
     {
         feature_vect[i].MakeOutputRowStr(out_row_str, idx_file, tab_header.GetNbCount());
         split_pos = out_row_str.find_first_of("\t");
-        std::cout << out_row_str.substr(0, split_pos + 1) << feature_vect[i].GetValue();
-        for (float m : feature_vect[i].GetNormCondiMeans())
+        std::cout << out_row_str.substr(0, split_pos) << feature_vect[i].GetValue();
+        for (const float m : feature_vect[i].GetNormCondiMeans())
         {
             std::cout << "\t" << m;
         }
@@ -264,7 +273,8 @@ int RankMain(int argc, char *argv[])
     featureVect_t feature_vect;
     std::vector<double> smp_nf_vect;
     ScanCountComputeNF(feature_vect, smp_nf_vect, count_tab_header, count_tab_path, idx_path);
-    std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
+    PrintNF(nf_path, smp_nf_vect, count_tab_header);
+    std::cerr << "Count table scanning finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
     std::ifstream idx_file(idx_path);
@@ -272,7 +282,8 @@ int RankMain(int argc, char *argv[])
     {
         throw std::domain_error("error open sample count index file: " + idx_path);
     }
-    std::cerr << "Count table scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
+    EvalScore(feature_vect, idx_file, smp_nf_vect, scorer, ln_transf, standardize);
+    std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
     SortScore(feature_vect, scorer->GetSortMode());

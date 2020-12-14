@@ -86,22 +86,28 @@ const void TabHeader::MakeColumnInfo(std::istringstream &line_conv, const std::s
     {
         throw std::domain_error("colname and column condition sizes not coherent");
     }
+    // for (const auto c : colcondi_vect_)
+    // {
+    //     std::cout << c << std::endl;
+    // }
 }
 
 const std::string &TabHeader::MakeOutputHeaderStr(std::string &header) const
 {
-    for (size_t i(0); i < colname_vect_.size(); ++i)
+    header.clear();
+    header = colname_vect_[0];
+    for (size_t i(1); i < colname_vect_.size(); ++i)
     {
         if (!IsCount(i))
         {
-            header += colname_vect_[i];
+            header += ("\t" + colname_vect_[i]);
         }
     }
-    for (size_t i(0); i < colname_vect_.size(); ++i)
+    for (size_t i(1); i < colname_vect_.size(); ++i)
     {
         if (IsCount(i))
         {
-            header += colname_vect_[i];
+            header += ("\t" + colname_vect_[i]);
         }
     }
     return header;
