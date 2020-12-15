@@ -31,11 +31,10 @@ public:
     const size_t GetRepColPos() const;                              // Position of representative value column
     const std::string &GetColNameAt(size_t i) const;                // Get column name at given column number
     const bool IsCount(size_t i_col) const;                         // Is given column number a count column
-    const size_t GetColLabelAt(size_t i) const;                     // Get column label at given column number
 
-    const float ParseRowStr(std::vector<float> &count_vect, std::string &non_count_str,
-                            std::istringstream &line_conv) const;   // Parse the table row string
-    const void GetSmpLabels(std::vector<size_t> &smp_labels) const; // Get sample labels
+    const double ParseRowStr(std::vector<float> &count_vect, std::string &non_count_str,
+                             std::istringstream &line_conv) const; // Parse the table row string
+    const std::vector<size_t> &GetSmpLabels() const;               // Get sample labels
 
     const void PrintSmp2Lab() const; // Print sample-label map, for debug
 
@@ -43,7 +42,8 @@ protected:
     size_t nb_count_, rep_colpos_, nb_condi_;                     // number of values, counts, strings, columns, conditions
     std::unordered_map<std::string, size_t> smp2lab_, condi2lab_; // sample name to label, condition name to label
     std::vector<std::string> colname_vect_;                       // column name vector parsed from the header line
-    std::vector<size_t> colcondi_vect_;                           // 0 means not a sample, positive number indicates condition
+    std::vector<bool> is_count_;                                  // 0 means not a sample, positive number indicates condition
+    std::vector<size_t> sample_labels_;                           // labels of sample columns
 };
 
 #endif //KAMRAT_DATASTRUCT_TABHEADER_HPP

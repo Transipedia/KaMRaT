@@ -41,15 +41,17 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     std::istringstream conv(line);
     tab_header.MakeColumnInfo(conv, "");
     conv.clear();
-    std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
 
     std::ofstream idx_file(idx_path);
     if (!idx_file.is_open()) // to ensure the file is opened
     {
         throw std::domain_error("error open file: " + idx_path);
     }
+    
     std::vector<float> count_vect;
     nf_vect.resize(tab_header.GetNbCount(), 0);
+    std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
+
     double mean_sample_sum(0); // mean of sample-sum vector
     while (std::getline(kmer_count_instream, line))
     {
@@ -66,7 +68,7 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     mean_sample_sum /= nf_vect.size(); // mean of sample-sum vector
     for (size_t i(0); i < nf_vect.size(); ++i)
     {
-        nf_vect[i] /= mean_sample_sum;
+        nf_vect[i] = mean_sample_sum / nf_vect[i];
     }
     raw_counts_file.close();
     idx_file.close();
@@ -89,10 +91,12 @@ void PrintNF(const std::string &smp_sum_outpath,
 
 void EvalScore(featureVect_t &feature_vect,
                std::ifstream &idx_file, const std::vector<double> nf_vect,
-               const std::unique_ptr<Scorer> &scorer, const bool ln_transf, const bool standardize)
+               std::unique_ptr<Scorer> &scorer, const TabHeader tab_header,
+               const bool ln_transf, const bool standardize)
 {
     size_t nb_count = nf_vect.size();
     std::vector<float> count_vect;
+    scorer->LoadSampleLabel(tab_header);
     for (size_t i_feature(0); i_feature < feature_vect.size(); ++i_feature)
     {
         feature_vect[i_feature].GetCountVect(count_vect, idx_file, nb_count);
@@ -188,7 +192,7 @@ void ModelPrint(featureVect_t &feature_vect,
     {
         feature_vect[i].MakeOutputRowStr(out_row_str, idx_file, tab_header.GetNbCount());
         split_pos = out_row_str.find_first_of("\t");
-        std::cout << out_row_str.substr(0, split_pos) << feature_vect[i].GetValue();
+        std::cout << out_row_str.substr(0, split_pos + 1) << feature_vect[i].GetValue();
         for (const float m : feature_vect[i].GetNormCondiMeans())
         {
             std::cout << "\t" << m;
@@ -282,7 +286,7 @@ int RankMain(int argc, char *argv[])
     {
         throw std::domain_error("error open sample count index file: " + idx_path);
     }
-    EvalScore(feature_vect, idx_file, smp_nf_vect, scorer, ln_transf, standardize);
+    EvalScore(feature_vect, idx_file, smp_nf_vect, scorer, count_tab_header, ln_transf, standardize);
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 

@@ -19,13 +19,13 @@ public:
     const std::string &MakeOutputRowStr(std::string &row_str, std::ifstream &idx_file, size_t nb_count);                      // with indexed info
     const std::string &MakeOutputRowStr(std::string &row_str, const std::vector<float> &count_vect, std::ifstream &idx_file); // with given count vector
 
-    const float GetValue() const;                                                                                           // Get row value
+    const double GetValue() const;                                                                                          // Get row value
     const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, size_t nb_count) const; // Get count vector
     const std::string &GetNonCountStr(std::string &non_count_str, std::ifstream &idx_file, size_t nb_count) const;          // Get non-count string
     const size_t GetIdxPos() const;                                                                                         // Get index position
 
 protected:
-    float value_;                   // representative value or score
+    double value_;                  // representative value or score
     std::vector<float> count_vect_; // count vector ------ only used in inMem
     std::string non_count_str_;     // non-count string ------ only used in inMem
     size_t idx_pos_;                // row index position ------ only used in onDsk

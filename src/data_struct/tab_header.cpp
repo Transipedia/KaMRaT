@@ -26,7 +26,7 @@ TabHeader::TabHeader(const std::string &smp_info_path)
         {
             condition = ""; // empty string indicating the unique condition
         }
-        const auto &ins_pair = condi2lab_.insert({condition, nb_condi_ + 1});
+        const auto &ins_pair = condi2lab_.insert({condition, nb_condi_});
         if (ins_pair.second) // if a new condition is added to the dictionary
         {
             ++nb_condi_;
@@ -50,14 +50,15 @@ const void TabHeader::MakeColumnInfo(std::istringstream &line_conv, const std::s
     // the first column is supposed to be feature string //
     line_conv >> term;
     colname_vect_.emplace_back(term);
-    colcondi_vect_.emplace_back(0);
+    is_count_.emplace_back(false);
     // following columns //
     if (smp2lab_.empty())
     {
         while (line_conv >> term)
         {
             colname_vect_.emplace_back(term);
-            colcondi_vect_.emplace_back(1);
+            is_count_.emplace_back(true);
+            sample_labels_.emplace_back(0);
             ++nb_count_;
         }
     }
@@ -69,7 +70,8 @@ const void TabHeader::MakeColumnInfo(std::istringstream &line_conv, const std::s
             const auto &iter = smp2lab_.find(term);
             if (iter != smp2lab_.cend())
             {
-                colcondi_vect_.emplace_back(iter->second);
+                is_count_.emplace_back(true);
+                sample_labels_.emplace_back(iter->second);
                 ++nb_count_;
             }
             else
@@ -78,18 +80,14 @@ const void TabHeader::MakeColumnInfo(std::istringstream &line_conv, const std::s
                 {
                     rep_colpos_ = colname_vect_.size() - 1; // minus 1 for the current column position
                 }
-                colcondi_vect_.emplace_back(0);
+                is_count_.emplace_back(false);
             }
         }
     }
-    if (colcondi_vect_.size() != colname_vect_.size()) // should not happen, for debug
+    if (is_count_.size() != colname_vect_.size() || sample_labels_.size() != nb_count_) // should not happen, for debug
     {
         throw std::domain_error("colname and column condition sizes not coherent");
     }
-    // for (const auto c : colcondi_vect_)
-    // {
-    //     std::cout << c << std::endl;
-    // }
 }
 
 const std::string &TabHeader::MakeOutputHeaderStr(std::string &header) const
@@ -146,18 +144,13 @@ const std::string &TabHeader::GetColNameAt(const size_t i) const
 
 const bool TabHeader::IsCount(const size_t i) const
 {
-    return (colcondi_vect_[i] > 0);
+    return is_count_[i];
 }
 
-const size_t TabHeader::GetColLabelAt(const size_t i) const
-{
-    return (colcondi_vect_[i]);
-}
-
-const float TabHeader::ParseRowStr(std::vector<float> &count_vect, std::string &non_count_str, std::istringstream &line_conv) const
+const double TabHeader::ParseRowStr(std::vector<float> &count_vect, std::string &non_count_str, std::istringstream &line_conv) const
 {
     count_vect.reserve(nb_count_);
-    float rep_val(0);
+    double rep_val(0);
     static std::string term;
     line_conv >> term; // skip the first column which is k-mer/tag/contig/sequence
     non_count_str += term;
@@ -183,19 +176,9 @@ const float TabHeader::ParseRowStr(std::vector<float> &count_vect, std::string &
     return rep_val;
 }
 
-const void TabHeader::GetSmpLabels(std::vector<size_t> &smp_labels) const
+const std::vector<size_t> &TabHeader::GetSmpLabels() const
 {
-    for (size_t i(0); i < colcondi_vect_.size(); ++i)
-    {
-        if (colcondi_vect_[i] > 0)
-        {
-            smp_labels.emplace_back(colcondi_vect_[i]);
-        }
-    }
-    if (smp_labels.size() != nb_count_) // should not happen, for debug
-    {
-        throw std::domain_error("parsing string line to fields failed");
-    }
+    return sample_labels_;
 }
 
 const void TabHeader::PrintSmp2Lab() const

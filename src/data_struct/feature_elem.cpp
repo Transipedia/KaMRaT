@@ -15,7 +15,7 @@ const void FeatureElem::EvalFeatureElem(const std::unique_ptr<Scorer> &scorer)
     }
 }
 
-void FeatureElem::ScaleValue(float fact, float lower_lim, float upper_lim)
+void FeatureElem::ScaleValue(double fact, double lower_lim, double upper_lim)
 {
     value_ *= fact;
     value_ = (value_ < lower_lim) ? lower_lim : value_;

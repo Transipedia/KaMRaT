@@ -66,7 +66,7 @@ const std::string &TabElem::MakeOutputRowStr(std::string &row_str, const std::ve
     return row_str;
 }
 
-const float TabElem::GetValue() const
+const double TabElem::GetValue() const
 {
     return value_;
 }

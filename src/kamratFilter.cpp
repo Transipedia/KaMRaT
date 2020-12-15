@@ -31,18 +31,18 @@ const bool IsSampleToCount(const std::string &this_level,
     {
         return true;
     }
-    else if (this_name == "rest" && other_level == "cond" && tab_header.GetColLabelAt(i_col) != other_label) // simples other than silent condition
-    {
-        return true;
-    }
+    // else if (this_name == "rest" && other_level == "cond" && tab_header.GetColLabelAt(i_col) != other_label) // simples other than silent condition
+    // {
+    //     return true;
+    // }
     else if (this_level == "smp" && tab_header.GetColNameAt(i_col) == this_name) // expressed sample
     {
         return true;
     }
-    else if (this_level == "cond" && tab_header.GetColLabelAt(i_col) == this_label) // samples in expressed condition
-    {
-        return true;
-    }
+    // else if (this_level == "cond" && tab_header.GetColLabelAt(i_col) == this_label) // samples in expressed condition
+    // {
+    //     return true;
+    // }
     return false;
 }
 

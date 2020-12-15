@@ -36,8 +36,8 @@ protected:
     const bool to_ln_, to_standardize_; // Evaluate Feature with count log transformed or standardized
     arma::Row<size_t> sample_labels_;   // sample labels
 
-    arma::mat sample_counts_;                       // temporary variables for reducing re-allocation
-    std::vector<arma::colvec> condi_sample_counts_; // temporary variables for reducing re-allocation
+    arma::mat sample_counts_;                  // temporary variables for reducing re-allocation
+    std::vector<arma::uvec> condi_sample_ind_; // temporary variables for reducing re-allocation
 };
 
 class SDScorer : public Scorer

@@ -111,42 +111,39 @@ void Scorer::LoadSampleLabel(const TabHeader &tab_header)
     {
         throw std::domain_error("Naive Bayes or regression classfiers only accept condition number >= 2");
     }
-    std::vector<size_t> label_vect;
-    tab_header.GetSmpLabels(label_vect);
-    sample_labels_ = arma::conv_to<arma::Row<size_t>>::from(label_vect); // each column is an observation
+    sample_labels_ = arma::conv_to<arma::Row<size_t>>::from(tab_header.GetSmpLabels());
 }
 
 void Scorer::LoadSampleCount(const std::vector<float> &count_vect, const std::vector<double> &nf_vect)
 {
-    condi_sample_counts_.clear();
+    condi_sample_ind_.clear();
     size_t nb_sample = count_vect.size();
     sample_counts_.zeros(1, nb_sample);
     for (size_t i = 0; i < nb_sample; ++i)
     {
         sample_counts_(0, i) = nf_vect[i] * (count_vect[i] + 1);
     }
-    sample_counts_.print("Normalized sample counts: ");
-    for (size_t i(1); i <= nb_class_; ++i)
+    for (size_t i(0); i < nb_class_; ++i)
     {
-        condi_sample_counts_.emplace_back(sample_counts_.elem(arma::find(sample_labels_ == i)));
+        condi_sample_ind_.emplace_back(arma::find(sample_labels_ == i));
     }
 }
 
 void Scorer::ClearSampleCount()
 {
     sample_counts_.clear();
-    for (size_t i(0); i < condi_sample_counts_.size(); ++i)
+    for (size_t i(0); i < condi_sample_ind_.size(); ++i)
     {
-        condi_sample_counts_[i].clear();
+        condi_sample_ind_[i].clear();
     }
-    condi_sample_counts_.clear();
+    condi_sample_ind_.clear();
 }
 
 const std::vector<float> &Scorer::CalcNormCondiMeans(std::vector<float> &norm_condi_means) const
 {
     for (size_t i(0); i < nb_class_; ++i)
     {
-        norm_condi_means.emplace_back(calc_stat(condi_sample_counts_[i], "mean"));
+        norm_condi_means.emplace_back(calc_stat(sample_counts_.elem(condi_sample_ind_[i]), "mean"));
     }
     return norm_condi_means;
 }
@@ -158,7 +155,7 @@ const void Scorer::TransformCounts() // first log then standardize
     {
         for (size_t i = 0; i < nb_sample; ++i)
         {
-            sample_counts_(0, i) = log(sample_counts_(0, i)); // an offset 1 had been added on the raw count
+            sample_counts_(0, i) = log(sample_counts_(0, i)); // an offset 1 had been added before normalization
         }
     }
     if (to_standardize_)
@@ -213,11 +210,11 @@ TtestScorer::TtestScorer(const std::string &sort_mode, const bool to_ln, const b
 
 const float TtestScorer::EvaluateScore() const
 {
-    size_t cond1_num = condi_sample_counts_[0].size(), cond2_num = condi_sample_counts_[1].size();
-    float cond1_mean = calc_stat(condi_sample_counts_[0], "mean"),
-          cond2_mean = calc_stat(condi_sample_counts_[1], "mean"),
-          cond1_sd = calc_stat(condi_sample_counts_[0], "sd"),
-          cond2_sd = calc_stat(condi_sample_counts_[1], "sd"), pvalue;
+    size_t cond1_num = condi_sample_ind_[0].size(), cond2_num = condi_sample_ind_[1].size();
+    float cond1_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "mean"),
+          cond2_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "mean"),
+          cond1_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "sd"),
+          cond2_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "sd"), pvalue;
     if (cond1_sd == 0 && cond2_sd == 0)
     {
         pvalue = 1;
@@ -252,10 +249,10 @@ EffectSizeScorer::EffectSizeScorer(const std::string &sort_mode, const bool to_l
 
 const float EffectSizeScorer::EvaluateScore() const
 {
-    float cond1_mean = calc_stat(condi_sample_counts_[0], "mean"),
-          cond2_mean = calc_stat(condi_sample_counts_[1], "mean"),
-          cond1_sd = calc_stat(condi_sample_counts_[0], "sd"),
-          cond2_sd = calc_stat(condi_sample_counts_[1], "sd"),
+    float cond1_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "mean"),
+          cond2_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "mean"),
+          cond1_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "sd"),
+          cond2_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "sd"),
           score = (cond2_mean - cond1_mean) / (cond1_sd + cond2_sd);
     return ((std::isnan(score) || std::isinf(score)) ? 0.0 : score);
 }
@@ -268,8 +265,8 @@ LFCScorer::LFCScorer(const std::string &score_cmd, const std::string &sort_mode,
 
 const float LFCScorer::EvaluateScore() const
 {
-    float cond1_val = calc_stat(condi_sample_counts_[0], score_cmd_),
-          cond2_val = calc_stat(condi_sample_counts_[1], score_cmd_),
+    float cond1_val = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), score_cmd_),
+          cond2_val = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), score_cmd_),
           score = log2(cond2_val / cond1_val);
     return ((std::isnan(score) || std::isinf(score)) ? 0.0 : score);
 }
