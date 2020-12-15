@@ -34,68 +34,74 @@
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include "utils/seq_coding.hpp"
-#include "data_struct/count_tab.hpp"
-#include "data_struct/seq_elem.hpp"
+#include "utils/vec_operation.hpp"
+#include "data_struct/tab_header.hpp"
+#include "data_struct/tab_elem.hpp"
 #include "run_info_parser/evaluate.hpp"
 
 const float MIN_DISTANCE = 0, MAX_DISTANCE = 1 - MIN_DISTANCE;
 
-void ScanCountTable(CountTab &kmer_count_tab,
-                    code2serial_t &code2serial,
-                    const std::string &kmer_count_path,
-                    const std::string &colname_list_path)
+void ScanCountTable(TabHeader &tab_header, countTab_t &kmer_count_tab, code2serial_t &code2serial,
+                    const size_t k_len, const bool stranded,
+                    const std::string &kmer_count_path, const std::string &idx_path)
 {
-    const bool stranded = kmer_count_tab.IsStranded();
     std::ifstream kmer_count_file(kmer_count_path);
     if (!kmer_count_file.is_open())
     {
         throw std::domain_error("k-mer count file " + kmer_count_path + " was not found");
     }
-    size_t pos = kmer_count_path.find_last_of(".");
     boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
-    if (pos != std::string::npos && kmer_count_path.substr(pos + 1) == "gz")
     {
-        inbuf.push(boost::iostreams::gzip_decompressor());
+        size_t pos = kmer_count_path.find_last_of(".");
+        if (pos != std::string::npos && kmer_count_path.substr(pos + 1) == "gz")
+        {
+            inbuf.push(boost::iostreams::gzip_decompressor());
+        }
     }
     inbuf.push(kmer_count_file);
     std::istream kmer_count_instream(&inbuf);
 
-    std::string line;
-    // dealing with the header line for parsing column names
+    std::string line, seq;
+    //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::getline(kmer_count_instream, line);
-    kmer_count_tab.MakeSmpCond(colname_list_path);
-    kmer_count_tab.MakeColumnInfo(line, "NULLFORNOSCORE");
-    // dealing with the count lines
-    const std::string idx_path = kmer_count_tab.GetIndexPath();
+    std::istringstream conv(line);
+    tab_header.MakeColumnInfo(conv, "");
+    //----- Dealing with Following k-mer Count Lines -----//
     std::ofstream idx_file;
     if (!idx_path.empty())
     {
         idx_file.open(idx_path);
-        if (!idx_file.is_open()) // to assure the file is opened
+        if (!idx_file.is_open()) // to ensure the file is opened
         {
             throw std::domain_error("error open file: " + idx_path);
         }
     }
-    for (size_t i(0); std::getline(kmer_count_instream, line); ++i)
+    for (size_t iline(0); std::getline(kmer_count_instream, line); ++iline)
     {
-        std::istringstream conv(line);
-        std::string term, seq;
-        conv >> seq; // first column is supposed to be the feature column
-        if (!code2serial.insert({Seq2Int(seq, seq.size(), stranded), i}).second)
+        conv.str(line);
+        kmer_count_tab.emplace_back(conv, idx_file, tab_header);
+        seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
+        if (seq.size() != k_len)
         {
-            throw std::domain_error("duplicated k-mer " + seq);
+            throw std::domain_error("the given k-len parameter not coherent with input k-mer: " + seq);
         }
-        float _;
-        kmer_count_tab.AddRowAsFields(_, line, idx_file); // don't need row score
+        uint64_t kmer_uniqcode = Seq2Int(seq, seq.size(), stranded);
+        if (!code2serial.insert({kmer_uniqcode, iline}).second)
+        {
+            throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
+        }
+        conv.clear();
     }
     if (idx_file.is_open())
     {
         idx_file.close();
     }
+    kmer_count_tab.shrink_to_fit();
     kmer_count_file.close();
 }
 
-void EstablishSeqListFromMultilineFasta(name2seq_t &name2seq, const std::string &contig_fasta_path)
+void EstablishSeqListFromMultilineFasta(std::unordered_map<std::string, std::string> &name2seq,
+                                        const std::string &contig_fasta_path)
 {
     std::ifstream contig_list_file(contig_fasta_path);
     if (!contig_list_file.is_open())
@@ -113,13 +119,13 @@ void EstablishSeqListFromMultilineFasta(name2seq_t &name2seq, const std::string 
         }
         else if (line[0] == '>') // reading in middle of the file
         {
-            name2seq.insert({seq_name, SeqElem(seq, nline, 0)});
+            name2seq.insert({seq_name, seq});
             seq_name = line.substr(1);
             seq.clear();
         }
         else if (contig_list_file.eof()) // reading the last line
         {
-            name2seq.insert({seq_name, SeqElem(seq, nline, 0)});
+            name2seq.insert({seq_name, seq});
             seq.clear();
             break;
         }
@@ -132,17 +138,13 @@ void EstablishSeqListFromMultilineFasta(name2seq_t &name2seq, const std::string 
     contig_list_file.close();
 }
 
-const void EvaluatePrintSeqElemFarthest(const std::string &name,
-                                        const std::string &seq,
-                                        const std::string &eval_method,
-                                        const CountTab &kmer_count_tab,
-                                        const code2serial_t &code2serial,
-                                        const std::string &idx_path)
+const void EvaluatePrintSeqElemFarthest(const std::string &name, const std::string &seq,
+                                        const size_t k_len, const bool stranded, const std::string &eval_method,
+                                        const countTab_t &kmer_count_tab, const code2serial_t &code2serial,
+                                        const std::string &idx_path, const size_t nb_count)
 {
+    static std::vector<float> pred_count_vect, succ_count_vect;
     std::ifstream idx_file(idx_path);
-
-    const size_t k_len = kmer_count_tab.GetKLen();
-    const bool stranded = kmer_count_tab.IsStranded();
     size_t start_pos1 = 0, start_pos2 = seq.size() - k_len;
     std::string kmer1 = seq.substr(start_pos1, k_len), kmer2 = seq.substr(start_pos2, k_len);
     while (start_pos1 < start_pos2 && code2serial.find(Seq2Int(kmer1, k_len, stranded)) == code2serial.cend())
@@ -163,23 +165,21 @@ const void EvaluatePrintSeqElemFarthest(const std::string &name,
     {
         auto iter1 = code2serial.find(Seq2Int(kmer1, k_len, stranded)),
              iter2 = code2serial.find(Seq2Int(kmer2, k_len, stranded));
-        std::cout << name << "\t" << kmer_count_tab.CalcCountDistance(iter1->second, iter2->second, eval_method, idx_file) << "\t"
-                  << kmer1 << "\t" << kmer2 << std::endl;
+        std::cout << name << "\t"
+                  << CalcXDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
+                               kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count), eval_method)
+                  << "\t" << kmer1 << "\t" << kmer2 << std::endl;
     }
     idx_file.close();
 }
 
-const void EvaluatePrintSeqElemWorstAdj(const std::string &name,
-                                        const std::string &seq,
-                                        const std::string &eval_method,
-                                        const CountTab &kmer_count_tab,
-                                        const code2serial_t &code2serial,
-                                        const std::string &idx_path)
+const void EvaluatePrintSeqElemWorstAdj(const std::string &name, const std::string &seq,
+                                        const size_t k_len, const bool stranded, const std::string &eval_method,
+                                        const countTab_t &kmer_count_tab, const code2serial_t &code2serial,
+                                        const std::string &idx_path, const size_t nb_count)
 {
+    static std::vector<float> pred_count_vect, succ_count_vect;
     std::ifstream idx_file(idx_path);
-
-    const size_t k_len = kmer_count_tab.GetKLen();
-    const bool stranded = kmer_count_tab.IsStranded();
     size_t seq_size = seq.size(), start_pos1 = 0, start_pos2;
     std::string kmer1, kmer2;
     float dist = MIN_DISTANCE - 1;
@@ -211,7 +211,8 @@ const void EvaluatePrintSeqElemWorstAdj(const std::string &name,
         {
             auto iter1 = code2serial.find(Seq2Int(kmer1_x, k_len, stranded)),
                  iter2 = code2serial.find(Seq2Int(kmer2_x, k_len, stranded));
-            dist_x = kmer_count_tab.CalcCountDistance(iter1->second, iter2->second, eval_method, idx_file);
+            dist_x = CalcXDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
+                               kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count), eval_method);
             if (dist_x > dist)
             {
                 dist = dist_x;
@@ -236,31 +237,32 @@ const void EvaluatePrintSeqElemWorstAdj(const std::string &name,
 int main(int argc, char **argv)
 {
     std::clock_t begin_time = clock(), inter_time;
-    std::string contig_fasta_path, eval_method, eval_mode, colname_list_path, idx_path, kmer_count_path;
+    std::string contig_fasta_path, eval_method, eval_mode, colname_list_path, idx_path, kmer_count_path, out_path;
     unsigned int k_len(31);
     bool stranded(true);
 
-    ParseOptions(argc, argv, contig_fasta_path, eval_method, eval_mode, idx_path, stranded, k_len, colname_list_path, kmer_count_path);
-    PrintRunInfo(contig_fasta_path, eval_method, eval_mode, idx_path, stranded, k_len, colname_list_path, kmer_count_path);
+    ParseOptions(argc, argv, contig_fasta_path, eval_method, eval_mode, idx_path, stranded, k_len, colname_list_path, out_path, kmer_count_path);
+    PrintRunInfo(contig_fasta_path, eval_method, eval_mode, idx_path, stranded, k_len, colname_list_path, out_path, kmer_count_path);
 
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    CountTab kmer_count_tab(k_len, stranded, idx_path);
+    TabHeader tab_header(colname_list_path);
+    countTab_t kmer_count_tab;
     code2serial_t code2serial;
-    ScanCountTable(kmer_count_tab, code2serial, kmer_count_path, colname_list_path);
+    ScanCountTable(tab_header, kmer_count_tab, code2serial, k_len, stranded, kmer_count_path, idx_path);
 
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    name2seq_t name2seq;
+    std::unordered_map<std::string, std::string> name2seq;
     EstablishSeqListFromMultilineFasta(name2seq, contig_fasta_path);
     std::cerr << "Number of sequence for evaluation: " << name2seq.size() << std::endl;
 
     std::cout << "name\teval_dist\tkmer1\tkmer2" << std::endl;
     for (const auto &ns_pair : name2seq)
     {
-        auto name = ns_pair.first, seq = ns_pair.second.GetSeq();
+        auto name = ns_pair.first, seq = ns_pair.second;
         if (seq.size() == k_len && code2serial.find(Seq2Int(seq, k_len, stranded)) != code2serial.cend()) // if seq is a k-mer and is in k-mer count table
         {
             std::cout << name << "\t" << MIN_DISTANCE << "\t" << seq << "\t" << seq << std::endl;
@@ -271,11 +273,11 @@ int main(int argc, char **argv)
         }
         else if (eval_mode == "farthest") // if seq has multiple k-mers, and evaluation mode is "farthest"
         {
-            EvaluatePrintSeqElemFarthest(name, seq, eval_method, kmer_count_tab, code2serial, idx_path);
+            EvaluatePrintSeqElemFarthest(name, seq, k_len, stranded, eval_method, kmer_count_tab, code2serial, idx_path, tab_header.GetNbCount());
         }
         else if (eval_mode == "worstAdj") // if seq has multiple k-mers, and evaluation mode is "worstAdj"
         {
-            EvaluatePrintSeqElemWorstAdj(name, seq, eval_method, kmer_count_tab, code2serial, idx_path);
+            EvaluatePrintSeqElemWorstAdj(name, seq, k_len, stranded, eval_method, kmer_count_tab, code2serial, idx_path, tab_header.GetNbCount());
         }
     }
 

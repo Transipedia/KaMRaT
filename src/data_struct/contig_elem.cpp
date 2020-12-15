@@ -28,11 +28,9 @@ static inline const void ReverseComplementSeq(std::string &seq)
     ToComplement(seq);
 }
 
-ContigElem::ContigElem(const std::string &seq, const float rep_value, const uint64_t init_uniqcode, const size_t init_serial)
-    : SeqElem(seq, init_uniqcode, rep_value),
-      is_used_(false),
-      head_kmer_serial_(init_serial),
-      rear_kmer_serial_(init_serial)
+ContigElem::ContigElem(const std::string &seq, const size_t init_serial)
+    : is_used_(false), seq_(seq),
+      head_kmer_serial_(init_serial), rep_kmer_serial_(init_serial), rear_kmer_serial_(init_serial)
 {
     mem_kmer_serial_vect_.push_back(init_serial);
 }
@@ -47,6 +45,11 @@ const void ContigElem::SetUsed()
     is_used_ = true;
 }
 
+const std::string &ContigElem::GetSeq() const
+{
+    return seq_;
+}
+
 const unsigned int ContigElem::GetNbKMer() const
 {
     return mem_kmer_serial_vect_.size();
@@ -55,6 +58,11 @@ const unsigned int ContigElem::GetNbKMer() const
 const size_t ContigElem::GetHeadKMerSerial(const bool if_need_reverse) const
 {
     return (if_need_reverse ? rear_kmer_serial_ : head_kmer_serial_);
+}
+
+const uint64_t ContigElem::GetRepKMerSerial() const
+{
+    return rep_kmer_serial_;
 }
 
 const size_t ContigElem::GetRearKMerSerial(const bool if_need_reverse) const
@@ -66,6 +74,7 @@ const std::vector<size_t> &ContigElem::GetMemKMerSerialVect() const
 {
     return mem_kmer_serial_vect_;
 }
+
 
 const void ContigElem::LeftExtend(const ContigElem &left_contig_elem, const bool need_left_rc, unsigned int n_overlap)
 {

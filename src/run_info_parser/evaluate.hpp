@@ -9,7 +9,7 @@
 inline void PrintHelper()
 {
     std::cerr << "========= kamratEvaluate helper =========" << std::endl;
-    std::cerr << "[Usage]    contigEvaluate -fasta STR -eval-method STR -idx-path STR [-unstrand] [-klen INT] [-smp-info STR] STR" << std::endl
+    std::cerr << "[Usage]    contigEvaluate -fasta STR -eval-method STR -idx-path STR [-options] KMER_COUNT_TAB" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h, -help           Print the helper" << std::endl;
     std::cerr << "            -fasta STR          Contig fasta file path (MANDATORY)" << std::endl;
@@ -20,7 +20,8 @@ inline void PrintHelper()
     std::cerr << "            -unstrand           If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
     std::cerr << "            -klen INT               k-mer length [31]" << std::endl;
     std::cerr << "            -smp-info STR       Sample-info path, either list or table with sample names as the first column" << std::endl
-              << "                                    if absent, all columns except the first one in k-mer count table are taken as samples" << std::endl
+              << "                                    if absent, all columns except the first one in k-mer count table are taken as samples" << std::endl;
+    std::cerr << "            -out-path STR       Output table path [default: output to screen]" << std::endl
               << std::endl;
 }
 
@@ -31,6 +32,7 @@ inline void PrintRunInfo(const std::string &contig_fasta_path,
                          const bool stranded,
                          const unsigned int k_length,
                          const std::string &colname_list_path,
+                         const std::string &out_path,
                          const std::string &kmer_count_path)
 {
     std::cerr << std::endl;
@@ -44,6 +46,14 @@ inline void PrintRunInfo(const std::string &contig_fasta_path,
     {
         std::cerr << "Colname list path:       " << colname_list_path << std::endl;
     }
+    if (!out_path.empty())
+    {
+        std::cerr << "Output path:             " << out_path << std::endl;
+    }
+    else
+    {
+        std::cerr << "Output to screen" << std::endl;
+    }
     std::cerr << "k-mer count path:        " << kmer_count_path << std::endl;
 }
 
@@ -56,6 +66,7 @@ inline void ParseOptions(int argc,
                          bool &stranded,
                          unsigned int &k_length,
                          std::string &colname_list_path,
+                         std::string &out_path,
                          std::string &kmer_count_path)
 {
     int i_opt = 1;
@@ -91,6 +102,10 @@ inline void ParseOptions(int argc,
         else if (arg == "-smp-info" && i_opt + 1 < argc)
         {
             colname_list_path = argv[++i_opt];
+        }
+        else if (arg == "-out-path" && i_opt + 1 < argc)
+        {
+            out_path = argv[++i_opt];
         }
         else
         {

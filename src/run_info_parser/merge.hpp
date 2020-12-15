@@ -8,7 +8,7 @@
 
 inline void PrintMergeHelper()
 {
-    std::cerr << "[Usage]    kamrat merge -klen INT [-options] KMER_COUNT_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat merge -klen INT [-options] KMER_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help              Print the helper" << std::endl;
     std::cerr << "            -klen INT             k-mer length (max_value: 32)" << std::endl;
@@ -21,7 +21,7 @@ inline void PrintMergeHelper()
     std::cerr << "            -quant-mode STR       Quantification mode (rep, mean) [rep]" << std::endl;
     std::cerr << "            -rep-name STR         Representative value column name, k-mer input order as rep-val by default" << std::endl;
     std::cerr << "            -disk STR             Query on disk, followed by index file path" << std::endl;
-    std::cerr << "            -out-path STR         Output contig count table path [default: std::cout (output to screen)]" << std::endl
+    std::cerr << "            -out-path STR         Output contig count table path [default: output to screen]" << std::endl
               << std::endl;
 }
 
@@ -151,7 +151,7 @@ inline void ParseOptions(int argc, char *argv[],
     if (k_len == 0)
     {
         PrintMergeHelper();
-        throw std::invalid_argument("k-mer length is missing");
+        throw std::invalid_argument("k-mer length is mandatory");
     }
 
     // dealing intervention method //
