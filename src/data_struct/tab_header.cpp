@@ -165,7 +165,7 @@ const double TabHeader::ParseRowStr(std::vector<float> &count_vect, std::string 
             non_count_str += ("\t" + term);
             if (i == rep_colpos_)
             {
-                rep_val = std::stof(term);
+                rep_val = std::stod(term);
             }
         }
     }
