@@ -24,7 +24,7 @@
 #define MET_SVM "svm.hingeloss"
 #define MET_USER "user"
 
-inline float calc_stat(const arma::mat &sample_counts, const std::string &stat_name)
+inline double calc_stat(const arma::mat &sample_counts, const std::string &stat_name)
 {
     if (stat_name == "mean")
     {
@@ -121,7 +121,7 @@ void Scorer::LoadSampleCount(const std::vector<float> &count_vect, const std::ve
     sample_counts_.zeros(1, nb_sample);
     for (size_t i = 0; i < nb_sample; ++i)
     {
-        sample_counts_(0, i) = nf_vect[i] * (count_vect[i] + 1);
+        sample_counts_(0, i) = nf_vect[i] * count_vect[i];
     }
     for (size_t i(0); i < nb_class_; ++i)
     {
@@ -155,7 +155,7 @@ const void Scorer::TransformCounts() // first log then standardize
     {
         for (size_t i = 0; i < nb_sample; ++i)
         {
-            sample_counts_(0, i) = log(sample_counts_(0, i)); // an offset 1 had been added before normalization
+            sample_counts_(0, i) = log(sample_counts_(0, i) + 1);
         }
     }
     if (to_standardize_)
@@ -173,7 +173,7 @@ const void Scorer::TransformCounts() // first log then standardize
     }
 }
 
-const float Scorer::EvaluateScore() const // no implement, but virtual method must be defined
+const double Scorer::EvaluateScore() const // no implement, but virtual method must be defined
 {
     return 0;
 }
@@ -184,9 +184,9 @@ SDScorer::SDScorer(const std::string &sort_mode, const bool to_ln, const bool to
 {
 }
 
-const float SDScorer::EvaluateScore() const
+const double SDScorer::EvaluateScore() const
 {
-    float sd = calc_stat(sample_counts_, "sd");
+    double sd = calc_stat(sample_counts_, "sd");
     return sd;
 }
 
@@ -196,9 +196,9 @@ RelatSDScorer::RelatSDScorer(const std::string &sort_mode, const bool to_ln, con
 {
 }
 
-const float RelatSDScorer::EvaluateScore() const
+const double RelatSDScorer::EvaluateScore() const
 {
-    float mean = calc_stat(sample_counts_, "mean"), sd = calc_stat(sample_counts_, "sd"), score = (mean <= 1 ? sd : sd / mean);
+    double mean = calc_stat(sample_counts_, "mean"), sd = calc_stat(sample_counts_, "sd"), score = (mean <= 1 ? sd : sd / mean);
     return ((std::isnan(score) || std::isinf(score)) ? 0.0 : score);
 }
 
@@ -208,23 +208,23 @@ TtestScorer::TtestScorer(const std::string &sort_mode, const bool to_ln, const b
 {
 }
 
-const float TtestScorer::EvaluateScore() const
+const double TtestScorer::EvaluateScore() const
 {
     size_t cond1_num = condi_sample_ind_[0].size(), cond2_num = condi_sample_ind_[1].size();
-    float cond1_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "mean"),
-          cond2_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "mean"),
-          cond1_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "sd"),
-          cond2_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "sd"), pvalue;
+    double cond1_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "mean"),
+           cond2_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "mean"),
+           cond1_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "sd"),
+           cond2_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "sd"), pvalue;
     if (cond1_sd == 0 && cond2_sd == 0)
     {
         pvalue = 1;
     }
     else
     {
-        float t1 = cond1_sd * cond1_sd / cond1_num,
-              t2 = cond2_sd * cond2_sd / cond2_num,
-              df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (cond1_num - 1) + t2 * t2 / (cond2_num - 1)),
-              t_stat = (cond1_mean - cond2_mean) / sqrt(t1 + t2);
+        double t1 = cond1_sd * cond1_sd / cond1_num,
+               t2 = cond2_sd * cond2_sd / cond2_num,
+               df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (cond1_num - 1) + t2 * t2 / (cond2_num - 1)),
+               t_stat = (cond1_mean - cond2_mean) / sqrt(t1 + t2);
         try
         {
             boost::math::students_t dist(df);
@@ -247,13 +247,13 @@ EffectSizeScorer::EffectSizeScorer(const std::string &sort_mode, const bool to_l
 {
 }
 
-const float EffectSizeScorer::EvaluateScore() const
+const double EffectSizeScorer::EvaluateScore() const
 {
-    float cond1_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "mean"),
-          cond2_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "mean"),
-          cond1_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "sd"),
-          cond2_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "sd"),
-          score = (cond2_mean - cond1_mean) / (cond1_sd + cond2_sd);
+    double cond1_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "mean"),
+           cond2_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "mean"),
+           cond1_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "sd"),
+           cond2_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "sd"),
+           score = (cond2_mean - cond1_mean) / (cond1_sd + cond2_sd);
     return ((std::isnan(score) || std::isinf(score)) ? 0.0 : score);
 }
 
@@ -263,11 +263,11 @@ LFCScorer::LFCScorer(const std::string &score_cmd, const std::string &sort_mode,
 {
 }
 
-const float LFCScorer::EvaluateScore() const
+const double LFCScorer::EvaluateScore() const
 {
-    float cond1_val = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), score_cmd_),
-          cond2_val = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), score_cmd_),
-          score = log2(cond2_val / cond1_val);
+    double cond1_val = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), score_cmd_),
+           cond2_val = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), score_cmd_),
+           score = log2(cond2_val / cond1_val);
     return ((std::isnan(score) || std::isinf(score)) ? 0.0 : score);
 }
 
@@ -329,11 +329,11 @@ NaiveBayesScorer::NaiveBayesScorer(const std::string &sort_mode, const size_t nb
 //     }
 // }
 
-const float NaiveBayesScorer::EvaluateScore() const
+const double NaiveBayesScorer::EvaluateScore() const
 {
     // CompareScore(sample_counts_, sample_labels_, nb_class_, nb_fold_);
     const size_t nb_fold_final = (nb_fold_ == 0 ? sample_labels_.size() : nb_fold_);
-    float score;
+    double score;
     if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
     {
         mlpack::naive_bayes::NaiveBayesClassifier<> nbc(sample_counts_, sample_labels_, nb_class_);
@@ -362,14 +362,14 @@ RegressionScorer::RegressionScorer(const std::string &sort_mode, const size_t nb
 {
 }
 
-const float RegressionScorer::EvaluateScore() const
+const double RegressionScorer::EvaluateScore() const
 {
     if (nb_class_ != 2)
     {
         throw std::domain_error("Regression classifier accepts only binary condition for now");
     }
     const size_t nb_fold_final = (nb_fold_ == 0 ? sample_labels_.size() : nb_fold_);
-    float score;
+    double score;
     if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
     {
         mlpack::regression::LogisticRegression<> rgc(sample_counts_, sample_labels_);
@@ -399,13 +399,13 @@ SVMScorer::SVMScorer(const std::string &sort_mode, const bool to_ln, const bool 
 {
 }
 
-const float SVMScorer::EvaluateScore() const
+const double SVMScorer::EvaluateScore() const
 {
     mlpack::svm::LinearSVM<> lsvm(sample_counts_, sample_labels_, nb_class_);
     // MLMetrics my_f1;
-    // float score = my_f1.Evaluate(lsvm, sample_counts, sample_labels_);
+    // double score = my_f1.Evaluate(lsvm, sample_counts, sample_labels_);
     mlpack::svm::LinearSVMFunction<> lsvm_fun(sample_counts_, sample_labels_, nb_class_);
-    float score = lsvm_fun.Evaluate(lsvm.Parameters());
+    double score = lsvm_fun.Evaluate(lsvm.Parameters());
     // lsvm.Parameters().print("Parameters:");
     // sample_counts.print("Sample counts:");
     // sample_labels_.print("Real labels:");

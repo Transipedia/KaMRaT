@@ -47,7 +47,7 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     {
         throw std::domain_error("error open file: " + idx_path);
     }
-    
+
     std::vector<float> count_vect;
     nf_vect.resize(tab_header.GetNbCount(), 0);
     std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
@@ -59,8 +59,8 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
         feature_vect.emplace_back(conv, count_vect, idx_file, tab_header);
         for (size_t i(0); i < count_vect.size(); ++i)
         {
-            nf_vect[i] += (count_vect[i] + 1);      // + 1 for we will add an offset 1 to raw count for avoiding log(0)
-            mean_sample_sum += (count_vect[i] + 1); // + 1 for we will add an offset 1 to raw count for avoiding log(0)
+            nf_vect[i] += count_vect[i];
+            mean_sample_sum += count_vect[i];
         }
         count_vect.clear();
         conv.clear();
@@ -139,19 +139,10 @@ void SortScore(featureVect_t &feature_vect, const std::string &sort_mode)
 
 void PValueAdjustmentBH(featureVect_t &feature_vect)
 {
-    double tot_num = feature_vect.size();
-    for (size_t i(0); i < tot_num; ++i)
+    size_t tot_num = feature_vect.size();
+    for (size_t i_feature(tot_num - 2); i_feature >= 0 && i_feature < tot_num; --i_feature)
     {
-        const double adjust_factor = tot_num / (i + 1);
-        feature_vect[i].ScaleValue(adjust_factor, 0, 1);
-    }
-    for (auto iter = feature_vect.rbegin() + 1; iter < feature_vect.rend(); ++iter)
-    {
-        double last_score = (iter - 1)->GetValue();
-        if (iter->GetValue() > last_score)
-        {
-            iter->ScaleValue(1, last_score, last_score);
-        }
+        feature_vect[i_feature].ScaleValue(static_cast<double>(tot_num) / (i_feature + 1), 0, feature_vect[i_feature + 1].GetValue());
     }
 }
 

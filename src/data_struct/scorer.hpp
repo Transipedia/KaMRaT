@@ -25,7 +25,7 @@ public:
 
     const std::vector<float> &CalcNormCondiMeans(std::vector<float> &norm_condi_means) const;
     const void TransformCounts();
-    virtual const float EvaluateScore() const;
+    virtual const double EvaluateScore() const;
 
 protected:
     const std::string score_method_;    // nb, lr, sd, rsd, ttest, es, lfc, user
@@ -44,56 +44,56 @@ class SDScorer : public Scorer
 {
 public:
     SDScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
-    const float EvaluateScore() const override;
+    const double EvaluateScore() const override;
 };
 
 class RelatSDScorer : public Scorer
 {
 public:
     RelatSDScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
-    const float EvaluateScore() const override;
+    const double EvaluateScore() const override;
 };
 
 class TtestScorer : public Scorer
 {
 public:
     TtestScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
-    const float EvaluateScore() const override;
+    const double EvaluateScore() const override;
 };
 
 class EffectSizeScorer : public Scorer
 {
 public:
     EffectSizeScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
-    const float EvaluateScore() const override;
+    const double EvaluateScore() const override;
 };
 
 class LFCScorer : public Scorer
 {
 public:
     LFCScorer(const std::string &score_cmd, const std::string &sort_mode, bool to_ln, bool to_standardize);
-    const float EvaluateScore() const override;
+    const double EvaluateScore() const override;
 };
 
 class NaiveBayesScorer : public Scorer
 {
 public:
     NaiveBayesScorer(const std::string &sort_mode, size_t nb_fold, bool to_ln, bool to_standardize);
-    const float EvaluateScore() const override;
+    const double EvaluateScore() const override;
 };
 
 class RegressionScorer : public Scorer
 {
 public:
     RegressionScorer(const std::string &sort_mode, size_t nb_fold, bool to_ln, bool to_standardize);
-    const float EvaluateScore() const override;
+    const double EvaluateScore() const override;
 };
 
 class SVMScorer : public Scorer
 {
 public:
     SVMScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
-    const float EvaluateScore() const override;
+    const double EvaluateScore() const override;
 };
 
 class UserScorer : public Scorer
