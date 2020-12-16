@@ -27,7 +27,7 @@ inline void PrintRankHelper()
     std::cerr << "[EVAL. METHOD]  sd                   Standard deviation (default method)" << std::endl;
     std::cerr << "                rsd                  Relative standard deviation" << std::endl;
     std::cerr << "                ttest                T-test between conditions (ln transformation is required)" << std::endl;
-    std::cerr << "                es                   Effect size between conditions" << std::endl;
+    std::cerr << "                snr                  Signal-to-noise ratio between conditions" << std::endl;
     std::cerr << "                lfc:mean             Log2 fold change by group mean, 'mean' can be omitted by default" << std::endl;
     std::cerr << "                lfc:median           Log2 fold change by group median" << std::endl;
     std::cerr << "                nb:n_fold            F1-score with naive Bayes classification [default n_fold = 1]" << std::endl

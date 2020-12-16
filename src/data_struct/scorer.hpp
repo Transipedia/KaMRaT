@@ -28,7 +28,7 @@ public:
     virtual const double EvaluateScore() const;
 
 protected:
-    const std::string score_method_;    // nb, lr, sd, rsd, ttest, es, lfc, user
+    const std::string score_method_;    // nb, lr, sd, rsd, ttest, snr, lfc, user
     const std::string sort_mode_;       // dec, dec::abs, inc, inc::abs
     const std::string score_cmd_;       // to nb_fold_ if nb or lr; else for mean or median in lfc or for score colname in user
     const size_t nb_fold_;              // for naive Bayes and logistic regression
@@ -61,10 +61,10 @@ public:
     const double EvaluateScore() const override;
 };
 
-class EffectSizeScorer : public Scorer
+class SNRScorer : public Scorer
 {
 public:
-    EffectSizeScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
+    SNRScorer(const std::string &sort_mode, bool to_ln, bool to_standardize);
     const double EvaluateScore() const override;
 };
 

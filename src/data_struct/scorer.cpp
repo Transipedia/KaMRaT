@@ -17,7 +17,7 @@
 #define MET_SD "sd"
 #define MET_RSD "relat.sd"
 #define MET_TTEST "t-test"
-#define MET_ES "effect.size"
+#define MET_SNR "snr"
 #define MET_LFC "log2fc"
 #define MET_NBF1 "naivebayes.f1"
 #define MET_RGF1 "regression.f1"
@@ -28,15 +28,15 @@ inline double calc_stat(const arma::mat &sample_counts, const std::string &stat_
 {
     if (stat_name == "mean")
     {
-        return (arma::mean(arma::conv_to<arma::vec>::from(sample_counts)));
+        return arma::mean(arma::conv_to<arma::vec>::from(sample_counts));
     }
     else if (stat_name == "median")
     {
-        return (arma::median(arma::conv_to<arma::vec>::from(sample_counts)));
+        return arma::median(arma::conv_to<arma::vec>::from(sample_counts));
     }
     else if (stat_name == "sd")
     {
-        return (arma::stddev(arma::conv_to<arma::vec>::from(sample_counts), 0));
+        return arma::stddev(arma::conv_to<arma::vec>::from(sample_counts));
     }
     else
     {
@@ -103,9 +103,9 @@ const size_t Scorer::GetNbClass() const
 void Scorer::LoadSampleLabel(const TabHeader &tab_header)
 {
     nb_class_ = tab_header.GetNbCondition();
-    if (nb_class_ != 2 && (score_method_ == MET_TTEST || score_method_ == MET_ES || score_method_ == MET_LFC))
+    if (nb_class_ != 2 && (score_method_ == MET_TTEST || score_method_ == MET_SNR || score_method_ == MET_LFC))
     {
-        throw std::domain_error("T-test, effect size, and log2FC scoring only accept binary sample condition");
+        throw std::domain_error("T-test, signal-to-noise ratio, and log2FC scoring only accept binary sample condition");
     }
     if (nb_class_ < 2 && (score_method_ == MET_NBF1 || score_method_ == MET_RGF1))
     {
@@ -242,18 +242,18 @@ const double TtestScorer::EvaluateScore() const
 }
 
 // =====> Effect Size Scorer <===== //
-EffectSizeScorer::EffectSizeScorer(const std::string &sort_mode, const bool to_ln, const bool to_standardize)
-    : Scorer(MET_ES, "", (sort_mode.empty() ? "dec:abs" : sort_mode), 1, to_ln, to_standardize)
+SNRScorer::SNRScorer(const std::string &sort_mode, const bool to_ln, const bool to_standardize)
+    : Scorer(MET_SNR, "", (sort_mode.empty() ? "dec:abs" : sort_mode), 1, to_ln, to_standardize)
 {
 }
 
-const double EffectSizeScorer::EvaluateScore() const
+const double SNRScorer::EvaluateScore() const
 {
     double cond1_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "mean"),
            cond2_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "mean"),
            cond1_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "sd"),
            cond2_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "sd"),
-           score = (cond2_mean - cond1_mean) / (cond1_sd + cond2_sd);
+           score = (cond1_mean - cond2_mean) / (cond1_sd + cond2_sd);
     return ((std::isnan(score) || std::isinf(score)) ? 0.0 : score);
 }
 

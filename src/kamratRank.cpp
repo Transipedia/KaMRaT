@@ -219,9 +219,9 @@ int RankMain(int argc, char *argv[])
     {
         scorer = std::make_unique<TtestScorer>(sort_mode, ln_transf, standardize);
     }
-    else if (score_method == "es")
+    else if (score_method == "snr")
     {
-        scorer = std::make_unique<EffectSizeScorer>(sort_mode, ln_transf, standardize);
+        scorer = std::make_unique<SNRScorer>(sort_mode, ln_transf, standardize);
     }
     else if (score_method == "lfc")
     {
