@@ -49,7 +49,7 @@ const std::string &TabElem::MakeOutputRowStr(std::string &row_str, std::ifstream
     }
     for (size_t i(0); i < nb_count; ++i)
     {
-        row_str += ("\t" + std::to_string(count_vect_[i]));
+        row_str += ("\t" + std::to_string(static_cast<long>(count_vect_[i])));
     }
     return row_str;
 }
