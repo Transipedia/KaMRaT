@@ -38,6 +38,10 @@ inline double calc_stat(const arma::mat &sample_counts, const std::string &stat_
     {
         return arma::stddev(arma::conv_to<arma::vec>::from(sample_counts));
     }
+    else if (stat_name == "var")
+    {
+        return arma::var(arma::conv_to<arma::vec>::from(sample_counts));
+    }
     else
     {
         throw std::domain_error("unknown stats name");
@@ -213,16 +217,16 @@ const double TtestScorer::EvaluateScore() const
     size_t cond1_num = condi_sample_ind_[0].size(), cond2_num = condi_sample_ind_[1].size();
     double cond1_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "mean"),
            cond2_mean = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "mean"),
-           cond1_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "sd"),
-           cond2_sd = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "sd"), pvalue;
-    if (cond1_sd == 0 && cond2_sd == 0)
+           cond1_var = calc_stat(sample_counts_.elem(condi_sample_ind_[0]), "var"),
+           cond2_var = calc_stat(sample_counts_.elem(condi_sample_ind_[1]), "var"), pvalue;
+    if (cond1_var == 0 && cond2_var == 0)
     {
         pvalue = 1;
     }
     else
     {
-        double t1 = cond1_sd * cond1_sd / cond1_num,
-               t2 = cond2_sd * cond2_sd / cond2_num,
+        double t1 = cond1_var / cond1_num,
+               t2 = cond2_var / cond2_num,
                df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (cond1_num - 1) + t2 * t2 / (cond2_num - 1)),
                t_stat = (cond1_mean - cond2_mean) / sqrt(t1 + t2);
         try
@@ -234,7 +238,7 @@ const double TtestScorer::EvaluateScore() const
         {
             sample_counts_.print("Sample counts:");
             sample_labels_.print("Sample labels:");
-            std::cout << cond1_num << "\t" << cond1_mean << "\t" << cond1_sd << "\t" << t1 << "\t" << t2 << "\t" << df << "\t" << t_stat << std::endl;
+            std::cout << cond1_num << "\t" << cond1_mean << "\t" << cond1_var << "\t" << t1 << "\t" << t2 << "\t" << df << "\t" << t_stat << std::endl;
             throw std::domain_error("");
         }
     }

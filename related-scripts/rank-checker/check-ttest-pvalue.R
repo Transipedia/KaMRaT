@@ -6,8 +6,7 @@ cmdArgs <- commandArgs(trailingOnly = T)
 count.path <- cmdArgs[1]
 out.dir <- cmdArgs[2]
 
-# count.tab <- read.table("/home/haoliang.xue/Documents/kamrat-test/data/test-counts.tsv", 
-#                         header = T, row.names = 1)
+# count.path <- "/home/haoliang.xue/Documents/kamrat-test/data/test-counts.tsv"
 
 count.tab <- read.table(count.path, header = T, row.names = 1)
 
@@ -19,6 +18,9 @@ write.table(smp.nf, file = paste0(out.dir, "/sample-nf.byR.txt"), col.names = F,
 for (i in 1 : ncol(count.tab)) {
     count.tab[, i] <- count.tab[, i] * smp.nf[i]
 }
+
+# cond1.cols <- c("A", "B", "C")
+# cond2.cols <- c("D", "E", "F", "G")
 
 cond1.cols <- str_detect(names(count.tab), pattern = "normal")
 cond2.cols <- str_detect(names(count.tab), pattern = "tumor")
