@@ -1,32 +1,39 @@
 rm(list = ls())
 
-library(stringr)
+library(magrittr)
 
 cmdArgs <- commandArgs(trailingOnly = T)
 count.path <- cmdArgs[1]
-out.dir <- cmdArgs[2]
+smp.info.path <- cmdArgs[2]
+out.dir <- cmdArgs[3]
 
 # count.path <- "/home/haoliang.xue/Documents/kamrat-test/data/test-counts.tsv"
+# smp.info.path <- "/home/haoliang.xue/Documents/kamrat-test/data/test-sample-conditions.tsv"
 
 count.tab <- read.table(count.path, header = T, row.names = 1)
+smp.info <- read.table(smp.info.path, header = F, row.names = 1)
+cond.list <- as.character(unique(smp.info[, 1]))
+
+cond1.cols <- names(count.tab)[smp.info[names(count.tab), 1] == cond.list[1]]
+cond2.cols <- names(count.tab)[smp.info[names(count.tab), 1] == cond.list[2]]
 
 smp.sum <- colSums(count.tab)
 smp.nf <- mean(smp.sum) / smp.sum
 
-for (i in 1 : ncol(count.tab)) {
-    count.tab[, i] <- count.tab[, i] * smp.nf[i]
-}
+write.table(smp.nf, file = paste0(out.dir, "/sample-nf.byR.txt"), col.names = F, quote = F)
 
-cond1.cols <- str_detect(names(count.tab), pattern = "normal")
-cond2.cols <- str_detect(names(count.tab), pattern = "tumor")
-
-# cond1.cols <- c("A", "B", "C")
-# cond2.cols <- c("D", "E", "F", "G")
-
-count.tab$norm.meanA <- rowMeans(count.tab[, cond1.cols])
-count.tab$norm.meanB <- rowMeans(count.tab[, cond2.cols])
-count.tab$norm.sdA <- apply(count.tab[, cond1.cols], MARGIN = 1, sd)
-count.tab$norm.sdB <- apply(count.tab[, cond2.cols], MARGIN = 1, sd)
+count.tab$norm.meanA <- apply(count.tab[, cond1.cols], MARGIN = 1, 
+                              function(r) mean(r * smp.nf[cond1.cols])) %>% 
+    round(digits = 6)
+count.tab$norm.meanB <- apply(count.tab[, cond2.cols], MARGIN = 1,
+                              function(r) mean(r * smp.nf[cond2.cols])) %>% 
+    round(digits = 6)
+count.tab$norm.sdA <- apply(count.tab[, cond1.cols], MARGIN = 1,
+                            function(r) sd(r * smp.nf[cond1.cols])) %>% 
+    round(digits = 6)
+count.tab$norm.sdB <- apply(count.tab[, cond2.cols], MARGIN = 1,
+                            function(r) sd(r * smp.nf[cond2.cols])) %>% 
+    round(digits = 6)
 
 count.tab$snr <- (count.tab$norm.meanA - count.tab$norm.meanB) / (count.tab$norm.sdA + count.tab$norm.sdB)
 
