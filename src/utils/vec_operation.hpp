@@ -9,26 +9,31 @@
 #include <iterator>
 
 template <typename countT>
-inline float CalcVectMean(const std::vector<countT> &x)
+const double CalcVectMean(const std::vector<countT> &x)
 {
-    float sum = std::accumulate(x.cbegin(), x.cend(), 0.0);
-    return (sum / x.size());
+    return (std::accumulate(x.cbegin(), x.cend(), 0.0) / x.size());
 }
 
 template <typename countT>
-inline float CalcVectMedian(const std::vector<countT> &x)
+const double CalcVectMedian(const std::vector<countT> &x)
 {
     static std::vector<countT> x_tmp;
     x_tmp = x;
-    std::sort(x_tmp.begin(), x_tmp.end());
-    const size_t nb_count = x.size();
-    float median = ((nb_count % 2) ? x_tmp[nb_count / 2] : (0.5 * (x_tmp[nb_count / 2] + x_tmp[nb_count / 2 + 1])));
-    x_tmp.clear();
-    return median;
+    size_t n_elem = x_tmp.size();
+    auto mid_elem = x_tmp.begin() + n_elem / 2;
+    std::nth_element(x_tmp.begin(), mid_elem, x_tmp.end());
+    if (n_elem % 2 != 0)
+    {
+        return *mid_elem;
+    }
+    else
+    {
+        return 0.5 * (*mid_elem + *(std::max_element(x_tmp.begin(), mid_elem)));
+    }
 }
 
 template <typename countT>
-inline void CalcVectRank(std::vector<float> &x_rk, const std::vector<countT> &x)
+void CalcVectRank(std::vector<float> &x_rk, const std::vector<countT> &x)
 {
     static std::vector<size_t> r, s; // r for rank number, s for same number
     size_t n = x.size();
@@ -59,9 +64,10 @@ inline void CalcVectRank(std::vector<float> &x_rk, const std::vector<countT> &x)
 }
 
 template <typename countT>
-inline float CalcPearsonDist(const std::vector<countT> &x, const std::vector<countT> &y)
+const double CalcPearsonDist(const std::vector<countT> &x, const std::vector<countT> &y)
 {
-    float mean_x = CalcVectMean(x), mean_y = CalcVectMean(y), prod_sum(0), t1_sqsum(0), t2_sqsum(0);
+    const double mean_x = CalcVectMean(x), mean_y = CalcVectMean(y);
+    double prod_sum(0), t1_sqsum(0), t2_sqsum(0);
     for (size_t i(0); i < x.size(); ++i)
     {
         prod_sum += ((x[i] - mean_x) * (y[i] - mean_y));
@@ -72,7 +78,7 @@ inline float CalcPearsonDist(const std::vector<countT> &x, const std::vector<cou
 }
 
 template <typename countT>
-inline float CalcSpearmanDist(const std::vector<countT> &x, const std::vector<countT> &y)
+const double CalcSpearmanDist(const std::vector<countT> &x, const std::vector<countT> &y)
 {
     static std::vector<float> x_rk, y_rk;
     CalcVectRank(x_rk, x);
@@ -83,22 +89,22 @@ inline float CalcSpearmanDist(const std::vector<countT> &x, const std::vector<co
 }
 
 template <typename countT>
-inline float CalcMACDist(const std::vector<countT> &x, const std::vector<countT> &y)
+const double CalcMACDist(const std::vector<countT> &x, const std::vector<countT> &y)
 {
     const size_t nb_sample(x.size());
-    float ctrst = 0.0;
+    double ctrst = 0.0;
     for (size_t i(0); i < nb_sample; ++i)
     {
         if (x[i] != y[i]) // if x[i] == y[i], then ctrst += 0.0
         {
-            ctrst += fabs(static_cast<float>(x[i] - y[i])) / (x[i] + y[i]);
+            ctrst += fabs(static_cast<double>(x[i] - y[i])) / (x[i] + y[i]);
         }
     }
     return (ctrst / nb_sample);
 }
 
 template <typename countT>
-inline float CalcXDist(const std::vector<countT> &x, const std::vector<countT> &y, const std::string &eval_method)
+const double CalcXDist(const std::vector<countT> &x, const std::vector<countT> &y, const std::string &eval_method)
 {
     if (x.size() != y.size())
     {
