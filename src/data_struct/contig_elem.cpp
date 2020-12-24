@@ -75,6 +75,11 @@ const std::vector<size_t> &ContigElem::GetMemKMerSerialVect() const
     return mem_kmer_serial_vect_;
 }
 
+const std::vector<size_t> &ContigElem::GetMemKMerSerialVect(std::vector<size_t> &mem_kmer_vect) const
+{
+    mem_kmer_vect = mem_kmer_serial_vect_;
+    return mem_kmer_vect;
+}
 
 const void ContigElem::LeftExtend(const ContigElem &left_contig_elem, const bool need_left_rc, unsigned int n_overlap)
 {

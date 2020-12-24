@@ -162,6 +162,10 @@ inline void ParseOptions(int argc, char *argv[],
         PrintMergeHelper();
         throw std::invalid_argument("unknown intervention method " + interv_method);
     }
+    if (!rep_colname.empty() && smp_info_path.empty())
+    {
+        throw std::invalid_argument("when given representative column name, the sample-info path is mandatory");
+    }
     if (threshold_str.empty() && interv_method == "pearson")
     {
         interv_thres = MAX_PEARSON_DEFAULT;

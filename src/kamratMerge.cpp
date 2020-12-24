@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip> // std::setprecision
 #include <string>
 #include <vector>
 #include <fstream>
@@ -45,7 +46,7 @@ void ScanCountTable(countTab_t &count_tab, TabHeader &tab_header,
     std::string line, seq;
     std::getline(kmer_count_instream, line);
     std::istringstream conv(line);
-    tab_header.MakeColumnInfo(conv, rep_colname);
+    tab_header.MakeColumns(conv, rep_colname);
     conv.clear();
 
     std::unordered_set<uint64_t> kmer_code;
@@ -58,10 +59,15 @@ void ScanCountTable(countTab_t &count_tab, TabHeader &tab_header,
             throw std::domain_error("error open file: " + idx_path);
         }
     }
+    std::vector<float> count_vect;
+    std::string value_str;
+    float rep_value;
+    count_vect.reserve(tab_header.GetNbCount());
     for (size_t iline(0); std::getline(kmer_count_instream, line); ++iline)
     {
         conv.str(line);
-        count_tab.emplace_back(conv, idx_file, tab_header);
+        rep_value = tab_header.ParseRowStr(count_vect, value_str, conv);
+        count_tab.emplace_back(rep_value, count_vect, value_str, idx_file);
         seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
         if (seq.size() != k_len)
         {
@@ -151,7 +157,7 @@ const bool DoExtension(contigvect_t &contig_vect,
         pred_count_vect.clear();
         succ_count_vect.clear();
         // merge by guaranting representative k-mer having minimum p-value or input order //
-        if (count_tab[pred_contig.GetRepKMerSerial()].GetValue() <= count_tab[succ_contig.GetRepKMerSerial()].GetValue()) // merge right to left
+        if (count_tab[pred_contig.GetRepKMerSerial()].GetRepValue() <= count_tab[succ_contig.GetRepKMerSerial()].GetRepValue()) // merge right to left
         {
             if (is_pred_rc) // prevent base contig from reverse-complement transformation, for being coherent with merging knot
             {
@@ -200,43 +206,66 @@ void PrintContigList(const contigvect_t &contig_vect,
         std::cout.rdbuf(out_file.rdbuf());
     }
 
-    std::string output_row_str;
-    std::cout << "contig\tnb_merged_kmers\t" << tab_header.MakeOutputHeaderStr(output_row_str) << std::endl;
+    size_t nb_col = tab_header.GetNbCol(), nb_count = tab_header.GetNbCount();
 
-    size_t rep_serial, nb_count = tab_header.GetNbCount();
+    std::string value_str;
+    std::cout << "contig\tnb_merged_kmers";
+    for (size_t i(0); i < nb_col; ++i)
+    {
+        if (!tab_header.IsColCount(i)) // first output non-sample values
+        {
+            std::cout << "\t" << tab_header.GetColNameAt(i);
+        }
+        else
+        {
+            value_str += ("\t" + tab_header.GetColNameAt(i));
+        }
+    }
+    std::cout << value_str << std::endl; // then output sample counts
+    value_str.clear();
+
+    std::vector<float> count_vect;
     if (quant_mode == "rep")
     {
         for (const auto &elem : contig_vect)
         {
-            rep_serial = elem.GetRepKMerSerial();
+            size_t rep_serial = elem.GetRepKMerSerial();
             std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t"
-                      << count_tab[rep_serial].MakeOutputRowStr(output_row_str, idx_file, nb_count) << std::endl;
+                      << count_tab[rep_serial].GetValueStr(value_str, idx_file, nb_count);
+            for (float c : count_tab[rep_serial].GetCountVect(count_vect, idx_file, nb_count))
+            {
+                std::cout << "\t" << std::fixed << std::setprecision(2) << c;
+            }
+            std::cout << std::endl;
+            value_str.clear();
+            count_vect.clear();
         }
     }
     else if (quant_mode == "mean" || quant_mode == "median")
     {
-        std::vector<float> count_vect;
-        std::vector<std::vector<float>> count_vect_vect;
+        std::vector<std::vector<float>> smp_kmer_mat;
         std::vector<size_t> mem_kmer_vect;
         for (const auto &elem : contig_vect)
         {
-            rep_serial = elem.GetRepKMerSerial();
-            mem_kmer_vect = elem.GetMemKMerSerialVect();
-            count_vect_vect.resize(nb_count, std::vector<float>(mem_kmer_vect.size()));
+            std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t"
+                      << count_tab[elem.GetRepKMerSerial()].GetValueStr(value_str, idx_file, nb_count);
+            smp_kmer_mat.resize(nb_count, std::vector<float>(elem.GetMemKMerSerialVect(mem_kmer_vect).size()));
             for (size_t ik(0); ik < mem_kmer_vect.size(); ++ik)
             {
-                count_tab[mem_kmer_vect[ik]].GetCountVect(count_vect, idx_file, nb_count);
-                for (size_t i(0); i < nb_count; ++i)
+                for (size_t is(0); is < nb_count; ++is)
                 {
-                    count_vect_vect[i][ik] = count_vect[i];
+                    smp_kmer_mat[is][ik] = count_tab[mem_kmer_vect[ik]].GetCountVect(count_vect, idx_file, nb_count)[is];
                 }
                 count_vect.clear();
             }
-            std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t"
-                      << count_tab[rep_serial].MakeOutputRowStr(output_row_str, CalcVectsRes(count_vect, count_vect_vect, quant_mode), idx_file)
-                      << std::endl;
-            std::vector<std::vector<float>>().swap(count_vect_vect);
-            std::vector<float>().swap(count_vect);
+            for (float c : CalcVectsRes(count_vect, smp_kmer_mat, quant_mode))
+            {
+                std::cout << "\t" << std::fixed << std::setprecision(2) << c;
+            }
+            std::cout << std::endl;
+            value_str.clear();
+            smp_kmer_mat.clear();
+            count_vect.clear();
         }
     }
     else
@@ -251,7 +280,7 @@ void PrintContigList(const contigvect_t &contig_vect,
     }
 }
 
-int MergeMain(int argc, char **argv)
+int main(int argc, char **argv)
 {
     std::clock_t begin_time = clock(), inter_time;
     std::string kmer_count_path, smp_info_path, interv_method("none"), quant_mode("rep"), idx_path, out_path, rep_colname;
@@ -269,8 +298,6 @@ int MergeMain(int argc, char **argv)
     contigvect_t contig_vect;            // list of contigs for extension
     TabHeader tab_header(smp_info_path); // the header of feature table
     countTab_t count_tab;                // feature count table
-
-    tab_header.PrintSmp2Lab();
 
     ScanCountTable(count_tab, tab_header, contig_vect, k_len, stranded, kmer_count_path, rep_colname, idx_path);
 
