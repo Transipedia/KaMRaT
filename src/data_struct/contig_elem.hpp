@@ -13,22 +13,24 @@ public:
     const bool IsUsed() const;
     const void SetUsed();
     const std::string &GetSeq() const;
-    
+
     const unsigned int GetNbKMer() const;
     const size_t GetHeadKMerSerial(const bool if_need_reverse) const;
     const size_t GetRepKMerSerial() const;
     const size_t GetRearKMerSerial(const bool if_need_reverse) const;
     const std::vector<size_t> &GetMemKMerSerialVect() const;
-    const std::vector<size_t> &GetMemKMerSerialVect(std::vector<size_t> &mem_kmer_vect) const;
-    
-    const void LeftExtend(const ContigElem &left_contig_elem, bool need_right_rc, unsigned int n_overlap);
-    const void RightExtend(const ContigElem &right_contig_elem, bool need_right_rc, unsigned int n_overlap);
+
+    const void LeftExtend(ContigElem &left_contig_elem, bool need_right_rc, unsigned int n_overlap);
+    const void RightExtend(ContigElem &right_contig_elem, bool need_right_rc, unsigned int n_overlap);
+    const void ReverseComplement();
 
 private:
-    bool is_used_;
-    std::string seq_;
-    size_t head_kmer_serial_, rep_kmer_serial_, rear_kmer_serial_;
-    std::vector<size_t> mem_kmer_serial_vect_; // for storing contig's member k-mers, used for calculating mean count of contigs (sequence is not sufficient)
+    bool is_used_;                             // if the contig is used for merge
+    std::string seq_;                          // contig sequence
+    size_t rep_kmer_serial_;                   // representative k-mer serial in k-mer count table
+    std::vector<size_t> mem_kmer_serial_vect_; // member k-mers for calculating mean count of all member k-mers,
+                                               // since seq_ is not necessary for doing this (some k-mer maybe skipped during intervention)
+                                               // head k-mer as the first, rear k-mer as the last, others whatever order
 };
 
 // using code2contig_t = std::map<uint64_t, ContigElem>;

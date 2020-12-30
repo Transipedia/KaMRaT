@@ -1,5 +1,3 @@
-#include <iostream>  // debug
-
 #include "tab_header.hpp"
 
 TabHeader::TabHeader()
@@ -151,12 +149,4 @@ const double TabHeader::ParseRowStr(std::vector<float> &count_vect, std::string 
         throw std::domain_error("parsing string line to fields failed: " + std::to_string(count_vect.size()) + " vs " + std::to_string(nb_count));
     }
     return rep_val;
-}
-
-const void TabHeader::PrintSmp2Lab() const
-{
-    for (const auto &p : smp2lab_)
-    {
-        std::cerr << p.first << "\t" << p.second << std::endl;
-    }
 }

@@ -7,11 +7,11 @@
 class MergeKnot
 {
 public:
-    MergeKnot();
-    void AddContig(size_t contig_serial, bool is_rc, const std::string &which_to_set);
-    const size_t GetSerial(const std::string &which_to_get) const;
-    const bool IsRC(const std::string &which_to_get) const;
-    const bool IsMergeable() const;
+    MergeKnot() noexcept;
+    void AddContig(size_t contig_serial, bool is_rc, const std::string &&which_to_set) noexcept;
+    const size_t GetSerial(const std::string &&which_to_get) const noexcept;
+    const bool IsRC(const std::string &&which_to_get) const noexcept;
+    const bool IsMergeable() const noexcept;
 
 private:
     size_t pred_serial_, succ_serial_;

@@ -1,11 +1,11 @@
 #include "merge_knot.hpp"
 
-MergeKnot::MergeKnot()
+MergeKnot::MergeKnot() noexcept
     : has_pred_(false), has_succ_(false), has_ambiguity_(false)
 {
 }
 
-void MergeKnot::AddContig(const size_t contig_serial, const bool is_rc, const std::string &which_to_set)
+void MergeKnot::AddContig(const size_t contig_serial, const bool is_rc, const std::string &&which_to_set) noexcept
 {
     if (which_to_set == "pred" && !has_pred_)
     {
@@ -19,17 +19,13 @@ void MergeKnot::AddContig(const size_t contig_serial, const bool is_rc, const st
         is_succ_rc_ = is_rc;
         has_succ_ = true;
     }
-    else if (which_to_set == "pred" || which_to_set == "succ")
+    else
     {
         has_ambiguity_ = true;
     }
-    else
-    {
-        throw std::domain_error("unknown argument which_to_set: " + which_to_set);
-    }
 }
 
-const size_t MergeKnot::GetSerial(const std::string &which_to_get) const
+const size_t MergeKnot::GetSerial(const std::string &&which_to_get) const noexcept
 {
     if (which_to_get == "pred")
     {
@@ -39,13 +35,14 @@ const size_t MergeKnot::GetSerial(const std::string &which_to_get) const
     {
         return succ_serial_;
     }
-    else
+    else // should not happen
     {
-        throw std::domain_error("unknown argument which_to_get: " + which_to_get);
+        return 0;
     }
+    
 }
 
-const bool MergeKnot::IsRC(const std::string &which_to_get) const
+const bool MergeKnot::IsRC(const std::string &&which_to_get) const noexcept
 {
     if (which_to_get == "pred")
     {
@@ -55,13 +52,14 @@ const bool MergeKnot::IsRC(const std::string &which_to_get) const
     {
         return is_succ_rc_;
     }
-    else
+    else // should not happen
     {
-        throw std::domain_error("unknown argument which_to_get: " + which_to_get);
+        return 0;
     }
+    
 }
 
-const bool MergeKnot::IsMergeable() const
+const bool MergeKnot::IsMergeable() const noexcept
 {
     if (has_ambiguity_)
     {

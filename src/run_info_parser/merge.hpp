@@ -8,10 +8,11 @@
 
 inline void PrintMergeHelper()
 {
-    std::cerr << "[Usage]    kamrat merge -klen INT [-options] KMER_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat merge -klen INT -idx-path STR [-options] KMER_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help              Print the helper" << std::endl;
     std::cerr << "            -klen INT             k-mer length (max_value: 32)" << std::endl;
+    std::cerr << "            -idx-path STR         Temporary file path for saving count index, mandatory" << std::endl;
     std::cerr << "            -unstrand             If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
     std::cerr << "            -min-overlap INT      Min assembly overlap (max_value: k) [floor(k/2)]" << std::endl;
     std::cerr << "            -smp-info STR         Sample-info path, either list or table with sample names as the first column" << std::endl
@@ -20,24 +21,24 @@ inline void PrintMergeHelper()
               << "                                      the threshold can be precised after a ':' symbol" << std::endl;
     std::cerr << "            -quant-mode STR       Quantification mode (rep, mean) [rep]" << std::endl;
     std::cerr << "            -rep-name STR         Representative value column name, k-mer input order as rep-val by default" << std::endl;
-    std::cerr << "            -disk STR             Query on disk, followed by index file path" << std::endl;
     std::cerr << "            -out-path STR         Output contig count table path [default: output to screen]" << std::endl
               << std::endl;
 }
 
 inline void PrintRunInfo(const size_t k_len,
+                         const std::string &idx_path,
                          const bool stranded,
                          const size_t min_overlap,
                          const std::string &smp_info_path,
                          const std::string &interv_method, const float interv_thres,
                          const std::string &quant_mode,
                          const std::string &rep_colname,
-                         const std::string &idx_path,
                          const std::string &out_path,
                          const std::string &kmer_count_path)
 {
     std::cerr << std::endl;
     std::cerr << "k-mer length:                  " << k_len << std::endl;
+    std::cerr << "k-mer count index path:        " << idx_path << std::endl;
     std::cerr << "Stranded mode:                 " << (stranded ? "On" : "Off") << std::endl;
     std::cerr << "Min overlap length:            " << min_overlap << std::endl;
     if (!smp_info_path.empty())
@@ -58,11 +59,6 @@ inline void PrintRunInfo(const size_t k_len,
     {
         std::cerr << "Representative k-mer:          firstly inputted" << std::endl;
     }
-    if (!idx_path.empty())
-    {
-        std::cerr << "Disk mode" << std::endl
-                  << "\tindex path = " << idx_path << std::endl;
-    }
     if (!out_path.empty())
     {
         std::cerr << "Output path:                   " << out_path << std::endl;
@@ -76,13 +72,13 @@ inline void PrintRunInfo(const size_t k_len,
 
 inline void ParseOptions(int argc, char *argv[],
                          size_t &k_len,
+                         std::string &idx_path,
                          bool &stranded,
                          size_t &min_overlap,
                          std::string &smp_info_path,
                          std::string &interv_method, float &interv_thres,
                          std::string &quant_mode,
                          std::string &rep_colname,
-                         std::string &idx_path,
                          std::string &out_path,
                          std::string &kmer_count_path)
 {
@@ -102,6 +98,10 @@ inline void ParseOptions(int argc, char *argv[],
             {
                 min_overlap = (k_len / 2);
             }
+        }
+        else if (arg == "-idx-path" && i_opt + 1 < argc)
+        {
+            idx_path = argv[++i_opt];
         }
         else if (arg == "-unstrand")
         {
@@ -127,10 +127,6 @@ inline void ParseOptions(int argc, char *argv[],
         {
             rep_colname = argv[++i_opt];
         }
-        else if (arg == "-disk" && i_opt + 1 < argc)
-        {
-            idx_path = argv[++i_opt];
-        }
         else if (arg == "-out-path" && i_opt + 1 < argc)
         {
             out_path = argv[++i_opt];
@@ -152,6 +148,11 @@ inline void ParseOptions(int argc, char *argv[],
     {
         PrintMergeHelper();
         throw std::invalid_argument("k-mer length is mandatory");
+    }
+    if (idx_path.empty())
+    {
+        PrintMergeHelper();
+        throw std::invalid_argument("temporary index path is mandatory");
     }
 
     // dealing intervention method //
