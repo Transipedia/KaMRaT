@@ -5,19 +5,35 @@
 #include <numeric>
 #include <cmath>
 #include <algorithm>
-#include <set>
-#include <iterator>
+#include <tuple>
 
-template <typename countT>
-const double CalcVectMean(const std::vector<countT> &x)
+enum Stats
+{
+    Mean,
+    Median,
+    Stddev
+};
+
+const double CalcVectMean(const std::vector<float> &x)
 {
     return (std::accumulate(x.cbegin(), x.cend(), 0.0) / x.size());
 }
 
-template <typename countT>
-const double CalcVectMedian(const std::vector<countT> &x)
+const void CalcVectMeanStddev(double &x_mean, double &x_stddev, const std::vector<float> &x)
 {
-    static std::vector<countT> x_tmp;
+    size_t x_len = x.size();
+    x_mean = std::accumulate(x.cbegin(), x.cend(), 0.0) / x_len;
+    double sse = 0;
+    for (size_t i(0); i < x_len; ++i)
+    {
+        sse += pow(x[i] - x_mean, 2);
+    }
+    x_stddev = sqrt(sse / (x_len - 1));
+}
+
+const double CalcVectMedian(const std::vector<float> &x)
+{
+    static std::vector<float> x_tmp;
     x_tmp = x;
     size_t n_elem = x_tmp.size();
     auto mid_elem = x_tmp.begin() + n_elem / 2;
@@ -32,8 +48,7 @@ const double CalcVectMedian(const std::vector<countT> &x)
     }
 }
 
-template <typename countT>
-void CalcVectRank(std::vector<float> &x_rk, const std::vector<countT> &x)
+void CalcVectRank(std::vector<float> &x_rk, const std::vector<float> &x)
 {
     static std::vector<size_t> r, s; // r for rank number, s for same number
     size_t n = x.size();
@@ -63,8 +78,7 @@ void CalcVectRank(std::vector<float> &x_rk, const std::vector<countT> &x)
     s.clear();
 }
 
-template <typename countT>
-const double CalcPearsonDist(const std::vector<countT> &x, const std::vector<countT> &y)
+const double CalcPearsonDist(const std::vector<float> &x, const std::vector<float> &y)
 {
     const double mean_x = CalcVectMean(x), mean_y = CalcVectMean(y);
     double prod_sum(0), t1_sqsum(0), t2_sqsum(0);
@@ -77,8 +91,7 @@ const double CalcPearsonDist(const std::vector<countT> &x, const std::vector<cou
     return (0.5 * (1 - (prod_sum / sqrt(t1_sqsum * t2_sqsum))));
 }
 
-template <typename countT>
-const double CalcSpearmanDist(const std::vector<countT> &x, const std::vector<countT> &y)
+const double CalcSpearmanDist(const std::vector<float> &x, const std::vector<float> &y)
 {
     static std::vector<float> x_rk, y_rk;
     CalcVectRank(x_rk, x);
@@ -88,8 +101,7 @@ const double CalcSpearmanDist(const std::vector<countT> &x, const std::vector<co
     return CalcPearsonDist(x_rk, y_rk);
 }
 
-template <typename countT>
-const double CalcMACDist(const std::vector<countT> &x, const std::vector<countT> &y)
+const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &y)
 {
     const size_t nb_sample(x.size());
     double ctrst = 0.0;
@@ -101,6 +113,43 @@ const double CalcMACDist(const std::vector<countT> &x, const std::vector<countT>
         }
     }
     return (ctrst / nb_sample);
+}
+
+const std::tuple<double, double, double> &CalcVectStats(std::tuple<double, double, double> &x_stats, const std::vector<float> &x)
+{
+    CalcVectMeanStddev(std::get<Mean>(x_stats), std::get<Stddev>(x_stats), x);
+    std::get<Median>(x_stats) = CalcVectMedian(x);
+    return x_stats;
+}
+
+const void NormCountVect(std::vector<float> &x, const std::vector<size_t> &nf)
+{
+    for (size_t i(0); i < x.size(); ++i)
+    {
+        x[i] *= nf[i];
+    }
+}
+
+const void LnTransCountVect(std::vector<float> &x)
+{
+    for (size_t i = 0; i < x.size(); ++i)
+    {
+        x[i] = log(x[i] + 1);
+    }
+}
+
+const void StandardizeCountVect(std::vector<float> &x)
+{
+    double x_mean, x_stddev;
+    CalcVectMeanStddev(x_mean, x_stddev, x);
+    if (x_stddev == 0) // if a feature with constant sample counts, then assign an arbitrary value to stddev
+    {
+        x_stddev = 1;
+    }
+    for (size_t i = 0; i < x.size(); ++i)
+    {
+        x[i] = (x[i] - x_mean) / x_stddev;
+    }
 }
 
 #endif //KAMRAT_UTILS_VECOPERATION_HPP

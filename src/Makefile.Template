@@ -5,8 +5,8 @@ CPPFLAGS = -Wall -Werror -g -std=c++14
 kamrat : kamrat.cpp kamratMerge.o kamratRank.o kamratMask.o kamratFilter.o
 	g++ -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams
 
-kamratMerge.o : kamratMerge.cpp data_struct/tab_header.cpp data_struct/tab_elem.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp
-	g++ -c kamratMerge.cpp data_struct/tab_header.cpp data_struct/tab_elem.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp -lboost_iostreams $(CPPFLAGS)
+kamratMerge.o : kamratMerge.cpp common/tab_header.cpp common/tab_elem.cpp merge/contig_elem.cpp merge/merge_knot.cpp
+	g++ -c kamratMerge.cpp common/tab_header.cpp common/tab_elem.cpp merge/contig_elem.cpp merge/merge_knot.cpp -lboost_iostreams $(CPPFLAGS)
 
 kamratMask.o : kamratMask.cpp
 	g++ -c kamratMask.cpp -lboost_iostreams $(CPPFLAGS)

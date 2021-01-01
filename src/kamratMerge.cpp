@@ -13,10 +13,10 @@
 
 #include "utils/seq_coding.hpp"
 #include "utils/vec_operation.hpp"
-#include "data_struct/tab_elem.hpp"
-#include "data_struct/tab_header.hpp"
-#include "data_struct/contig_elem.hpp"
-#include "data_struct/merge_knot.hpp"
+#include "common/tab_elem.hpp"
+#include "common/tab_header.hpp"
+#include "merge/contig_elem.hpp"
+#include "merge/merge_knot.hpp"
 #include "run_info_parser/merge.hpp"
 #include "run_info_parser/utils.hpp"
 

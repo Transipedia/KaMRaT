@@ -39,7 +39,7 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     std::string line, str_x;
     std::getline(kmer_count_instream, line);
     std::istringstream conv(line);
-    tab_header.MakeColumnInfo(conv, "");
+    tab_header.MakeColumns(conv, "");
     conv.clear();
 
     std::ofstream idx_file(idx_path);
@@ -81,7 +81,7 @@ void PrintNF(const std::string &smp_sum_outpath,
     std::ofstream sum_out(smp_sum_outpath);
     for (size_t i(1), j(0); i < tab_header.GetNbCol(); ++i)
     {
-        if (tab_header.IsCount(i))
+        if (tab_header.IsColCount(i))
         {
             sum_out << tab_header.GetColNameAt(i) << "\t" << nf_vect[j++] << std::endl;
         }
@@ -198,7 +198,7 @@ void ModelPrint(featureVect_t &feature_vect,
     }
 }
 
-int RankMain(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     std::clock_t begin_time = clock(), inter_time;
     std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path, nf_path, out_path;
