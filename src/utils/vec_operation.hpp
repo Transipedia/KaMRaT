@@ -5,14 +5,6 @@
 #include <numeric>
 #include <cmath>
 #include <algorithm>
-#include <tuple>
-
-enum Stats
-{
-    Mean,
-    Median,
-    Stddev
-};
 
 const double CalcVectMean(const std::vector<float> &x)
 {
@@ -113,13 +105,6 @@ const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &
         }
     }
     return (ctrst / nb_sample);
-}
-
-const std::tuple<double, double, double> &CalcVectStats(std::tuple<double, double, double> &x_stats, const std::vector<float> &x)
-{
-    CalcVectMeanStddev(std::get<Mean>(x_stats), std::get<Stddev>(x_stats), x);
-    std::get<Median>(x_stats) = CalcVectMedian(x);
-    return x_stats;
 }
 
 const void NormCountVect(std::vector<float> &x, const std::vector<size_t> &nf)

@@ -17,8 +17,7 @@
  * rsd          relative standard deviation                                  *
  * ttest        p-value of t-test, adjusted by Benjamini-Hochberg procedure  *
  * snr          signal-to-noise ratio                                        *
- * lfc:mean     log2-fold-change between condition means                     *
- * lfc:median   Log2-fold-change between condition medians                   *
+ * lfc          log2-fold-change between condition means                     *
  * nbc          naive Bayes classifier                                       *
  * lrc          logistic regression classifier                               *
  * svm          support vector machine                                       *

@@ -7,18 +7,16 @@
 #include <unordered_map>
 #include <memory>
 #include <ctime>
-
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-#include "data_struct/scorer.hpp"
-#include "data_struct/tab_header.hpp"
-#include "data_struct/feature_elem.hpp"
+#include "common/tab_header.hpp"
+#include "rank/scorer.hpp"
+#include "rank/feature_elem.hpp"
 #include "run_info_parser/rank.hpp"
 
-const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &nf_vect, TabHeader &tab_header,
-                              const std::string &raw_counts_path, const std::string &idx_path)
+const void ScanCountComputeNF(std::vector<double> &nf_vect, TabHeader &tab_header, const std::string &raw_counts_path)
 {
     std::ifstream raw_counts_file(raw_counts_path);
     if (!raw_counts_file.is_open())
@@ -40,23 +38,15 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     std::getline(kmer_count_instream, line);
     std::istringstream conv(line);
     tab_header.MakeColumns(conv, "");
-    conv.clear();
-
-    std::ofstream idx_file(idx_path);
-    if (!idx_file.is_open()) // to ensure the file is opened
-    {
-        throw std::domain_error("error open file: " + idx_path);
-    }
-
-    std::vector<float> count_vect;
     nf_vect.resize(tab_header.GetNbCount(), 0);
     std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
+    conv.clear();
 
+    std::vector<float> count_vect;
     double mean_sample_sum(0); // mean of sample-sum vector
     while (std::getline(kmer_count_instream, line))
     {
         conv.str(line);
-        feature_vect.emplace_back(conv, count_vect, idx_file, tab_header);
         for (size_t i(0); i < count_vect.size(); ++i)
         {
             nf_vect[i] += count_vect[i];
@@ -71,7 +61,6 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
         nf_vect[i] = mean_sample_sum / nf_vect[i];
     }
     raw_counts_file.close();
-    idx_file.close();
 }
 
 void PrintNF(const std::string &smp_sum_outpath,
@@ -87,6 +76,56 @@ void PrintNF(const std::string &smp_sum_outpath,
         }
     }
     sum_out.close();
+}
+
+const void IndexFeatureVect(featureVect_t &feature_vect, const std::vector<double> &nf_vect, const TabHeader &tab_header,
+                            const std::string &raw_counts_path, const std::string &idx_path)
+{
+    std::ifstream raw_counts_file(raw_counts_path);
+    if (!raw_counts_file.is_open())
+    {
+        throw std::domain_error("count table " + raw_counts_path + " was not found");
+    }
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+    {
+        size_t pos = raw_counts_path.find_last_of(".");
+        if (pos != std::string::npos && raw_counts_path.substr(pos + 1) == "gz")
+        {
+            inbuf.push(boost::iostreams::gzip_decompressor());
+        }
+    }
+    inbuf.push(raw_counts_file);
+    std::istream kmer_count_instream(&inbuf);
+
+    std::string line, val_str;
+    std::getline(kmer_count_instream, line); // skip the first line
+
+    std::ofstream idx_file(idx_path);
+    if (!idx_file.is_open()) // to ensure the file is opened
+    {
+        throw std::domain_error("error open file: " + idx_path);
+    }
+
+    std::vector<float> count_vect;
+    std::istringstream conv;
+    while (std::getline(kmer_count_instream, line))
+    {
+        conv.str(line);
+        tab_header.ParseRowStr(count_vect, val_str, conv);
+        for (size_t i(0); i < count_vect.size(); ++i)
+        {
+            count_vect[i] *= nf_vect[i];
+        }
+        feature_vect.emplace_back(conv, count_vect, idx_file, tab_header);
+        conv.clear();
+    }
+    mean_sample_sum /= nf_vect.size(); // mean of sample-sum vector
+    for (size_t i(0); i < nf_vect.size(); ++i)
+    {
+        nf_vect[i] = mean_sample_sum / nf_vect[i];
+    }
+    raw_counts_file.close();
+    idx_file.close();
 }
 
 void EvalScore(featureVect_t &feature_vect,
