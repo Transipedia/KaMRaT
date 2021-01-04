@@ -219,6 +219,11 @@ inline void ParseOptions(int argc,
         throw std::invalid_argument("Ttest requires ln(x + 1) transformation\n"
                                     "Put -score-method ttest:F to force to run");
     }
+    if (score_method == "rsd" && !smp_info_path.empty())
+    {
+        std::cerr << "[warning] sample-condtion info will not be considered with relative standard deviation ranking" << std::endl;
+        smp_info_path.clear();
+    }
 }
 
 #endif //KAMRAT_RUNINFOPARSER_RANK_HPP
