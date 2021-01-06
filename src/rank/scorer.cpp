@@ -2,14 +2,13 @@
 #define KMEREVALUATE_EVALMETHODS_H
 
 #include <cmath>
-// #include <boost/math/distributions/students_t.hpp>
-// #include <mlpack/core/cv/k_fold_cv.hpp>
-// #include <mlpack/core/cv/metrics/f1.hpp>
-// #include <mlpack/methods/naive_bayes/naive_bayes_classifier.hpp>
-// #include <mlpack/methods/logistic_regression/logistic_regression.hpp>
-// #include <mlpack/methods/linear_svm/linear_svm.hpp>
-// #include <mlpack/methods/linear_svm/linear_svm_function.hpp>
-// #include <boost/math/distributions/students_t.hpp>
+#include <boost/math/distributions/students_t.hpp>
+#include <mlpack/core/cv/k_fold_cv.hpp>
+#include <mlpack/core/cv/metrics/f1.hpp>
+#include <mlpack/methods/naive_bayes/naive_bayes_classifier.hpp>
+#include <mlpack/methods/logistic_regression/logistic_regression.hpp>
+#include <mlpack/methods/linear_svm/linear_svm.hpp>
+#include <mlpack/methods/linear_svm/linear_svm_function.hpp>
 
 #include "scorer.hpp" // armadillo library need be included after mlpack
 
@@ -22,6 +21,24 @@
  * svm          support vector machine                                       *
  * user:name    use representative value in table as score                   *
 \* ======================================================================== */
+
+const SortModeCode ParseSortCodeFromScoreCode(const ScoreMethodCode score_code)
+{
+    switch (score_code)
+    {
+    case ScoreMethodCode::kRelatSD:
+    case ScoreMethodCode::kNaiveBayes:
+    case ScoreMethodCode::kLogitReg:
+        return SortModeCode::kDec;
+    case ScoreMethodCode::kSNR:
+        return SortModeCode::kDecAbs;
+    case ScoreMethodCode::kTtest:
+    case ScoreMethodCode::kSVM:
+        return SortModeCode::kInc;
+    default:
+        return SortModeCode::kDec;
+    }
+}
 
 const double CalcRelatSDScore(const double all_mean, const double all_stddev)
 {
@@ -48,8 +65,8 @@ const double CalcTtestScore(const size_t nb1, const size_t nb2,
                t2 = stddev2 * stddev2 / nb2,
                df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (nb1 - 1) + t2 * t2 / (nb2 - 1)),
                t_stat = (mean1 - mean2) / sqrt(t1 + t2);
-        // boost::math::students_t dist(df);
-        // return (2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat))));
+        boost::math::students_t dist(df);
+        return (2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat))));
     }
 }
 
@@ -125,20 +142,19 @@ const double CalcSVMScore(arma::Row<size_t> label_vect, arma::Mat<double> norm_c
     return lsvm_fun.Evaluate(lsvm.Parameters());
 }
 
-Scorer::Scorer(const ScoreMethodCode score_method_code, const std::string &score_cmd)
-    : score_method_code_(score_method_code), score_cmd_(score_cmd)
+Scorer::Scorer(const ScoreMethodCode score_method_code) // for relat.sd, t-test, snr, svm
+    : score_method_code_(score_method_code), rep_colname_(""), sort_mode_code_(ParseSortCodeFromScoreCode(score_method_code)), nb_fold_(0)
 {
-    if (score_method_code_ == ScoreMethodCode::kLogitReg || score_method_code_ == ScoreMethodCode::kNaiveBayes)
-    {
-        if (score_cmd.empty())
-        {
-            nb_fold_ = 1; // by default, no cross-validation, use all sample for both train and test
-        }
-        else
-        {
-            nb_fold_ = std::stoul(score_cmd); // C++: typedef unsigned long size_t
-        }
-    }
+}
+
+Scorer::Scorer(const ScoreMethodCode score_method_code, const size_t nb_fold) // for naive bayes, logistic regression
+    : score_method_code_(score_method_code), rep_colname_(""), sort_mode_code_(ParseSortCodeFromScoreCode(score_method_code)), nb_fold_(nb_fold)
+{
+}
+
+Scorer::Scorer(const std::string &rep_colname, const SortModeCode sort_mode_code) // column name given by user
+    : score_method_code_(ScoreMethodCode::kUser), rep_colname_(rep_colname), sort_mode_code_(sort_mode_code), nb_fold_(0)
+{
 }
 
 const void Scorer::LoadSampleLabels(const std::vector<size_t> &label_vect)
@@ -162,14 +178,19 @@ const void Scorer::LoadSampleLabels(const std::vector<size_t> &label_vect)
     }
 }
 
-const std::string &Scorer::GetScoreMethod() const
+const ScoreMethodCode Scorer::GetScoreMethodCode() const
 {
-    return kScoreMethodName[score_method_code_];
+    return score_method_code_;
 }
 
-const std::string &Scorer::GetScoreCmd() const
+const std::string &Scorer::GetRepColname() const
 {
-    return score_cmd_;
+    return rep_colname_;
+}
+
+const SortModeCode Scorer::GetSortModeCode() const
+{
+    return sort_mode_code_;
 }
 
 const size_t Scorer::GetNbFold() const
@@ -182,15 +203,42 @@ const size_t Scorer::GetNbClass() const
     return nb_class_;
 }
 
-const void Scorer::PrepareCountVect(const FeatureElem &feature_elem, const std::vector<double> &nf_vect, const bool to_ln)
+const void Scorer::PrepareCountVect(const FeatureElem &feature_elem, const std::vector<double> &nf_vect,
+                                    const bool to_ln, const bool to_standardize, const bool no_norm)
 {
-    static const size_t kNbCount = label_vect_.size();
-    static std::vector<double> raw_count_vect;
+    static std::vector<float> raw_count_vect;
+    const size_t kNbCount = label_vect_.size();
     norm_count_vect_.zeros(1, kNbCount);
     feature_elem.RetrieveCountVect(raw_count_vect, kNbCount);
-    for (size_t i = 0; i < kNbCount; ++i)
+    if (!no_norm) // first normalize
     {
-        norm_count_vect_(0, i) = (to_ln ? log(nf_vect[i] * raw_count_vect[i] + 1) : (nf_vect[i] * raw_count_vect[i]));
+        for (size_t i(0); i < kNbCount; ++i)
+        {
+            norm_count_vect_(0, i) = nf_vect[i] * raw_count_vect[i];
+        }
+    }
+    else
+    {
+        for (size_t i(0); i < kNbCount; ++i)
+        {
+            norm_count_vect_(0, i) = raw_count_vect[i];
+        }
+    }
+    if (to_ln) // then ln(x + 1) transformation
+    {
+        for (size_t i(0); i < kNbCount; ++i)
+        {
+            norm_count_vect_(0, i) = log(nf_vect[i] * raw_count_vect[i] + 1);
+        }
+    }
+    if (to_standardize) // finally standardization
+    {
+        const double all_mean = arma::mean(arma::conv_to<arma::vec>::from(norm_count_vect_)),
+                     all_stddev = arma::stddev(arma::conv_to<arma::vec>::from(norm_count_vect_));
+        for (size_t i(0); i < kNbCount; ++i)
+        {
+            norm_count_vect_(0, i) = (norm_count_vect_(0, i) - all_mean) / all_stddev;
+        }
     }
 }
 

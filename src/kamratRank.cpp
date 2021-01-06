@@ -12,11 +12,10 @@
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include "common/tab_header.hpp"
-#include "rank/scorer.hpp"
-#include "rank/feature_elem.hpp"
-#include "run_info_parser/rank.hpp"
+#include "rank/rank_runinfo.hpp" // including scorer, scorer includes feature_elem
 
-const void ScanCountComputeNF(std::vector<double> &nf_vect, TabHeader &tab_header, const std::string &raw_counts_path)
+const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &nf_vect, TabHeader &tab_header,
+                              const std::string &raw_counts_path, const std::string &idx_path, const std::string &rep_column)
 {
     std::ifstream raw_counts_file(raw_counts_path);
     if (!raw_counts_file.is_open())
@@ -34,19 +33,29 @@ const void ScanCountComputeNF(std::vector<double> &nf_vect, TabHeader &tab_heade
     inbuf.push(raw_counts_file);
     std::istream kmer_count_instream(&inbuf);
 
-    std::string line, str_x;
+    std::string line;
     std::getline(kmer_count_instream, line);
     std::istringstream conv(line);
-    tab_header.MakeColumns(conv, "");
-    nf_vect.resize(tab_header.GetNbCount(), 0);
-    std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
+    tab_header.MakeColumns(conv, rep_column);
     conv.clear();
 
+    nf_vect.resize(tab_header.GetNbCount(), 0);
+    std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
+
+    std::ofstream idx_file(idx_path);
+    if (!idx_file.is_open()) // to ensure the file is opened
+    {
+        throw std::domain_error("error open file: " + idx_path);
+    }
+
     std::vector<float> count_vect;
-    double mean_sample_sum(0); // mean of sample-sum vector
+    std::string value_str;
+    double mean_sample_sum(0), rep_value;
     while (std::getline(kmer_count_instream, line))
     {
         conv.str(line);
+        rep_value = tab_header.ParseRowStr(count_vect, value_str, conv);
+        feature_vect.emplace_back(rep_value, count_vect, value_str, idx_file);
         for (size_t i(0); i < count_vect.size(); ++i)
         {
             nf_vect[i] += count_vect[i];
@@ -61,6 +70,7 @@ const void ScanCountComputeNF(std::vector<double> &nf_vect, TabHeader &tab_heade
         nf_vect[i] = mean_sample_sum / nf_vect[i];
     }
     raw_counts_file.close();
+    idx_file.close();
 }
 
 void PrintNF(const std::string &smp_sum_outpath,
@@ -78,73 +88,20 @@ void PrintNF(const std::string &smp_sum_outpath,
     sum_out.close();
 }
 
-const void IndexFeatureVect(featureVect_t &feature_vect, const std::vector<double> &nf_vect, const TabHeader &tab_header,
-                            const std::string &raw_counts_path, const std::string &idx_path)
-{
-    std::ifstream raw_counts_file(raw_counts_path);
-    if (!raw_counts_file.is_open())
-    {
-        throw std::domain_error("count table " + raw_counts_path + " was not found");
-    }
-    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
-    {
-        size_t pos = raw_counts_path.find_last_of(".");
-        if (pos != std::string::npos && raw_counts_path.substr(pos + 1) == "gz")
-        {
-            inbuf.push(boost::iostreams::gzip_decompressor());
-        }
-    }
-    inbuf.push(raw_counts_file);
-    std::istream kmer_count_instream(&inbuf);
-
-    std::string line, val_str;
-    std::getline(kmer_count_instream, line); // skip the first line
-
-    std::ofstream idx_file(idx_path);
-    if (!idx_file.is_open()) // to ensure the file is opened
-    {
-        throw std::domain_error("error open file: " + idx_path);
-    }
-
-    std::vector<float> count_vect;
-    std::istringstream conv;
-    while (std::getline(kmer_count_instream, line))
-    {
-        conv.str(line);
-        tab_header.ParseRowStr(count_vect, val_str, conv);
-        for (size_t i(0); i < count_vect.size(); ++i)
-        {
-            count_vect[i] *= nf_vect[i];
-        }
-        feature_vect.emplace_back(conv, count_vect, idx_file, tab_header);
-        conv.clear();
-    }
-    mean_sample_sum /= nf_vect.size(); // mean of sample-sum vector
-    for (size_t i(0); i < nf_vect.size(); ++i)
-    {
-        nf_vect[i] = mean_sample_sum / nf_vect[i];
-    }
-    raw_counts_file.close();
-    idx_file.close();
-}
-
 void EvalScore(featureVect_t &feature_vect,
                std::ifstream &idx_file, const std::vector<double> nf_vect,
                std::unique_ptr<Scorer> &scorer, const TabHeader tab_header,
-               const bool ln_transf, const bool standardize)
+               const bool to_ln, const bool to_standardize, const bool no_norm)
 {
     size_t nb_count = nf_vect.size();
-    std::vector<float> count_vect;
-    scorer->LoadSampleLabel(tab_header);
     for (size_t i_feature(0); i_feature < feature_vect.size(); ++i_feature)
     {
-        feature_vect[i_feature].GetCountVect(count_vect, idx_file, nb_count);
-        scorer->LoadSampleCount(count_vect, nf_vect);
-        if (scorer->GetScoreMethod() != "user") // user scoring mode but not find a score column
+        scorer->PrepareCountVect(feature_vect[i_feature], nf_vect, to_ln, to_standardize, no_norm);
+        scorer->CalcFeatureStats(feature_vect[i_feature]);
+        if (scorer->GetScoreMethodCode() != ScoreMethodCode::kUser) // user scoring mode but not find a score column
         {
-            feature_vect[i_feature].EvalFeatureElem(scorer);
+            scorer->EvaluateScore(feature_vect[i_feature]);
         }
-        count_vect.clear();
     }
 }
 
@@ -152,22 +109,22 @@ void SortScore(featureVect_t &feature_vect, const std::string &sort_mode)
 {
     if (sort_mode == "dec:abs")
     {
-        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetValue()) > fabs(feature2.GetValue()); };
+        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetScore()) > fabs(feature2.GetScore()); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else if (sort_mode == "dec")
     {
-        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetValue() > feature2.GetValue(); };
+        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetScore() > feature2.GetScore(); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else if (sort_mode == "inc:abs")
     {
-        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetValue()) < fabs(feature2.GetValue()); };
+        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetScore()) < fabs(feature2.GetScore()); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else if (sort_mode == "inc")
     {
-        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetValue() < feature2.GetValue(); };
+        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetScore() < feature2.GetScore(); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else
@@ -181,7 +138,7 @@ void PValueAdjustmentBH(featureVect_t &feature_vect)
     size_t tot_num = feature_vect.size();
     for (size_t i_feature(tot_num - 2); i_feature >= 0 && i_feature < tot_num; --i_feature)
     {
-        feature_vect[i_feature].ScaleValue(static_cast<double>(tot_num) / (i_feature + 1), 0, feature_vect[i_feature + 1].GetValue());
+        feature_vect[i_feature].AdjustScore(static_cast<double>(tot_num) / (i_feature + 1), 0, feature_vect[i_feature + 1].GetScore());
     }
 }
 
@@ -241,65 +198,12 @@ int main(int argc, char *argv[])
 {
     std::clock_t begin_time = clock(), inter_time;
     std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path, nf_path, out_path;
-    bool ln_transf(false), standardize(false);
+    bool to_ln(false), to_standardize(false), no_norm(false);
     size_t nb_sel(0);
-
-    ParseOptions(argc, argv, idx_path, nf_path, smp_info_path, score_method, score_cmd, sort_mode, nb_sel, ln_transf, standardize, out_path, count_tab_path);
     std::unique_ptr<Scorer> scorer;
-    if (score_method.empty() || score_method == "sd")
-    {
-        scorer = std::make_unique<SDScorer>(sort_mode, ln_transf, standardize);
-    }
-    else if (score_method == "rsd")
-    {
-        scorer = std::make_unique<RelatSDScorer>(sort_mode, ln_transf, standardize);
-    }
-    else if (score_method == "ttest")
-    {
-        scorer = std::make_unique<TtestScorer>(sort_mode, ln_transf, standardize);
-    }
-    else if (score_method == "snr")
-    {
-        scorer = std::make_unique<SNRScorer>(sort_mode, ln_transf, standardize);
-    }
-    else if (score_method == "lfc")
-    {
-        if (score_cmd.empty())
-        {
-            scorer = std::make_unique<LFCScorer>("mean", sort_mode, ln_transf, standardize);
-        }
-        else
-        {
-            scorer = std::make_unique<LFCScorer>(score_cmd, sort_mode, ln_transf, standardize);
-        }
-    }
-    else if (score_method == "nb")
-    {
-        size_t nb_fold = (score_cmd.empty() ? 1 : std::stoi(score_cmd));
-        scorer = std::make_unique<NaiveBayesScorer>(sort_mode, nb_fold, ln_transf, standardize);
-    }
-    else if (score_method == "rg")
-    {
-        size_t nb_fold = (score_cmd.empty() ? 1 : std::stoi(score_cmd));
-        scorer = std::make_unique<RegressionScorer>(sort_mode, nb_fold, ln_transf, standardize);
-    }
-    else if (score_method == "svm")
-    {
-        scorer = std::make_unique<SVMScorer>(sort_mode, ln_transf, standardize);
-    }
-    else if (score_method == "user")
-    {
-        scorer = std::make_unique<UserScorer>(sort_mode);
-    }
-    else
-    {
-        throw std::invalid_argument("unknown scoring method: " + score_method);
-    }
 
-    PrintRunInfo(count_tab_path, idx_path, nf_path, smp_info_path,
-                 scorer->GetScoreMethod(), scorer->GetScoreCmd(), scorer->GetSortMode(), scorer->GetNbFold(),
-                 nb_sel, ln_transf, standardize, out_path);
-
+    ParseOptions(argc, argv, idx_path, nf_path, smp_info_path, scorer, nb_sel, to_ln, to_standardize, no_norm, out_path, count_tab_path);
+    PrintRunInfo(count_tab_path, idx_path, nf_path, smp_info_path, scorer, nb_sel, to_ln, to_standardize, no_norm, out_path);
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
@@ -316,7 +220,7 @@ int main(int argc, char *argv[])
     {
         throw std::domain_error("error open sample count index file: " + idx_path);
     }
-    EvalScore(feature_vect, idx_file, smp_nf_vect, scorer, count_tab_header, ln_transf, standardize);
+    EvalScore(feature_vect, idx_file, smp_nf_vect, scorer, count_tab_header, to_ln, to_standardize);
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 

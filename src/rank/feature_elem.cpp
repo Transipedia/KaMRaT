@@ -1,24 +1,13 @@
 #include <cmath>
+#include <fstream>
 
 #include "feature_elem.hpp"
 
-FeatureElem::FeatureElem(const size_t idx_pos, const double rep_value)
-    : idx_pos_(idx_pos), score_(rep_value)
+FeatureElem::FeatureElem(double rep_value, std::vector<float> &count_vect, const std::string &value_str, std::ofstream &idx_file)
+    : idx_pos_(static_cast<size_t>(idx_file.tellp())), score_(rep_value)
 {
-}
-
-const void FeatureElem::OpenIdxFile(const std::string &&idx_path)
-{
-    idx_file_.open(idx_path);
-    if (!idx_file_.is_open())
-    {
-        throw std::domain_error("error open index file: " + idx_path);
-    }
-}
-
-const void FeatureElem::CloseIdxFile()
-{
-    idx_file_.close();
+    idx_file.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // first index counts columns
+    idx_file << value_str << std::endl;                                                          // then index non-count columns
 }
 
 const void FeatureElem::SetScore(const double score)
@@ -66,9 +55,9 @@ const double FeatureElem::GetCondiStats(const size_t i_condi, const std::string 
     }
 }
 
-const void FeatureElem::RetrieveCountVect(std::vector<double> &count_vect, const size_t nb_count) const
+const void FeatureElem::RetrieveCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, const size_t nb_count) const
 {
     count_vect.resize(nb_count);
-    idx_file_.seekg(idx_pos_);
-    idx_file_.read(reinterpret_cast<char *>(&count_vect[0]), nb_count * sizeof(double));
+    idx_file.seekg(idx_pos_);
+    idx_file.read(reinterpret_cast<char *>(&count_vect[0]), nb_count * sizeof(float));
 }

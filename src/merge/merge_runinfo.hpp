@@ -3,10 +3,16 @@
 
 #include <iostream>
 #include <string>
+#include <set>
 
-#include "utils.hpp"
+#define MAX_PEARSON_DEFAULT 0.20
+#define MAX_SPEARMAN_DEFAULT 0.26
+#define MAX_MAC_DEFAULT 0.25
 
-inline void PrintMergeHelper()
+const std::set<std::string> kIntervMethodUniv{"pearson", "spearman", "mac"};
+const std::set<std::string> kQuantModeUniv{"rep", "mean"};
+
+const void PrintMergeHelper()
 {
     std::cerr << "[Usage]    kamrat merge -klen INT -idx-path STR [-options] KMER_TAB_PATH" << std::endl
               << std::endl;
@@ -25,16 +31,16 @@ inline void PrintMergeHelper()
               << std::endl;
 }
 
-inline void PrintRunInfo(const size_t k_len,
-                         const std::string &idx_path,
-                         const bool stranded,
-                         const size_t min_overlap,
-                         const std::string &smp_info_path,
-                         const std::string &interv_method, const float interv_thres,
-                         const std::string &quant_mode,
-                         const std::string &rep_colname,
-                         const std::string &out_path,
-                         const std::string &kmer_count_path)
+const void PrintRunInfo(const size_t k_len,
+                        const std::string &idx_path,
+                        const bool stranded,
+                        const size_t min_overlap,
+                        const std::string &smp_info_path,
+                        const std::string &interv_method, const float interv_thres,
+                        const std::string &quant_mode,
+                        const std::string &rep_colname,
+                        const std::string &out_path,
+                        const std::string &kmer_count_path)
 {
     std::cerr << std::endl;
     std::cerr << "k-mer length:                  " << k_len << std::endl;
@@ -70,17 +76,17 @@ inline void PrintRunInfo(const size_t k_len,
     std::cerr << "k-mer count path:              " << kmer_count_path << std::endl;
 }
 
-inline void ParseOptions(int argc, char *argv[],
-                         size_t &k_len,
-                         std::string &idx_path,
-                         bool &stranded,
-                         size_t &min_overlap,
-                         std::string &smp_info_path,
-                         std::string &interv_method, float &interv_thres,
-                         std::string &quant_mode,
-                         std::string &rep_colname,
-                         std::string &out_path,
-                         std::string &kmer_count_path)
+const void ParseOptions(int argc, char *argv[],
+                        size_t &k_len,
+                        std::string &idx_path,
+                        bool &stranded,
+                        size_t &min_overlap,
+                        std::string &smp_info_path,
+                        std::string &interv_method, float &interv_thres,
+                        std::string &quant_mode,
+                        std::string &rep_colname,
+                        std::string &out_path,
+                        std::string &kmer_count_path)
 {
     int i_opt = 1;
     while (i_opt < argc && argv[i_opt][0] == '-')
@@ -157,8 +163,13 @@ inline void ParseOptions(int argc, char *argv[],
 
     // dealing intervention method //
     std::string threshold_str;
-    SubCommandParser(interv_method, threshold_str);
-    if (interv_method != "none" && INTERV_METHOD_UNIV.find(interv_method) == INTERV_METHOD_UNIV.cend())
+    size_t split_pos = interv_method.find(":");
+    if (split_pos != std::string::npos)
+    {
+        threshold_str = interv_method.substr(split_pos + 1);
+        interv_method = interv_method.substr(0, split_pos);
+    }
+    if (interv_method != "none" && kIntervMethodUniv.find(interv_method) == kIntervMethodUniv.cend())
     {
         PrintMergeHelper();
         throw std::invalid_argument("unknown intervention method " + interv_method);

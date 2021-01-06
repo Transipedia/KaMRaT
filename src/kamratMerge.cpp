@@ -17,8 +17,7 @@
 #include "common/tab_header.hpp"
 #include "merge/contig_elem.hpp"
 #include "merge/merge_knot.hpp"
-#include "run_info_parser/merge.hpp"
-#include "run_info_parser/utils.hpp"
+#include "merge/merge_runinfo.hpp"
 
 void ScanCountTable(countTab_t &count_tab, TabHeader &tab_header,
                     contigvect_t &contig_vect,
