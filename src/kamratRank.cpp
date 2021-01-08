@@ -67,15 +67,20 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     mean_sample_sum /= nf_vect.size(); // mean of sample-sum vector
     for (size_t i(0); i < nf_vect.size(); ++i)
     {
-        nf_vect[i] = mean_sample_sum / nf_vect[i];
+        if (nf_vect[i] == 0)
+        {
+            nf_vect[i] = 0;
+        }
+        else
+        {
+            nf_vect[i] = mean_sample_sum / nf_vect[i];
+        }
     }
     raw_counts_file.close();
     idx_file.close();
 }
 
-void PrintNF(const std::string &smp_sum_outpath,
-             const std::vector<double> &nf_vect,
-             const TabHeader &tab_header)
+void PrintNF(const std::string &smp_sum_outpath, const std::vector<double> &nf_vect, const TabHeader &tab_header)
 {
     std::ofstream sum_out(smp_sum_outpath);
     for (size_t i(1), j(0); i < tab_header.GetNbCol(); ++i)
@@ -93,43 +98,40 @@ void EvalScore(featureVect_t &feature_vect,
                std::unique_ptr<Scorer> &scorer, const TabHeader tab_header,
                const bool to_ln, const bool to_standardize, const bool no_norm)
 {
-    size_t nb_count = nf_vect.size();
+    std::vector<size_t> label_vect;
+    scorer->LoadSampleLabels(tab_header.GetSampleLabelVect(label_vect));
     for (size_t i_feature(0); i_feature < feature_vect.size(); ++i_feature)
     {
-        scorer->PrepareCountVect(feature_vect[i_feature], nf_vect, to_ln, to_standardize, no_norm);
+        scorer->PrepareCountVect(feature_vect[i_feature], nf_vect, idx_file, to_ln, to_standardize, no_norm);
         scorer->CalcFeatureStats(feature_vect[i_feature]);
         if (scorer->GetScoreMethodCode() != ScoreMethodCode::kUser) // user scoring mode but not find a score column
         {
-            scorer->EvaluateScore(feature_vect[i_feature]);
+            feature_vect[i_feature].SetScore(scorer->EvaluateScore(feature_vect[i_feature]));
         }
     }
 }
 
-void SortScore(featureVect_t &feature_vect, const std::string &sort_mode)
+void SortScore(featureVect_t &feature_vect, const SortModeCode sort_mode_code)
 {
-    if (sort_mode == "dec:abs")
+    if (sort_mode_code == SortModeCode::kDecAbs)
     {
         auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetScore()) > fabs(feature2.GetScore()); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
-    else if (sort_mode == "dec")
+    else if (sort_mode_code == SortModeCode::kDec)
     {
         auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetScore() > feature2.GetScore(); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
-    else if (sort_mode == "inc:abs")
+    else if (sort_mode_code == SortModeCode::kIncAbs)
     {
         auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetScore()) < fabs(feature2.GetScore()); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
-    else if (sort_mode == "inc")
+    else if (sort_mode_code == SortModeCode::kInc)
     {
         auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetScore() < feature2.GetScore(); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
-    }
-    else
-    {
-        throw std::domain_error("unknown sort mode: " + sort_mode);
     }
 }
 
@@ -140,6 +142,59 @@ void PValueAdjustmentBH(featureVect_t &feature_vect)
     {
         feature_vect[i_feature].AdjustScore(static_cast<double>(tot_num) / (i_feature + 1), 0, feature_vect[i_feature + 1].GetScore());
     }
+}
+
+void PrintHeader(std::ostream &out_s, const TabHeader &tab_header)
+{
+    std::cout << tab_header.GetColNameAt(0) << "\tscore";
+    for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
+    {
+        std::cout << "\tmean" << static_cast<char>('A' + i);
+    }
+    for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
+    {
+        std::cout << "\tsd" << static_cast<char>('A' + i);
+    }
+    std::string value_str;
+    for (size_t i(1); i < tab_header.GetNbCol(); ++i)
+    {
+        if (!tab_header.IsColCount(i)) // first output non-sample values
+        {
+            out_s << "\t" << tab_header.GetColNameAt(i);
+        }
+        else
+        {
+            value_str += ("\t" + tab_header.GetColNameAt(i));
+        }
+    }
+    out_s << value_str << std::endl; // then output sample counts
+}
+
+void PrintFeature(std::ostream &out_s, const FeatureElem &feature_elem, std::ifstream &idx_file, const size_t nb_count)
+{
+    static std::vector<float> count_vect;
+    static std::string value_str;
+    feature_elem.RetrieveCountVect(count_vect, idx_file, nb_count);
+    feature_elem.RetrieveValueStr(value_str, idx_file, nb_count);
+    size_t split_pos = value_str.find_first_of(" \t");
+    out_s << value_str.substr(0, split_pos) << "\t" << feature_elem.GetScore();
+    for (const double m : feature_elem.GetCondiMeanVect())
+    {
+        std::cout << "\t" << m;
+    }
+    for (const double s : feature_elem.GetCondiStddevVect())
+    {
+        std::cout << "\t" << s;
+    }
+    if (split_pos != std::string::npos) // if some other value remains in value string
+    {
+        out_s << value_str.substr(split_pos);
+    }
+    for (float c : count_vect)
+    {
+        out_s << "\t" << c;
+    }
+    out_s << std::endl;
 }
 
 void ModelPrint(featureVect_t &feature_vect,
@@ -162,31 +217,12 @@ void ModelPrint(featureVect_t &feature_vect,
     {
         std::cout.rdbuf(out_file.rdbuf());
     }
-
-    std::cout << tab_header.GetColNameAt(0) << "\tscore";
-    for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
-    {
-        std::cout << "\tnorm.mean" << static_cast<char>('A' + i);
-    }
-    std::string row_str;
-    tab_header.MakeOutputHeaderStr(row_str);
-    std::cout << row_str.substr(row_str.find_first_of("\t")) << std::endl;
-
-    size_t parsed_nb_sel = (nb_sel == 0) ? feature_vect.size() : nb_sel;
-    std::string out_row_str;
-    size_t split_pos;
+    PrintHeader(std::cout, tab_header);
+    size_t parsed_nb_sel = (nb_sel == 0 ? feature_vect.size() : nb_sel);
     for (size_t i(0); i < parsed_nb_sel; ++i)
     {
-        feature_vect[i].MakeOutputRowStr(out_row_str, idx_file, tab_header.GetNbCount());
-        split_pos = out_row_str.find_first_of("\t");
-        std::cout << out_row_str.substr(0, split_pos + 1) << feature_vect[i].GetValue();
-        for (const float m : feature_vect[i].GetNormCondiMeans())
-        {
-            std::cout << "\t" << m;
-        }
-        std::cout << out_row_str.substr(split_pos) << std::endl;
+        PrintFeature(std::cout, feature_vect[i], idx_file, tab_header.GetNbCount());
     }
-
     std::cout.rdbuf(backup_buf);
     if (out_file.is_open())
     {
@@ -210,24 +246,32 @@ int main(int argc, char *argv[])
     TabHeader count_tab_header(smp_info_path);
     featureVect_t feature_vect;
     std::vector<double> smp_nf_vect;
-    ScanCountComputeNF(feature_vect, smp_nf_vect, count_tab_header, count_tab_path, idx_path);
-    PrintNF(nf_path, smp_nf_vect, count_tab_header);
+    if (scorer->GetScoreMethodCode() != ScoreMethodCode::kUser)
+    {
+        ScanCountComputeNF(feature_vect, smp_nf_vect, count_tab_header, count_tab_path, idx_path, "");
+    }
+    else
+    {
+        ScanCountComputeNF(feature_vect, smp_nf_vect, count_tab_header, count_tab_path, idx_path, scorer->GetRepColname());
+    }
     std::cerr << "Count table scanning finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
+    if (!no_norm)
+    {
+        PrintNF(nf_path, smp_nf_vect, count_tab_header);
+    }
 
     std::ifstream idx_file(idx_path);
     if (!idx_file.is_open())
     {
         throw std::domain_error("error open sample count index file: " + idx_path);
     }
-    EvalScore(feature_vect, idx_file, smp_nf_vect, scorer, count_tab_header, to_ln, to_standardize);
+    EvalScore(feature_vect, idx_file, smp_nf_vect, scorer, count_tab_header, to_ln, to_standardize, no_norm);
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
-
-    SortScore(feature_vect, scorer->GetSortMode());
+    SortScore(feature_vect, scorer->GetSortModeCode());
     std::cerr << "Score sorting finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
-
     if (score_method == "ttest")
     {
         PValueAdjustmentBH(feature_vect);
@@ -236,12 +280,11 @@ int main(int argc, char *argv[])
         std::cerr << "P-value adjusting finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
         inter_time = clock();
     }
-
     ModelPrint(feature_vect, idx_file, nb_sel, count_tab_header, out_path);
-    std::cerr << "Output finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
-    inter_time = clock();
-
     idx_file.close();
+
+    std::cerr << "Output finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
+
     return EXIT_SUCCESS;
 }

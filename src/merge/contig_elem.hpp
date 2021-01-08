@@ -1,5 +1,5 @@
-#ifndef KAMRAT_DATASTRUCT_CONTIGLIST_HPP
-#define KAMRAT_DATASTRUCT_CONTIGLIST_HPP
+#ifndef KAMRAT_MERGE_CONTIGELEM_HPP
+#define KAMRAT_MERGE_CONTIGELEM_HPP
 
 #include <string>
 #include <cstdint>
@@ -33,7 +33,6 @@ private:
                                                // head k-mer as the first, rear k-mer as the last, others whatever order
 };
 
-// using code2contig_t = std::map<uint64_t, ContigElem>;
 using contigvect_t = std::vector<ContigElem>;
 
-#endif //KAMRAT_DATASTRUCT_CONTIGLIST_HPP
+#endif //KAMRAT_MERGE_CONTIGELEM_HPP

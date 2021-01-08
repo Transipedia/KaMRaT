@@ -1,5 +1,5 @@
-#ifndef KAMRAT_DATASTRUCT_TABELEM_HPP
-#define KAMRAT_DATASTRUCT_TABELEM_HPP
+#ifndef KAMRAT_COMMON_TABELEM_HPP
+#define KAMRAT_COMMON_TABELEM_HPP
 
 #include <vector>
 #include <string>
@@ -27,4 +27,4 @@ protected:
 using countTab_t = std::vector<TabElem>;                    // feature table
 using code2serial_t = std::unordered_map<uint64_t, size_t>; // external dictionary to link k-mer with row serial number
 
-#endif //KAMRAT_DATASTRUCT_TABELEM_HPP
+#endif //KAMRAT_COMMON_TABELEM_HPP

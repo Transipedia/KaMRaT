@@ -1,5 +1,5 @@
-#ifndef KAMRAT_DATASTRUCT_FEATUREELEM_HPP
-#define KAMRAT_DATASTRUCT_FEATUREELEM_HPP
+#ifndef KAMRAT_RANK_FEATUREELEM_HPP
+#define KAMRAT_RANK_FEATUREELEM_HPP
 
 #include <vector>
 #include <tuple>
@@ -8,7 +8,7 @@
 class FeatureElem
 {
 public:
-    FeatureElem(double rep_value, std::vector<double> &count_vect, const std::string &value_str, std::ofstream &idx_file);
+    FeatureElem(double rep_value, std::vector<float> &count_vect, const std::string &value_str, std::ofstream &idx_file);
 
     const void SetScore(double score);
     const double GetScore() const;
@@ -16,8 +16,12 @@ public:
 
     const void ReserveCondiStats(size_t nb_class);
     const void AddCondiStats(double mean, double stddev);
-    const double GetCondiStats(size_t i_condi, const std::string &&stats_name) const;
-    const void RetrieveCountVect(std::vector<double> &count_vect, std::ifstream &idx_file, size_t nb_count) const;
+    const std::vector<double> &GetCondiMeanVect() const;
+    const std::vector<double> &GetCondiStddevVect() const;
+    const double GetCondiMeanAt(size_t i_smp) const;
+    const double GetCondiStddevAt(size_t i_smp) const;
+    const void RetrieveCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, size_t nb_count) const;
+    const void RetrieveValueStr(std::string &value_str, std::ifstream &idx_file, const size_t nb_count) const;
 
 private:
     size_t idx_pos_;                                // serial in count table
@@ -27,4 +31,4 @@ private:
 
 using featureVect_t = std::vector<FeatureElem>;
 
-#endif //KAMRAT_DATASTRUCT_FEATUREELEM_HPP
+#endif //KAMRAT_RANK_FEATUREELEM_HPP

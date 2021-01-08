@@ -1,5 +1,5 @@
-#ifndef KAMRAT_DATASTRUCT_MERGEKNOT_H
-#define KAMRAT_DATASTRUCT_MERGEKNOT_H
+#ifndef KAMRAT_MERGE_MERGEKNOT_H
+#define KAMRAT_MERGE_MERGEKNOT_H
 
 #include <string>
 #include <map>
@@ -20,4 +20,4 @@ private:
 
 using fix2knot_t = std::map<uint64_t, MergeKnot>; // map for making results not dependent to k-mers' input order, but their sequence order
 
-#endif //KAMRAT_DATASTRUCT_MERGEKNOT_H
+#endif //KAMRAT_MERGE_MERGEKNOT_H

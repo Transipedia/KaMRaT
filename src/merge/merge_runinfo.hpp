@@ -1,5 +1,5 @@
-#ifndef KAMRAT_RUNINFOPARSER_MERGE_HPP
-#define KAMRAT_RUNINFOPARSER_MERGE_HPP
+#ifndef KAMRAT_MERGE_MERGERUNINFO_HPP
+#define KAMRAT_MERGE_MERGERUNINFO_HPP
 
 #include <iostream>
 #include <string>
@@ -196,4 +196,4 @@ const void ParseOptions(int argc, char *argv[],
     }
 }
 
-#endif //KAMRAT_RUNINFOPARSER_MERGE_HPP
+#endif //KAMRAT_MERGE_MERGERUNINFO_HPP

@@ -1,5 +1,5 @@
-#ifndef KAMRAT_RUNINFOPARSER_RANK_HPP
-#define KAMRAT_RUNINFOPARSER_RANK_HPP
+#ifndef KAMRAT_RANK_RANKRUNINFO_HPP
+#define KAMRAT_RANK_RANKRUNINFO_HPP
 
 #include <iostream>
 #include <string>
@@ -21,7 +21,7 @@ const void ParseScorer(std::unique_ptr<Scorer> &scorer, std::string &score_metho
         if (to_standardize)
         {
             throw std::invalid_argument("Standard deviation score should not be applied on standardized counts\n"
-                                        "And the forced running is not permitted either");
+                                        "And the forced running is not permitted either (divided by 0)");
         }
         scorer = std::make_unique<Scorer>(ScoreMethodCode::kRelatSD);
     }
@@ -85,10 +85,15 @@ const void ParseScorer(std::unique_ptr<Scorer> &scorer, std::string &score_metho
         {
             scorer = std::make_unique<Scorer>(score_method, SortModeCode::kIncAbs);
         }
+        else if (score_cmd.empty())
+        {
+            throw std::invalid_argument("user-defined ranking with column (" + score_method + ") but without indicating sorting mode");
+        }
         else
         {
             throw std::invalid_argument("unknown sorting mode: " + score_cmd);
         }
+        
     }
 }
 
@@ -265,18 +270,18 @@ inline void ParseOptions(int argc,
         PrintRankHelper();
         throw std::invalid_argument("temporary index file path is mandatory");
     }
-    if (nf_path.empty())
+    if (nf_path.empty() && !no_norm)
     {
         PrintRankHelper();
-        throw std::invalid_argument("Path for normalization factor is mandatory");
+        throw std::invalid_argument("path for normalization factor is mandatory unless with -no-norm");
+    }
+    else if (!nf_path.empty() && no_norm)
+    {
+        PrintRankHelper();
+        throw std::invalid_argument("no need for giving normalization factor path with -no-norm");
     }
 
     ParseScorer(scorer, score_method, to_ln, to_standardize);
-    if (score_method == "rsd" && !smp_info_path.empty())
-    {
-        std::cerr << "[warning] sample-condtion info will not be considered with relative standard deviation ranking" << std::endl;
-        smp_info_path.clear();
-    }
 }
 
-#endif //KAMRAT_RUNINFOPARSER_RANK_HPP
+#endif //KAMRAT_RANK_RANKRUNINFO_HPP

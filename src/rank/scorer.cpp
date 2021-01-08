@@ -1,6 +1,3 @@
-#ifndef KMEREVALUATE_EVALMETHODS_H
-#define KMEREVALUATE_EVALMETHODS_H
-
 #include <cmath>
 #include <boost/math/distributions/students_t.hpp>
 #include <mlpack/core/cv/k_fold_cv.hpp>
@@ -90,6 +87,7 @@ public:
     {
         if (labels.max() == 1) // binary conditions
         {
+            // data.print("Data:");
             double score = mlpack::cv::F1<mlpack::cv::Binary>().Evaluate(model, data, labels);
             return (isnan(score) ? 0 : score);
         }
@@ -101,7 +99,7 @@ public:
     }
 };
 
-const double CalcLRCScore(const size_t nb_fold, arma::Row<size_t> label_vect, arma::Mat<double> norm_count_vect)
+const double CalcLRCScore(const size_t nb_fold, const arma::Row<size_t> &label_vect, const arma::Mat<double> &norm_count_vect)
 {
     const size_t nb_fold_final = (nb_fold == 0 ? label_vect.size() : nb_fold);
     if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
@@ -118,7 +116,7 @@ const double CalcLRCScore(const size_t nb_fold, arma::Row<size_t> label_vect, ar
     }
 }
 
-const double CalcNBCScore(const size_t nb_fold, arma::Row<size_t> label_vect, arma::Mat<double> norm_count_vect, const size_t nb_class)
+const double CalcNBCScore(const size_t nb_fold, const arma::Row<size_t> &label_vect, const arma::Mat<double> &norm_count_vect, const size_t nb_class)
 {
     const size_t nb_fold_final = (nb_fold == 0 ? label_vect.size() : nb_fold);
     if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
@@ -135,7 +133,7 @@ const double CalcNBCScore(const size_t nb_fold, arma::Row<size_t> label_vect, ar
     }
 }
 
-const double CalcSVMScore(arma::Row<size_t> label_vect, arma::Mat<double> norm_count_vect, const size_t nb_class)
+const double CalcSVMScore(const arma::Row<size_t> &label_vect, const arma::Mat<double> &norm_count_vect, const size_t nb_class)
 {
     mlpack::svm::LinearSVM<> lsvm(norm_count_vect, label_vect, nb_class);
     mlpack::svm::LinearSVMFunction<> lsvm_fun(norm_count_vect, label_vect, nb_class);
@@ -160,11 +158,15 @@ Scorer::Scorer(const std::string &rep_colname, const SortModeCode sort_mode_code
 const void Scorer::LoadSampleLabels(const std::vector<size_t> &label_vect)
 {
     label_vect_ = arma::conv_to<arma::Row<size_t>>::from(label_vect);
-    nb_class_ = label_vect_.max();
-    nbsmp_condi_.resize(nb_class_, 0);
-    for (size_t x : label_vect)
+    label_vect_.print("Label vector:");
+    nb_class_ = label_vect_.max() + 1;
+    if (score_method_code_ == ScoreMethodCode::kTtest) // only t-test needs
     {
-        nbsmp_condi_[x]++;
+        nbsmp_condi_.resize(nb_class_, 0);
+        for (size_t x : label_vect)
+        {
+            nbsmp_condi_[x]++;
+        }
     }
     if (nb_class_ != 2 &&
         (score_method_code_ == ScoreMethodCode::kTtest || score_method_code_ == ScoreMethodCode::kSNR || score_method_code_ == ScoreMethodCode::kLogitReg))
@@ -203,25 +205,25 @@ const size_t Scorer::GetNbClass() const
     return nb_class_;
 }
 
-const void Scorer::PrepareCountVect(const FeatureElem &feature_elem, const std::vector<double> &nf_vect,
+const void Scorer::PrepareCountVect(const FeatureElem &feature_elem, const std::vector<double> &nf_vect, std::ifstream &idx_file,
                                     const bool to_ln, const bool to_standardize, const bool no_norm)
 {
     static std::vector<float> raw_count_vect;
     const size_t kNbCount = label_vect_.size();
     norm_count_vect_.zeros(1, kNbCount);
-    feature_elem.RetrieveCountVect(raw_count_vect, kNbCount);
-    if (!no_norm) // first normalize
+    feature_elem.RetrieveCountVect(raw_count_vect, idx_file, kNbCount);
+    if (no_norm) // first normalization
     {
         for (size_t i(0); i < kNbCount; ++i)
         {
-            norm_count_vect_(0, i) = nf_vect[i] * raw_count_vect[i];
+            norm_count_vect_(0, i) = raw_count_vect[i];
         }
     }
     else
     {
         for (size_t i(0); i < kNbCount; ++i)
         {
-            norm_count_vect_(0, i) = raw_count_vect[i];
+            norm_count_vect_(0, i) = nf_vect[i] * raw_count_vect[i];
         }
     }
     if (to_ln) // then ln(x + 1) transformation
@@ -240,19 +242,28 @@ const void Scorer::PrepareCountVect(const FeatureElem &feature_elem, const std::
             norm_count_vect_(0, i) = (norm_count_vect_(0, i) - all_mean) / all_stddev;
         }
     }
+    norm_count_vect_.print("Norm count vector:");
 }
 
 const void Scorer::CalcFeatureStats(FeatureElem &feature_elem)
 {
-    feature_elem.ReserveCondiStats(nb_class_);
-    mean_condi_.reserve(nb_class_);
-    stddev_condi_.reserve(nb_class_);
-    for (size_t i_class(1); i_class <= nb_class_; ++i_class)
+    if (score_method_code_ == ScoreMethodCode::kRelatSD)
     {
-        arma::Mat<double> &&norm_count_vect_i = norm_count_vect_.elem(arma::find(label_vect_ == i_class));
-        mean_condi_.push_back(arma::mean(arma::conv_to<arma::vec>::from(norm_count_vect_i)));
-        stddev_condi_.push_back(arma::stddev(arma::conv_to<arma::vec>::from(norm_count_vect_i)));
-        feature_elem.AddCondiStats(mean_condi_[i_class - 1], stddev_condi_[i_class - 1]);
+        feature_elem.ReserveCondiStats(1);
+        const double all_mean = arma::mean(arma::conv_to<arma::vec>::from(norm_count_vect_)),
+                     all_stddev = arma::stddev(arma::conv_to<arma::vec>::from(norm_count_vect_));
+        feature_elem.AddCondiStats(all_mean, all_stddev);
+    }
+    else
+    {
+        feature_elem.ReserveCondiStats(nb_class_);
+        for (size_t i_class(0); i_class < nb_class_; ++i_class)
+        {
+            arma::Mat<double> &&norm_count_vect_i = norm_count_vect_.elem(arma::find(label_vect_ == i_class));
+            const double condi_mean = arma::mean(arma::conv_to<arma::vec>::from(norm_count_vect_i)),
+                         condi_stddev = arma::stddev(arma::conv_to<arma::vec>::from(norm_count_vect_i));
+            feature_elem.AddCondiStats(condi_mean, condi_stddev);
+        }
     }
 }
 
@@ -261,11 +272,14 @@ const double Scorer::EvaluateScore(const FeatureElem &feature_elem) const
     switch (score_method_code_)
     {
     case ScoreMethodCode::kRelatSD:
-        return CalcRelatSDScore(mean_condi_[0], stddev_condi_[0]);
+        return CalcRelatSDScore(feature_elem.GetCondiMeanAt(0), feature_elem.GetCondiStddevAt(0));
     case ScoreMethodCode::kTtest:
-        return CalcTtestScore(nbsmp_condi_[0], nbsmp_condi_[1], mean_condi_[0], mean_condi_[1], stddev_condi_[0], stddev_condi_[1]);
+        return CalcTtestScore(nbsmp_condi_[0], nbsmp_condi_[1],
+                              feature_elem.GetCondiMeanAt(0), feature_elem.GetCondiMeanAt(1),
+                              feature_elem.GetCondiStddevAt(0), feature_elem.GetCondiStddevAt(1));
     case ScoreMethodCode::kSNR:
-        return CalcSNRScore(mean_condi_[0], mean_condi_[1], stddev_condi_[0], stddev_condi_[1]);
+        return CalcSNRScore(feature_elem.GetCondiMeanAt(0), feature_elem.GetCondiMeanAt(1),
+                            feature_elem.GetCondiStddevAt(0), feature_elem.GetCondiStddevAt(1));
     case ScoreMethodCode::kLogitReg:
         return CalcLRCScore(nb_fold_, label_vect_, norm_count_vect_);
     case ScoreMethodCode::kNaiveBayes:
@@ -276,5 +290,3 @@ const double Scorer::EvaluateScore(const FeatureElem &feature_elem) const
         return std::nan("");
     }
 }
-
-#endif //KMEREVALUATE_EVALMETHODS_H

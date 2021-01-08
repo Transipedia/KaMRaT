@@ -39,20 +39,24 @@ const void FeatureElem::AddCondiStats(const double mean, const double stddev)
     condi_stddev_.push_back(stddev);
 }
 
-const double FeatureElem::GetCondiStats(const size_t i_condi, const std::string &&stats_name) const
+const std::vector<double> &FeatureElem::GetCondiMeanVect() const
 {
-    if (stats_name == "mean")
-    {
-        return condi_mean_[i_condi];
-    }
-    else if (stats_name == "stddev")
-    {
-        return condi_stddev_[i_condi];
-    }
-    else
-    {
-        return std::nan("");
-    }
+    return condi_mean_;
+}
+
+const std::vector<double> &FeatureElem::GetCondiStddevVect() const
+{
+    return condi_stddev_;
+}
+
+const double FeatureElem::GetCondiMeanAt(const size_t i_smp) const
+{
+    return condi_mean_[i_smp];
+}
+
+const double FeatureElem::GetCondiStddevAt(const size_t i_smp) const
+{
+    return condi_stddev_[i_smp];
 }
 
 const void FeatureElem::RetrieveCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, const size_t nb_count) const
@@ -60,4 +64,11 @@ const void FeatureElem::RetrieveCountVect(std::vector<float> &count_vect, std::i
     count_vect.resize(nb_count);
     idx_file.seekg(idx_pos_);
     idx_file.read(reinterpret_cast<char *>(&count_vect[0]), nb_count * sizeof(float));
+}
+
+const void FeatureElem::RetrieveValueStr(std::string &value_str, std::ifstream &idx_file, const size_t nb_count) const
+{
+    value_str.clear();
+    idx_file.seekg(idx_pos_ + nb_count * sizeof(float));
+    std::getline(idx_file, value_str);
 }
