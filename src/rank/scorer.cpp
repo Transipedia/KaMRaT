@@ -158,7 +158,7 @@ Scorer::Scorer(const std::string &rep_colname, const SortModeCode sort_mode_code
 const void Scorer::LoadSampleLabels(const std::vector<size_t> &label_vect)
 {
     label_vect_ = arma::conv_to<arma::Row<size_t>>::from(label_vect);
-    label_vect_.print("Label vector:");
+    // label_vect_.print("Label vector:");
     nb_class_ = label_vect_.max() + 1;
     if (score_method_code_ == ScoreMethodCode::kTtest) // only t-test needs
     {
@@ -242,7 +242,7 @@ const void Scorer::PrepareCountVect(const FeatureElem &feature_elem, const std::
             norm_count_vect_(0, i) = (norm_count_vect_(0, i) - all_mean) / all_stddev;
         }
     }
-    norm_count_vect_.print("Norm count vector:");
+    // norm_count_vect_.print("Norm count vector:");
 }
 
 const void Scorer::CalcFeatureStats(FeatureElem &feature_elem)

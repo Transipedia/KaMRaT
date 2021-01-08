@@ -144,16 +144,23 @@ void PValueAdjustmentBH(featureVect_t &feature_vect)
     }
 }
 
-void PrintHeader(std::ostream &out_s, const TabHeader &tab_header)
+void PrintHeader(std::ostream &out_s, const TabHeader &tab_header, const ScoreMethodCode score_method_code)
 {
     std::cout << tab_header.GetColNameAt(0) << "\tscore";
-    for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
+    if (score_method_code == ScoreMethodCode::kRelatSD)
     {
-        std::cout << "\tmean" << static_cast<char>('A' + i);
+        std::cout << "\tmean\tsd";
     }
-    for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
+    else if (score_method_code != ScoreMethodCode::kUser)
     {
-        std::cout << "\tsd" << static_cast<char>('A' + i);
+        for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
+        {
+            std::cout << "\tmean" << static_cast<char>('A' + i);
+        }
+        for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
+        {
+            std::cout << "\tsd" << static_cast<char>('A' + i);
+        }
     }
     std::string value_str;
     for (size_t i(1); i < tab_header.GetNbCol(); ++i)
@@ -197,11 +204,8 @@ void PrintFeature(std::ostream &out_s, const FeatureElem &feature_elem, std::ifs
     out_s << std::endl;
 }
 
-void ModelPrint(featureVect_t &feature_vect,
-                std::ifstream &idx_file,
-                const size_t nb_sel,
-                const TabHeader &tab_header,
-                const std::string &out_path)
+void ModelPrint(featureVect_t &feature_vect, std::ifstream &idx_file, const size_t nb_sel,
+                const TabHeader &tab_header, const std::string &out_path, const ScoreMethodCode score_method_code)
 {
     std::ofstream out_file;
     if (!out_path.empty())
@@ -217,7 +221,7 @@ void ModelPrint(featureVect_t &feature_vect,
     {
         std::cout.rdbuf(out_file.rdbuf());
     }
-    PrintHeader(std::cout, tab_header);
+    PrintHeader(std::cout, tab_header, score_method_code);
     size_t parsed_nb_sel = (nb_sel == 0 ? feature_vect.size() : nb_sel);
     for (size_t i(0); i < parsed_nb_sel; ++i)
     {
@@ -280,7 +284,7 @@ int main(int argc, char *argv[])
         std::cerr << "P-value adjusting finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
         inter_time = clock();
     }
-    ModelPrint(feature_vect, idx_file, nb_sel, count_tab_header, out_path);
+    ModelPrint(feature_vect, idx_file, nb_sel, count_tab_header, out_path, scorer->GetScoreMethodCode());
     idx_file.close();
 
     std::cerr << "Output finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
