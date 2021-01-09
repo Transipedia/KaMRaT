@@ -1,5 +1,5 @@
-#ifndef KAMRAT_RUNINFOPARSER_MASK_HPP
-#define KAMRAT_RUNINFOPARSER_MASK_HPP
+#ifndef KAMRAT_MASK_MASKRUNINFO_HPP
+#define KAMRAT_MASK_MASKRUNINFO_HPP
 
 #include <iostream>
 #include <string>
@@ -102,4 +102,4 @@ inline void ParseOptions(int argc,
     }
 }
 
-#endif //KAMRAT_RUNINFOPARSER_MASK_HPP
+#endif //KAMRAT_MASK_MASKRUNINFO_HPP

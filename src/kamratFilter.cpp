@@ -11,51 +11,13 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-#include "data_struct/tab_header.hpp"
-#include "run_info_parser/filter.hpp"
-
-const bool IsSampleToCount(const std::string &this_level,
-                           const std::string &this_name,
-                           const size_t this_label,
-                           const std::string &other_level,
-                           const std::string &other_name,
-                           const size_t other_label,
-                           const TabHeader &tab_header,
-                           const size_t i_col)
-{
-    if (this_name == "all") // all samples
-    {
-        return true;
-    }
-    else if (this_name == "rest" && other_level == "smp" && tab_header.GetColNameAt(i_col) != other_name) // samples other than silent sample
-    {
-        return true;
-    }
-    // else if (this_name == "rest" && other_level == "cond" && tab_header.GetColLabelAt(i_col) != other_label) // simples other than silent condition
-    // {
-    //     return true;
-    // }
-    else if (this_level == "smp" && tab_header.GetColNameAt(i_col) == this_name) // expressed sample
-    {
-        return true;
-    }
-    // else if (this_level == "cond" && tab_header.GetColLabelAt(i_col) == this_label) // samples in expressed condition
-    // {
-    //     return true;
-    // }
-    return false;
-}
+#include "common/tab_header.hpp"
+#include "filter/filter_runinfo.hpp"
 
 void ScanCountTab(TabHeader &tab_header,
                   const std::string &count_tab_path,
-                  const std::string &express_level,
-                  const std::string &express_name,
-                  const size_t express_min_abd,
-                  const size_t express_min_rec,
-                  const std::string &silent_level,
-                  const std::string &silent_name,
-                  const size_t silent_max_abd,
-                  const size_t silent_min_rec,
+                  const size_t up_min_rec, const size_t up_min_abd,
+                  const size_t down_min_rec, const size_t down_max_abd,
                   const std::string &out_path)
 {
     std::ifstream count_tab_file(count_tab_path);
@@ -92,38 +54,24 @@ void ScanCountTab(TabHeader &tab_header,
     std::string line, term;
     std::getline(kmer_count_instream, line);
     std::istringstream conv(line);
-    tab_header.MakeColumnInfo(conv, "");
-    conv.clear();
+    tab_header.MakeColumns(conv, "");
     std::cout << line << std::endl;
-
-    size_t express_label = (express_level == "cond" ? tab_header.GetConditionLabel(express_name) : '\0'),
-           silent_label = (silent_level == "cond" ? tab_header.GetConditionLabel(silent_name) : '\0');
     while (std::getline(kmer_count_instream, line))
     {
-        size_t express_rec(0), silent_rec(0);
+        conv.clear();
+        size_t up_rec(0), down_rec(0);
         for (size_t i(0); conv >> term && i < tab_header.GetNbCol(); ++i)
         {
-            if (!tab_header.IsCount(i))
+            if (tab_header.GetColCondiAt(i) == "UP" && std::stof(term) >= up_min_abd)
             {
-                continue;
+                ++up_rec;
             }
-            if (IsSampleToCount(express_level, express_name, express_label, silent_level, silent_name, silent_label, tab_header, i) &&
-                std::stof(term) >= express_min_abd)
+            else if (tab_header.GetColCondiAt(i) == "DOWN" && std::stof(term) <= down_max_abd)
             {
-                ++express_rec;
-            }
-            if (IsSampleToCount(silent_level, silent_name, silent_label, express_level, express_name, express_label, tab_header, i) &&
-                std::stof(term) <= silent_max_abd)
-            {
-                ++silent_rec;
-            }
-            if (conv.fail() || i == tab_header.GetNbCol())
-            {
-                throw std::domain_error("line parsing not coherent with header");
+                ++down_rec;
             }
         }
-        // std::cerr << express_rec << "\t" << silent_rec << std::endl;
-        if (express_rec >= express_min_rec && silent_rec >= silent_min_rec)
+        if (up_rec >= up_min_rec && down_rec >= down_min_rec)
         {
             std::cout << line << std::endl;
         }
@@ -140,19 +88,22 @@ void ScanCountTab(TabHeader &tab_header,
 int FilterMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
-    std::string count_tab_path, sample_info_path, express_level, express_name, silent_level, silent_name, out_path;
-    int express_min_abd(-1), express_min_rec(-1), silent_max_abd(-1), silent_min_rec(-1);
+    std::string filter_info_path, count_tab_path, out_path;
+    size_t up_min_rec(1), up_min_abd(1), down_min_rec(1), down_max_abd(std::numeric_limits<size_t>::max());
 
-    ParseOptions(argc, argv, count_tab_path,
-                 express_level, express_name, express_min_rec, express_min_abd,
-                 silent_level, silent_name, silent_min_rec, silent_max_abd,
-                 sample_info_path, out_path);
-    PrintRunInfo(count_tab_path, express_level, express_name, express_min_rec, express_min_abd,
-                 silent_level, silent_name, silent_min_rec, silent_max_abd, sample_info_path, out_path);
+    ParseOptions(argc, argv, filter_info_path, up_min_rec, up_min_abd, down_min_rec, down_max_abd, out_path, count_tab_path);
+    PrintRunInfo(filter_info_path, up_min_rec, up_min_abd, down_min_rec, down_max_abd, out_path, count_tab_path);
 
-    TabHeader tab_header(sample_info_path);
-    ScanCountTab(tab_header, count_tab_path, express_level, express_name, express_min_abd, express_min_rec,
-                 silent_level, silent_name, silent_max_abd, silent_min_rec, out_path);
+    TabHeader tab_header(filter_info_path);
+    for (const auto &condi : tab_header.GetCondiNameVect())
+    {
+        if (condi != "UP" && condi != "DOWN")
+        {
+            PrintFilterHelper();
+            throw std::domain_error("condition name in filter-info file could only be either UP or DOWN");
+        }
+    }
+    ScanCountTab(tab_header, count_tab_path, up_min_rec, up_min_abd, down_min_rec, down_max_abd, out_path);
 
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
     return EXIT_SUCCESS;

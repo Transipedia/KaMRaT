@@ -1,26 +1,18 @@
-#ifndef KAMRAT_UTILS_VECOPERATION_HPP
-#define KAMRAT_UTILS_VECOPERATION_HPP
+#ifndef KAMRAT_COMMON_VECOPERATION_HPP
+#define KAMRAT_COMMON_VECOPERATION_HPP
 
 #include <vector>
 #include <numeric>
 #include <cmath>
 #include <algorithm>
 
+/* ======================================= *\
+ * Used by kamratMerge and contigEvaluator *
+\* ======================================= */
+
 const double CalcVectMean(const std::vector<float> &x)
 {
     return (std::accumulate(x.cbegin(), x.cend(), 0.0) / x.size());
-}
-
-const void CalcVectMeanStddev(double &x_mean, double &x_stddev, const std::vector<float> &x)
-{
-    size_t x_len = x.size();
-    x_mean = std::accumulate(x.cbegin(), x.cend(), 0.0) / x_len;
-    double sse = 0;
-    for (size_t i(0); i < x_len; ++i)
-    {
-        sse += pow(x[i] - x_mean, 2);
-    }
-    x_stddev = sqrt(sse / (x_len - 1));
 }
 
 const double CalcVectMedian(const std::vector<float> &x)
@@ -107,34 +99,4 @@ const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &
     return (ctrst / nb_sample);
 }
 
-const void NormCountVect(std::vector<float> &x, const std::vector<size_t> &nf)
-{
-    for (size_t i(0); i < x.size(); ++i)
-    {
-        x[i] *= nf[i];
-    }
-}
-
-const void LnTransCountVect(std::vector<float> &x)
-{
-    for (size_t i = 0; i < x.size(); ++i)
-    {
-        x[i] = log(x[i] + 1);
-    }
-}
-
-const void StandardizeCountVect(std::vector<float> &x)
-{
-    double x_mean, x_stddev;
-    CalcVectMeanStddev(x_mean, x_stddev, x);
-    if (x_stddev == 0) // if a feature with constant sample counts, then assign an arbitrary value to stddev
-    {
-        x_stddev = 1;
-    }
-    for (size_t i = 0; i < x.size(); ++i)
-    {
-        x[i] = (x[i] - x_mean) / x_stddev;
-    }
-}
-
-#endif //KAMRAT_UTILS_VECOPERATION_HPP
+#endif //KAMRAT_COMMON_VECOPERATION_HPP

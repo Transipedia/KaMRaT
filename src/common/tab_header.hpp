@@ -8,10 +8,13 @@
 #include <unordered_map>
 #include <unordered_set>
 
-/* ============= Notation for column nature ============= *\
- *     0                indicates "not a sample"          *
- *     positive value   corresponds to condition label    *
-\* ====================================================== */
+/* =================================================== *\
+ * Used by kamratMerge, kamratRank, and kamratFilter   *
+ *                                                     *
+ * Notation for column nature:                         *
+ *     0                indicates "not a sample"       *
+ *     positive value   corresponds to condition label *
+\* =================================================== */
 
 class TabHeader
 {
@@ -28,12 +31,12 @@ public:
 
     const std::string &GetColNameAt(size_t i_col) const;                                  // Get column name at given column number
     const size_t GetColNatAt(size_t i_col) const;                                         // Get column nature at given column number
+    const std::string &GetColCondiAt(size_t i_col) const;                                 // Get column condition at given column number
     const bool IsColCount(size_t i_col) const;                                            // Is given column number a count column
     const std::vector<size_t> &GetSampleLabelVect(std::vector<size_t> &label_vect) const; // Get sample labels from column nature
+    const std::vector<std::string> &GetCondiNameVect() const;                             // Condition names
 
-    const double ParseRowStr(std::vector<float> &count_vect,
-                             std::string &non_count_str,
-                             std::istringstream &line_conv) const; // Parse the table row string
+    const double ParseRowStr(std::vector<float> &count_vect, std::string &non_count_str, std::istringstream &line_conv) const; // Parse the table row string
 
 private:
     size_t rep_colpos_;                                              // position of column indicating representative or score value

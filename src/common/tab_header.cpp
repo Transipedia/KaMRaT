@@ -36,7 +36,7 @@ TabHeader::TabHeader(const std::string &smp_info_path)
         {
             condi_name_vect_.emplace_back(condi_name);
         }
-        if (!smp2lab_.insert({smp_name, condi_serial + 1}).second) // associate the sample with its condition label
+        if (!smp2lab_.insert({smp_name, condi_serial + 1}).second) // sample labels start from 1, but condition name vector index starts from 0
         {
             throw std::domain_error("sample-info file has duplicated sample name: " + smp_name);
         }
@@ -107,6 +107,11 @@ const size_t TabHeader::GetColNatAt(const size_t i_col) const
     return col_namenat_vect_[i_col].second;
 }
 
+const std::string &TabHeader::GetColCondiAt(const size_t i_col) const
+{
+    return condi_name_vect_[col_namenat_vect_[i_col].second - 1]; // sample labels start from 1, but condition name vector index starts from 0
+}
+
 const bool TabHeader::IsColCount(const size_t i_col) const
 {
     return (GetColNatAt(i_col) > 0);
@@ -124,6 +129,11 @@ const std::vector<size_t> &TabHeader::GetSampleLabelVect(std::vector<size_t> &la
         }
     }
     return label_vect;
+}
+
+const std::vector<std::string> &TabHeader::GetCondiNameVect() const
+{
+    return condi_name_vect_;
 }
 
 const double TabHeader::ParseRowStr(std::vector<float> &count_vect, std::string &non_count_str, std::istringstream &line_conv) const

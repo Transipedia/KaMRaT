@@ -3,8 +3,9 @@
 
 #include <iostream>
 #include <string>
+#include <set>
 
-#include "utils.hpp"
+const std::set<std::string> kEvaluateMethodUniv{"mac", "pearson", "spearman"}, kEvaluateModeUniv{"farthest", "worstAdj"};
 
 inline void PrintHelper()
 {
@@ -85,7 +86,12 @@ inline void ParseOptions(int argc,
         else if (arg == "-eval-method" && i_opt + 1 < argc)
         {
             eval_method = argv[++i_opt];
-            SubCommandParser(eval_method, eval_mode);
+            size_t split_pos = eval_method.find(":");
+            if (split_pos != std::string::npos)
+            {
+                eval_mode = eval_method.substr(split_pos + 1);
+                eval_method = eval_method.substr(0, split_pos);
+            }
         }
         else if (arg == "-idx-path" && i_opt + 1 < argc)
         {
@@ -126,12 +132,12 @@ inline void ParseOptions(int argc,
         PrintHelper();
         throw std::invalid_argument("contig path option is missing or failed to be parsed");
     }
-    if (EVALU_METHOD_UNIV.find(eval_method) == EVALU_METHOD_UNIV.cend())
+    if (kEvaluateMethodUniv.find(eval_method) == kEvaluateMethodUniv.cend())
     {
         PrintHelper();
         throw std::invalid_argument("evaluate method is missing or unknown");
     }
-    if (EVALU_MODE_UNIV.find(eval_mode) == EVALU_MODE_UNIV.cend())
+    if (kEvaluateModeUniv.find(eval_mode) == kEvaluateModeUniv.cend())
     {
         PrintHelper();
         throw std::invalid_argument("evaluate mode is missing or unknown");

@@ -8,8 +8,8 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-#include "utils/seq_coding.hpp"
-#include "run_info_parser/mask.hpp"
+#include "common/seq_coding.hpp"
+#include "mask/mask_runinfo.hpp"
 
 void MakeMask(std::unordered_set<uint64_t> &kmer_mask,
               const std::string &mask_file_path,

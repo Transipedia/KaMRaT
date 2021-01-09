@@ -1,10 +1,14 @@
-#ifndef KAMRAT_UTILS_SEQCODING_HPP
-#define KAMRAT_UTILS_SEQCODING_HPP
+#ifndef KAMRAT_COMMON_SEQCODING_HPP
+#define KAMRAT_COMMON_SEQCODING_HPP
 
 #include <cstdint>
 #include <cstddef>
 #include <string>
 #include <stdexcept>
+
+/* ================================== *\
+ * Used by kamratMerge and kamratMask *
+\* ================================== */ 
 
 static inline uint8_t Nuc2Num(const char nuc)
 {
@@ -139,4 +143,4 @@ static inline uint64_t NextSeq(uint64_t code, const size_t k_length, const char 
     return code;
 }
 
-#endif //KAMRAT_UTILS_SEQCODING_HPP
+#endif //KAMRAT_COMMON_SEQCODING_HPP

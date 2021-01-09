@@ -1,5 +1,5 @@
-#ifndef KAMRAT_COMMON_TABELEM_HPP
-#define KAMRAT_COMMON_TABELEM_HPP
+#ifndef KAMRAT_COMMON_KMERELEM_HPP
+#define KAMRAT_COMMON_KMERELEM_HPP
 
 #include <vector>
 #include <string>
@@ -9,10 +9,14 @@
 
 #include "tab_header.hpp"
 
-class TabElem
+/* ======================================= *\
+ * Used by kamratMerge and contigEvaluator *
+\* ======================================= */
+
+class KMerElem
 {
 public:
-    TabElem(float value, std::vector<float> &count_vect, const std::string &value_str, std::ofstream &idx_file); // Index with given elements
+    KMerElem(float value, std::vector<float> &count_vect, const std::string &value_str, std::ofstream &idx_file); // Index with given elements
 
     const float GetRepValue() const noexcept;                                                                               // Get row value
     const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, size_t nb_count) const; // Get count vector
@@ -24,7 +28,7 @@ protected:
     const float rep_value_; // representative value
 };
 
-using countTab_t = std::vector<TabElem>;                    // feature table
+using kMerTab_t = std::vector<KMerElem>;                    // feature table
 using code2serial_t = std::unordered_map<uint64_t, size_t>; // external dictionary to link k-mer with row serial number
 
-#endif //KAMRAT_COMMON_TABELEM_HPP
+#endif //KAMRAT_COMMON_KMERELEM_HPP

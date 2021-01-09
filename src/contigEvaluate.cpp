@@ -33,15 +33,15 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-#include "utils/seq_coding.hpp"
-#include "utils/vec_operation.hpp"
-#include "data_struct/tab_header.hpp"
-#include "data_struct/tab_elem.hpp"
-#include "run_info_parser/evaluate.hpp"
+#include "common/seq_coding.hpp"
+#include "common/tab_header.hpp"
+#include "common/vec_operation.hpp"
+#include "common/kmer_elem.hpp"
+#include "evaluate/evaluate_runinfo.hpp"
 
-const float MIN_DISTANCE = 0, MAX_DISTANCE = 1 - MIN_DISTANCE;
+const float kMinDistance = 0, kMaxDistance = 1;
 
-void ScanCountTable(TabHeader &tab_header, countTab_t &kmer_count_tab, code2serial_t &code2serial,
+void ScanCountTable(TabHeader &tab_header, kMerTab_t &kmer_count_tab, code2serial_t &code2serial,
                     const size_t k_len, const bool stranded,
                     const std::string &kmer_count_path, const std::string &idx_path)
 {
@@ -61,12 +61,14 @@ void ScanCountTable(TabHeader &tab_header, countTab_t &kmer_count_tab, code2seri
     inbuf.push(kmer_count_file);
     std::istream kmer_count_instream(&inbuf);
 
-    std::string line, seq;
+    std::string line;
     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
     std::getline(kmer_count_instream, line);
     std::istringstream conv(line);
-    tab_header.MakeColumnInfo(conv, "");
+    tab_header.MakeColumns(conv, "");
     //----- Dealing with Following k-mer Count Lines -----//
+    std::vector<float> count_vect;
+    std::string value_str, seq;
     std::ofstream idx_file;
     if (!idx_path.empty())
     {
@@ -79,7 +81,8 @@ void ScanCountTable(TabHeader &tab_header, countTab_t &kmer_count_tab, code2seri
     for (size_t iline(0); std::getline(kmer_count_instream, line); ++iline)
     {
         conv.str(line);
-        kmer_count_tab.emplace_back(conv, idx_file, tab_header);
+        float rep_value = tab_header.ParseRowStr(count_vect, value_str, conv);
+        kmer_count_tab.emplace_back(rep_value, count_vect, value_str, idx_file);
         seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
         if (seq.size() != k_len)
         {
@@ -140,7 +143,7 @@ void EstablishSeqListFromMultilineFasta(std::unordered_map<std::string, std::str
 
 const void EvaluatePrintSeqElemFarthest(const std::string &name, const std::string &seq,
                                         const size_t k_len, const bool stranded, const std::string &eval_method,
-                                        const countTab_t &kmer_count_tab, const code2serial_t &code2serial,
+                                        const kMerTab_t &kmer_count_tab, const code2serial_t &code2serial,
                                         const std::string &idx_path, const size_t nb_count)
 {
     static std::vector<float> pred_count_vect, succ_count_vect;
@@ -159,30 +162,43 @@ const void EvaluatePrintSeqElemFarthest(const std::string &name, const std::stri
     }
     if (start_pos1 >= start_pos2)
     {
-        std::cout << name << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
+        std::cout << name << "\t" << kMaxDistance << "\tNONE\tNONE" << std::endl;
     }
     else
     {
         auto iter1 = code2serial.find(Seq2Int(kmer1, k_len, stranded)),
              iter2 = code2serial.find(Seq2Int(kmer2, k_len, stranded));
-        std::cout << name << "\t"
-                  << CalcXDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
-                               kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count), eval_method)
-                  << "\t" << kmer1 << "\t" << kmer2 << std::endl;
+        std::cout << name << "\t";
+        if (eval_method == "mac")
+        {
+            std::cout << CalcMACDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
+                                     kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
+        }
+        else if (eval_method == "pearson")
+        {
+            std::cout << CalcPearsonDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
+                                         kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
+        }
+        else if (eval_method == "spearman")
+        {
+            std::cout << CalcSpearmanDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
+                                          kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
+        }
+        std::cout << "\t" << kmer1 << "\t" << kmer2 << std::endl;
     }
     idx_file.close();
 }
 
 const void EvaluatePrintSeqElemWorstAdj(const std::string &name, const std::string &seq,
                                         const size_t k_len, const bool stranded, const std::string &eval_method,
-                                        const countTab_t &kmer_count_tab, const code2serial_t &code2serial,
+                                        const kMerTab_t &kmer_count_tab, const code2serial_t &code2serial,
                                         const std::string &idx_path, const size_t nb_count)
 {
     static std::vector<float> pred_count_vect, succ_count_vect;
     std::ifstream idx_file(idx_path);
     size_t seq_size = seq.size(), start_pos1 = 0, start_pos2;
     std::string kmer1, kmer2;
-    float dist = MIN_DISTANCE - 1;
+    float dist = kMinDistance - 1;
     while (start_pos1 + k_len < seq_size)
     {
         float dist_x = dist;
@@ -211,8 +227,21 @@ const void EvaluatePrintSeqElemWorstAdj(const std::string &name, const std::stri
         {
             auto iter1 = code2serial.find(Seq2Int(kmer1_x, k_len, stranded)),
                  iter2 = code2serial.find(Seq2Int(kmer2_x, k_len, stranded));
-            dist_x = CalcXDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
-                               kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count), eval_method);
+            if (eval_method == "mac")
+            {
+                dist_x = CalcMACDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
+                                     kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
+            }
+            else if (eval_method == "pearson")
+            {
+                dist_x = CalcPearsonDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
+                                         kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
+            }
+            else if (eval_method == "spearman")
+            {
+                dist_x = CalcSpearmanDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
+                                          kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
+            }
             if (dist_x > dist)
             {
                 dist = dist_x;
@@ -224,7 +253,7 @@ const void EvaluatePrintSeqElemWorstAdj(const std::string &name, const std::stri
     }
     if (kmer1.empty() || kmer2.empty())
     {
-        std::cout << name << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
+        std::cout << name << "\t" << kMaxDistance << "\tNONE\tNONE" << std::endl;
     }
     else
     {
@@ -248,7 +277,7 @@ int main(int argc, char **argv)
     inter_time = clock();
 
     TabHeader tab_header(colname_list_path);
-    countTab_t kmer_count_tab;
+    kMerTab_t kmer_count_tab;
     code2serial_t code2serial;
     ScanCountTable(tab_header, kmer_count_tab, code2serial, k_len, stranded, kmer_count_path, idx_path);
 
@@ -265,11 +294,11 @@ int main(int argc, char **argv)
         auto name = ns_pair.first, seq = ns_pair.second;
         if (seq.size() == k_len && code2serial.find(Seq2Int(seq, k_len, stranded)) != code2serial.cend()) // if seq is a k-mer and is in k-mer count table
         {
-            std::cout << name << "\t" << MIN_DISTANCE << "\t" << seq << "\t" << seq << std::endl;
+            std::cout << name << "\t" << kMinDistance << "\t" << seq << "\t" << seq << std::endl;
         }
         else if (seq.size() <= k_len) // if seq is a k-mer but not in k-mer count table or if it's shorter than a k-mer
         {
-            std::cout << name << "\t" << MAX_DISTANCE << "\tNONE\tNONE" << std::endl;
+            std::cout << name << "\t" << kMaxDistance << "\tNONE\tNONE" << std::endl;
         }
         else if (eval_mode == "farthest") // if seq has multiple k-mers, and evaluation mode is "farthest"
         {

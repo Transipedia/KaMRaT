@@ -234,7 +234,7 @@ void ModelPrint(featureVect_t &feature_vect, std::ifstream &idx_file, const size
     }
 }
 
-int main(int argc, char *argv[])
+int RankMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock(), inter_time;
     std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path, nf_path, out_path;
