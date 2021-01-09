@@ -109,7 +109,14 @@ const size_t TabHeader::GetColNatAt(const size_t i_col) const
 
 const std::string &TabHeader::GetColCondiAt(const size_t i_col) const
 {
-    return condi_name_vect_[col_namenat_vect_[i_col].second - 1]; // sample labels start from 1, but condition name vector index starts from 0
+    if (!IsColCount(i_col))
+    {
+        throw std::domain_error("not a sample column");
+    }
+    else
+    {
+        return condi_name_vect_[col_namenat_vect_[i_col].second - 1]; // sample labels start from 1, but condition name vector index starts from 0
+    }
 }
 
 const bool TabHeader::IsColCount(const size_t i_col) const

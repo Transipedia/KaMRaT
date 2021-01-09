@@ -56,25 +56,30 @@ void ScanCountTab(TabHeader &tab_header,
     std::istringstream conv(line);
     tab_header.MakeColumns(conv, "");
     std::cout << line << std::endl;
+    conv.clear();
     while (std::getline(kmer_count_instream, line))
     {
-        conv.clear();
+        conv.str(line);
         size_t up_rec(0), down_rec(0);
         for (size_t i(0); conv >> term && i < tab_header.GetNbCol(); ++i)
         {
-            if (tab_header.GetColCondiAt(i) == "UP" && std::stof(term) >= up_min_abd)
+            if (tab_header.IsColCount(i))
             {
-                ++up_rec;
-            }
-            else if (tab_header.GetColCondiAt(i) == "DOWN" && std::stof(term) <= down_max_abd)
-            {
-                ++down_rec;
+                if (tab_header.GetColCondiAt(i) == "UP" && std::stof(term) >= up_min_abd)
+                {
+                    ++up_rec;
+                }
+                else if (tab_header.GetColCondiAt(i) == "DOWN" && std::stof(term) <= down_max_abd)
+                {
+                    ++down_rec;
+                }
             }
         }
         if (up_rec >= up_min_rec && down_rec >= down_min_rec)
         {
             std::cout << line << std::endl;
         }
+        conv.clear();
     }
     count_tab_file.close();
 
