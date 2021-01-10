@@ -237,7 +237,7 @@ void ModelPrint(featureVect_t &feature_vect, std::ifstream &idx_file, const size
 int RankMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock(), inter_time;
-    std::string count_tab_path, smp_info_path, score_method, score_cmd, sort_mode, idx_path, nf_path, out_path;
+    std::string count_tab_path, smp_info_path, idx_path, nf_path, out_path;
     bool to_ln(false), to_standardize(false), no_norm(false);
     size_t nb_sel(0);
     std::unique_ptr<Scorer> scorer;
@@ -276,7 +276,7 @@ int RankMain(int argc, char *argv[])
     SortScore(feature_vect, scorer->GetSortModeCode());
     std::cerr << "Score sorting finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
-    if (score_method == "ttest")
+    if (scorer->GetScoreMethodCode() == ScoreMethodCode::kTtest)
     {
         PValueAdjustmentBH(feature_vect);
         std::cerr << "p-value adjusted by BH method..." << std::endl

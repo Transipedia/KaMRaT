@@ -206,7 +206,6 @@ void PrintCountByRep(std::ostream &out_s, const KMerElem &rep_elem, std::ifstrea
     {
         out_s << "\t" << c;
     }
-    out_s << std::endl;
 }
 
 void PrintCountByMean(std::ostream &out_s, const kMerTab_t &kmer_count_tab, const std::vector<size_t> &mem_serial,
@@ -227,7 +226,6 @@ void PrintCountByMean(std::ostream &out_s, const kMerTab_t &kmer_count_tab, cons
     {
         out_s << "\t" << count_vect[j] / nb_kmer;
     }
-    out_s << std::endl;
 }
 
 void PrintCountByMedian(std::ostream &out_s, const kMerTab_t &kmer_count_tab, const std::vector<size_t> &mem_serial,
@@ -244,7 +242,6 @@ void PrintCountByMedian(std::ostream &out_s, const kMerTab_t &kmer_count_tab, co
         }
         out_s << "\t" << CalcVectMedian(mem_kmer_count);
     }
-    out_s << std::endl;
 }
 
 void PrintContigList(const contigvect_t &contig_vect,
