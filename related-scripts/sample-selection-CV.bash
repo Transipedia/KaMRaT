@@ -44,6 +44,11 @@ echo "Fold number for cross-validation:     "$nb_fold
 echo "Output directory:                     "$out_dir
 echo
 
+get_seeded_random() {
+	seed="$1"
+	openssl enc -aes-256-ctr -pass pass:"$seed" -nosalt </dev/zero 2>/dev/null
+}
+
 if ls $out_dir/sampleshuf.tmp.*.tsv 1> /dev/null 2>&1
 then
 	echo -e "ERROR: some file named sampleshuf.tmp.*.tsv exist in the output directory\n       stop for avoiding conflict"
@@ -67,7 +72,7 @@ then
 fi
 
 # Splitting starts 
-shuf $smp_condi_path | awk -v outd=$out_dir -v nfold=$nb_fold '{print $0 >> outd"/sampleshuf.tmp."$2"_"NR%nfold".tsv"}'
+shuf --random-source=<(get_seeded_random 91400) $smp_condi_path | awk -v outd=$out_dir -v nfold=$nb_fold '{print $0 >> outd"/sampleshuf.tmp."$2"_"NR%nfold".tsv"}'
 
 for i in $(seq 0 $(( $nb_fold - 1 )))
 do
