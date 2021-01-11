@@ -13,10 +13,20 @@
  * Used by kamratMerge and contigEvaluator *
 \* ======================================= */
 
+enum RepModeCode
+{
+    kMin = 0,
+    kMinAbs,
+    kMax,
+    kMaxAbs,
+    kInputOrder
+};
+
 class KMerElem
 {
 public:
-    KMerElem(float value, std::vector<float> &count_vect, const std::string &value_str, std::ofstream &idx_file); // Index with given elements
+    KMerElem(float value, std::vector<float> &count_vect, const std::string &value_str,
+             std::ofstream &idx_file, const RepModeCode rep_mode_code = RepModeCode::kInputOrder); // Index with given elements
 
     const float GetRepValue() const noexcept;                                                                               // Get row value
     const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, size_t nb_count) const; // Get count vector

@@ -16,18 +16,24 @@ const void PrintMergeHelper()
 {
     std::cerr << "[Usage]    kamrat merge -klen INT -idx-path STR [-options] KMER_TAB_PATH" << std::endl
               << std::endl;
-    std::cerr << "[Option]    -h,-help              Print the helper" << std::endl;
-    std::cerr << "            -klen INT             k-mer length (max_value: 32)" << std::endl;
-    std::cerr << "            -idx-path STR         Temporary file path for saving count index, mandatory" << std::endl;
-    std::cerr << "            -unstrand             If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
-    std::cerr << "            -min-overlap INT      Min assembly overlap (max_value: k) [floor(k/2)]" << std::endl;
-    std::cerr << "            -smp-info STR         Sample-info path, either list or table with sample names as the first column" << std::endl
-              << "                                      if absent, all columns except the first one in k-mer count table are taken as samples" << std::endl;
-    std::cerr << "            -interv-method STR    Intervention method (none, pearson, spearman, mac) [none]" << std::endl
-              << "                                      the threshold can be precised after a ':' symbol" << std::endl;
-    std::cerr << "            -quant-mode STR       Quantification mode (rep, mean) [rep]" << std::endl;
-    std::cerr << "            -rep-name STR         Representative value column name, k-mer input order as rep-val by default" << std::endl;
-    std::cerr << "            -out-path STR         Output contig count table path [default: output to screen]" << std::endl
+    std::cerr << "[Option]    -h,-help               Print the helper" << std::endl;
+    std::cerr << "            -klen INT              k-mer length (max_value: 32)" << std::endl;
+    std::cerr << "            -idx-path STR          Temporary file path for saving count index, mandatory" << std::endl;
+    std::cerr << "            -unstrand              If the k-mers are generated from non-stranded RNA-seq data" << std::endl;
+    std::cerr << "            -min-overlap INT       Min assembly overlap (max_value: k) [floor(k/2)]" << std::endl;
+    std::cerr << "            -smp-info STR          Sample-info path, either list or table with sample names as the first column" << std::endl
+              << "                                       if absent, all columns except the first one in k-mer count table are taken as samples" << std::endl;
+    std::cerr << "            -interv-method STR     Intervention method (none, pearson, spearman, mac) [none]" << std::endl
+              << "                                       the threshold can be precised after a ':' symbol" << std::endl;
+    std::cerr << "            -quant-mode STR        Quantification mode (rep, mean) [rep]" << std::endl;
+    std::cerr << "            -rep-name STR[:STR]    Representative value column name" << std::endl
+              << "                                       if absent, k-mer input order will be taken as rep-val" << std::endl
+              << "                                       if present, a representative mode can follow after a colon" << std::endl
+              << "                                           min       take k-mer with minimum value as representative k-mer" << std::endl
+              << "                                           minabs    take k-mer with minimum absolute value as representative k-mer" << std::endl
+              << "                                           max       take k-mer with maximum value as representative k-mer" << std::endl
+              << "                                           maxabs    take k-mer with maximum absolute value as representative k-mer" << std::endl;
+    std::cerr << "            -out-path STR          Output contig count table path [default: output to screen]" << std::endl
               << std::endl;
 }
 

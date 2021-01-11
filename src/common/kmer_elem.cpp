@@ -1,10 +1,31 @@
 #include <iostream>
+#include <cmath>
 
 #include "kmer_elem.hpp"
 
-KMerElem::KMerElem(const float value, std::vector<float> &count_vect, const std::string &value_str, std::ofstream &idx_file)
+const float TransformValue(const float raw_value, const RepModeCode rep_mode_code)
+{
+    static size_t input_serial = 0;
+    input_serial++;
+    switch (rep_mode_code)
+    {
+    case RepModeCode::kMin:
+        return raw_value;
+    case RepModeCode::kMinAbs:
+        return fabs(raw_value);
+    case RepModeCode::kMax:
+        return (-raw_value);
+    case RepModeCode::kMaxAbs:
+        return -fabs(raw_value);
+    default: // RepModeCode::kInputOrder
+        return input_serial;
+    }
+}
+
+KMerElem::KMerElem(const float value, std::vector<float> &count_vect, const std::string &value_str,
+                   std::ofstream &idx_file, const RepModeCode rep_mode_code)
     : idx_pos_(static_cast<size_t>(idx_file.tellp())),
-      rep_value_(value)
+      rep_value_(TransformValue(value, rep_mode_code))
 {
     idx_file.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // first index counts columns
     idx_file << value_str << std::endl;                                                          // then index non-count columns

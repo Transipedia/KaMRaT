@@ -19,11 +19,49 @@
 #include "merge/merge_knot.hpp"
 #include "merge/merge_runinfo.hpp"
 
+const RepModeCode ParseRepModeCode(std::string &rep_colname)
+{
+    if (rep_colname.empty())
+    {
+        return RepModeCode::kInputOrder;
+    }
+    const size_t split_pos = rep_colname.find(":");
+    if (split_pos == std::string::npos)
+    {
+        return RepModeCode::kMin;
+    }
+    else
+    {
+        std::string &&rep_mode_str = rep_colname.substr(split_pos + 1);
+        rep_colname = rep_colname.substr(0, split_pos);
+        if (rep_mode_str == "min")
+        {
+            return RepModeCode::kMin;
+        }
+        else if (rep_mode_str == "minabs")
+        {
+            return RepModeCode::kMinAbs;
+        }
+        else if (rep_mode_str == "max")
+        {
+            return RepModeCode::kMax;
+        }
+        else if (rep_mode_str == "maxabs")
+        {
+            return RepModeCode::kMaxAbs;
+        }
+        else
+        {
+            throw std::domain_error("unknown representative mode: " + rep_mode_str);
+        }
+    }
+}
+
 void ScanCountTable(kMerTab_t &kmer_count_tab, TabHeader &tab_header,
                     contigvect_t &contig_vect,
                     const size_t k_len, const bool stranded,
                     const std::string &kmer_count_path,
-                    const std::string &rep_colname,
+                    const std::string &rep_colname, const RepModeCode rep_mode_code,
                     const std::string &idx_path)
 {
     std::ifstream kmer_count_file(kmer_count_path);
@@ -66,7 +104,7 @@ void ScanCountTable(kMerTab_t &kmer_count_tab, TabHeader &tab_header,
     {
         conv.str(line);
         rep_value = tab_header.ParseRowStr(count_vect, value_str, conv);
-        kmer_count_tab.emplace_back(rep_value, count_vect, value_str, idx_file);
+        kmer_count_tab.emplace_back(rep_value, count_vect, value_str, idx_file, rep_mode_code);
         seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
         if (seq.size() != k_len)
         {
@@ -309,11 +347,13 @@ int MergeMain(int argc, char **argv)
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
+    RepModeCode rep_mode_code = ParseRepModeCode(rep_colname);
+
     contigvect_t contig_vect;            // list of contigs for extension
     TabHeader tab_header(smp_info_path); // the header of feature table
     kMerTab_t kmer_count_tab;            // feature count table
 
-    ScanCountTable(kmer_count_tab, tab_header, contig_vect, k_len, stranded, kmer_count_path, rep_colname, idx_path);
+    ScanCountTable(kmer_count_tab, tab_header, contig_vect, k_len, stranded, kmer_count_path, rep_colname, rep_mode_code, idx_path);
 
     std::cerr << "Count table scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
