@@ -64,6 +64,7 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
         count_vect.clear();
         conv.clear();
     }
+    feature_vect.shrink_to_fit();
     mean_sample_sum /= nf_vect.size(); // mean of sample-sum vector
     for (size_t i(0); i < nf_vect.size(); ++i)
     {
@@ -169,7 +170,7 @@ void PrintHeader(std::ostream &out_s, const TabHeader &tab_header, const ScoreMe
         }
         else
         {
-            value_str += ("\t" + tab_header.GetColNameAt(i));
+            value_str += std::move("\t" + tab_header.GetColNameAt(i));
         }
     }
     out_s << value_str << std::endl; // then output sample counts
@@ -178,12 +179,12 @@ void PrintHeader(std::ostream &out_s, const TabHeader &tab_header, const ScoreMe
 void PrintFeature(std::ostream &out_s, const FeatureElem &feature_elem, std::ifstream &idx_file,
                   const size_t nb_count, const ScoreMethodCode score_method_code)
 {
-    static std::vector<float> count_vect;
+    static std::vector<float> count_vect(nb_count);
     static std::string value_str;
     feature_elem.RetrieveCountVect(count_vect, idx_file, nb_count);
     feature_elem.RetrieveValueStr(value_str, idx_file, nb_count);
     size_t split_pos = value_str.find_first_of(" \t");
-    out_s << value_str.substr(0, split_pos);
+    out_s << std::move(value_str.substr(0, split_pos));
     if (score_method_code != ScoreMethodCode::kUser)
     {
         std::cout << "\t" << feature_elem.GetScore();
@@ -198,7 +199,7 @@ void PrintFeature(std::ostream &out_s, const FeatureElem &feature_elem, std::ifs
     }
     if (split_pos != std::string::npos) // if some other value remains in value string
     {
-        out_s << value_str.substr(split_pos);
+        out_s << std::move(value_str.substr(split_pos));
     }
     for (float c : count_vect)
     {
@@ -225,10 +226,10 @@ void ModelPrint(featureVect_t &feature_vect, std::ifstream &idx_file, const size
         std::cout.rdbuf(out_file.rdbuf());
     }
     PrintHeader(std::cout, tab_header, score_method_code);
-    size_t parsed_nb_sel = (nb_sel == 0 ? feature_vect.size() : nb_sel);
+    const size_t parsed_nb_sel = (nb_sel == 0 ? feature_vect.size() : nb_sel), nb_count = tab_header.GetNbCount();
     for (size_t i(0); i < parsed_nb_sel; ++i)
     {
-        PrintFeature(std::cout, feature_vect[i], idx_file, tab_header.GetNbCount(), score_method_code);
+        PrintFeature(std::cout, feature_vect[i], idx_file, nb_count, score_method_code);
     }
     std::cout.rdbuf(backup_buf);
     if (out_file.is_open())

@@ -61,14 +61,12 @@ const double FeatureElem::GetCondiStddevAt(const size_t i_smp) const
 
 const void FeatureElem::RetrieveCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, const size_t nb_count) const
 {
-    count_vect.resize(nb_count);
     idx_file.seekg(idx_pos_);
     idx_file.read(reinterpret_cast<char *>(&count_vect[0]), nb_count * sizeof(float));
 }
 
 const void FeatureElem::RetrieveValueStr(std::string &value_str, std::ifstream &idx_file, const size_t nb_count) const
 {
-    value_str.clear();
     idx_file.seekg(idx_pos_ + nb_count * sizeof(float));
     std::getline(idx_file, value_str);
 }

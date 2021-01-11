@@ -208,8 +208,8 @@ const size_t Scorer::GetNbClass() const
 const void Scorer::PrepareCountVect(const FeatureElem &feature_elem, const std::vector<double> &nf_vect, std::ifstream &idx_file,
                                     const bool to_ln, const bool to_standardize, const bool no_norm)
 {
-    static std::vector<float> raw_count_vect;
     const size_t kNbCount = label_vect_.size();
+    static std::vector<float> raw_count_vect(kNbCount);
     norm_count_vect_.zeros(1, kNbCount);
     feature_elem.RetrieveCountVect(raw_count_vect, idx_file, kNbCount);
     if (no_norm) // first normalization
