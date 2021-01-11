@@ -10,7 +10,7 @@ no.norm <- cmdArgs[4]
 
 # count.path <- "/home/haoliang.xue/development/kamrat-test/data/test-counts.tsv"
 # smp.info.path <- "/home/haoliang.xue/development/kamrat-test/data/test-sample-conditions.tsv"
-# no.norm <- TRUE
+# no.norm <- "no"
 
 count.tab <- read.table(count.path, header = T, row.names = 1)
 smp.info <- read.table(smp.info.path, header = F, row.names = 1)

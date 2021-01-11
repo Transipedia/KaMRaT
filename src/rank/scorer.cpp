@@ -230,7 +230,7 @@ const void Scorer::PrepareCountVect(const FeatureElem &feature_elem, const std::
     {
         for (size_t i(0); i < kNbCount; ++i)
         {
-            norm_count_vect_(0, i) = log(nf_vect[i] * raw_count_vect[i] + 1);
+            norm_count_vect_(0, i) = log(norm_count_vect_(0, i) + 1);
         }
     }
     if (to_standardize) // finally standardization
