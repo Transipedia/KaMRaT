@@ -104,10 +104,7 @@ void EvalScore(featureVect_t &feature_vect,
     {
         scorer->PrepareCountVect(feature_vect[i_feature], nf_vect, idx_file, to_ln, to_standardize, no_norm);
         scorer->CalcFeatureStats(feature_vect[i_feature]);
-        if (scorer->GetScoreMethodCode() != ScoreMethodCode::kUser) // user scoring mode but not find a score column
-        {
-            feature_vect[i_feature].SetScore(scorer->EvaluateScore(feature_vect[i_feature]));
-        }
+        feature_vect[i_feature].SetScore(scorer->EvaluateScore(feature_vect[i_feature]));
     }
 }
 
@@ -146,13 +143,14 @@ void PValueAdjustmentBH(featureVect_t &feature_vect)
 
 void PrintHeader(std::ostream &out_s, const TabHeader &tab_header, const ScoreMethodCode score_method_code)
 {
-    std::cout << tab_header.GetColNameAt(0) << "\tscore";
-    if (score_method_code == ScoreMethodCode::kRelatSD)
+    std::cout << tab_header.GetColNameAt(0);
+    if (score_method_code == ScoreMethodCode::kRelatSD) // relative sd ranking output stats for all samples
     {
-        std::cout << "\tmean\tsd";
+        std::cout << "\t" << kScoreMethodName[score_method_code] << "\tmean\tsd";
     }
-    else if (score_method_code != ScoreMethodCode::kUser)
+    else if (score_method_code != ScoreMethodCode::kUser) // user ranking do not output score or condition stats
     {
+        std::cout << "\t" << kScoreMethodName[score_method_code];
         for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
         {
             std::cout << "\tmean" << static_cast<char>('A' + i);
@@ -177,21 +175,26 @@ void PrintHeader(std::ostream &out_s, const TabHeader &tab_header, const ScoreMe
     out_s << value_str << std::endl; // then output sample counts
 }
 
-void PrintFeature(std::ostream &out_s, const FeatureElem &feature_elem, std::ifstream &idx_file, const size_t nb_count)
+void PrintFeature(std::ostream &out_s, const FeatureElem &feature_elem, std::ifstream &idx_file,
+                  const size_t nb_count, const ScoreMethodCode score_method_code)
 {
     static std::vector<float> count_vect;
     static std::string value_str;
     feature_elem.RetrieveCountVect(count_vect, idx_file, nb_count);
     feature_elem.RetrieveValueStr(value_str, idx_file, nb_count);
     size_t split_pos = value_str.find_first_of(" \t");
-    out_s << value_str.substr(0, split_pos) << "\t" << feature_elem.GetScore();
-    for (const double m : feature_elem.GetCondiMeanVect())
+    out_s << value_str.substr(0, split_pos);
+    if (score_method_code != ScoreMethodCode::kUser)
     {
-        std::cout << "\t" << m;
-    }
-    for (const double s : feature_elem.GetCondiStddevVect())
-    {
-        std::cout << "\t" << s;
+        std::cout << "\t" << feature_elem.GetScore();
+        for (const double m : feature_elem.GetCondiMeanVect())
+        {
+            std::cout << "\t" << m;
+        }
+        for (const double s : feature_elem.GetCondiStddevVect())
+        {
+            std::cout << "\t" << s;
+        }
     }
     if (split_pos != std::string::npos) // if some other value remains in value string
     {
@@ -225,7 +228,7 @@ void ModelPrint(featureVect_t &feature_vect, std::ifstream &idx_file, const size
     size_t parsed_nb_sel = (nb_sel == 0 ? feature_vect.size() : nb_sel);
     for (size_t i(0); i < parsed_nb_sel; ++i)
     {
-        PrintFeature(std::cout, feature_vect[i], idx_file, tab_header.GetNbCount());
+        PrintFeature(std::cout, feature_vect[i], idx_file, tab_header.GetNbCount(), score_method_code);
     }
     std::cout.rdbuf(backup_buf);
     if (out_file.is_open())
@@ -270,7 +273,10 @@ int RankMain(int argc, char *argv[])
     {
         throw std::domain_error("error open sample count index file: " + idx_path);
     }
-    EvalScore(feature_vect, idx_file, smp_nf_vect, scorer, count_tab_header, to_ln, to_standardize, no_norm);
+    if (scorer->GetScoreMethodCode() != ScoreMethodCode::kUser)
+    {
+        EvalScore(feature_vect, idx_file, smp_nf_vect, scorer, count_tab_header, to_ln, to_standardize, no_norm);
+    }
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
     SortScore(feature_vect, scorer->GetSortModeCode());

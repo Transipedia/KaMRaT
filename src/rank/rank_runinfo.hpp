@@ -73,7 +73,7 @@ const void ParseScorer(std::unique_ptr<Scorer> &scorer, std::string &score_metho
         {
             scorer = std::make_unique<Scorer>(score_method, SortModeCode::kDec);
         }
-        else if (score_cmd == "dec_abs")
+        else if (score_cmd == "decabs")
         {
             scorer = std::make_unique<Scorer>(score_method, SortModeCode::kDecAbs);
         }
@@ -81,7 +81,7 @@ const void ParseScorer(std::unique_ptr<Scorer> &scorer, std::string &score_metho
         {
             scorer = std::make_unique<Scorer>(score_method, SortModeCode::kInc);
         }
-        else if (score_cmd == "inc_abs")
+        else if (score_cmd == "incabs")
         {
             scorer = std::make_unique<Scorer>(score_method, SortModeCode::kIncAbs);
         }
@@ -128,10 +128,10 @@ inline void PrintRankHelper()
               << "                                         if n_fold >= 2, n-fold cross-validation is applied" << std::endl;
     std::cerr << "                svm                  Hinge-loss function on SVM classification (standardization is required)" << std::endl;
     std::cerr << "                colname:sort_mode    User-defined method, where name indicates a column in the k-mer count table" << std::endl
-              << "                                         sore_mode can be:    dec        Sorting by decreasing order" << std::endl
-              << "                                                              dec_abs    Sorting by decreasing order but on the absolute value" << std::endl
-              << "                                                              inc        Sorting by increasing order" << std::endl
-              << "                                                              inc_abs    Sorting by increasing order but on the absolute value" << std::endl
+              << "                                         sore_mode can be:    dec       Sorting by decreasing order" << std::endl
+              << "                                                              decabs    Sorting by decreasing order but on the absolute value" << std::endl
+              << "                                                              inc       Sorting by increasing order" << std::endl
+              << "                                                              incabs    Sorting by increasing order but on the absolute value" << std::endl
               << std::endl;
 }
 
