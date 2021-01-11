@@ -94,8 +94,8 @@ void PrintNF(const std::string &smp_sum_outpath, const std::vector<double> &nf_v
 }
 
 void EvalScore(featureVect_t &feature_vect,
-               std::ifstream &idx_file, const std::vector<double> nf_vect,
-               std::unique_ptr<Scorer> &scorer, const TabHeader tab_header,
+               std::ifstream &idx_file, const std::vector<double> &nf_vect,
+               std::unique_ptr<Scorer> &scorer, const TabHeader &tab_header,
                const bool to_ln, const bool to_standardize, const bool no_norm)
 {
     std::vector<size_t> label_vect;
@@ -112,22 +112,22 @@ void SortScore(featureVect_t &feature_vect, const SortModeCode sort_mode_code)
 {
     if (sort_mode_code == SortModeCode::kDecAbs)
     {
-        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetScore()) > fabs(feature2.GetScore()); };
+        auto comp = [](const FeatureElem &feature1, const FeatureElem &feature2) -> bool { return fabs(feature1.GetScore()) > fabs(feature2.GetScore()); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else if (sort_mode_code == SortModeCode::kDec)
     {
-        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetScore() > feature2.GetScore(); };
+        auto comp = [](const FeatureElem &feature1, const FeatureElem &feature2) -> bool { return feature1.GetScore() > feature2.GetScore(); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else if (sort_mode_code == SortModeCode::kIncAbs)
     {
-        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return fabs(feature1.GetScore()) < fabs(feature2.GetScore()); };
+        auto comp = [](const FeatureElem &feature1, const FeatureElem &feature2) -> bool { return fabs(feature1.GetScore()) < fabs(feature2.GetScore()); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
     else if (sort_mode_code == SortModeCode::kInc)
     {
-        auto comp = [](FeatureElem feature1, FeatureElem feature2) -> bool { return feature1.GetScore() < feature2.GetScore(); };
+        auto comp = [](const FeatureElem &feature1, const FeatureElem &feature2) -> bool { return feature1.GetScore() < feature2.GetScore(); };
         std::sort(feature_vect.begin(), feature_vect.end(), comp);
     }
 }
