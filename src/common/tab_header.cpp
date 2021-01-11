@@ -75,6 +75,10 @@ const void TabHeader::MakeColumns(std::istringstream &line_conv, const std::stri
             }
         }
     }
+    if (!rep_colname.empty() && rep_colpos_ == 0)
+    {
+        throw std::domain_error("could not find column name: " + rep_colname);
+    }
 }
 
 const size_t TabHeader::GetNbCondition() const
