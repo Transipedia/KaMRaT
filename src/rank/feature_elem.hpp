@@ -14,8 +14,8 @@ public:
     const double GetScore() const;
     const void AdjustScore(double factor, double lower_lim, double upper_lim);
 
-    const void ReserveCondiStats(size_t nb_class);
     const void AddCondiStats(double mean, double stddev);
+    const void ShrinkCondiStats();
     const std::vector<double> &GetCondiMeanVect() const;
     const std::vector<double> &GetCondiStddevVect() const;
     const double GetCondiMeanAt(size_t i_smp) const;

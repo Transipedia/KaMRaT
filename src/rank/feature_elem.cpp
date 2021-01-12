@@ -27,16 +27,16 @@ const void FeatureElem::AdjustScore(const double factor, const double lower_lim,
     score_ = (score_ > upper_lim) ? upper_lim : score_;
 }
 
-const void FeatureElem::ReserveCondiStats(const size_t nb_class)
-{
-    condi_mean_.reserve(nb_class);
-    condi_stddev_.reserve(nb_class);
-}
-
 const void FeatureElem::AddCondiStats(const double mean, const double stddev)
 {
     condi_mean_.push_back(mean);
     condi_stddev_.push_back(stddev);
+}
+
+const void FeatureElem::ShrinkCondiStats()
+{
+    condi_mean_.shrink_to_fit();
+    condi_stddev_.shrink_to_fit();
 }
 
 const std::vector<double> &FeatureElem::GetCondiMeanVect() const

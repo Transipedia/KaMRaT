@@ -249,14 +249,12 @@ const void Scorer::CalcFeatureStats(FeatureElem &feature_elem)
 {
     if (score_method_code_ == ScoreMethodCode::kRelatSD)
     {
-        feature_elem.ReserveCondiStats(1);
         const double all_mean = arma::mean(arma::conv_to<arma::vec>::from(norm_count_vect_)),
                      all_stddev = arma::stddev(arma::conv_to<arma::vec>::from(norm_count_vect_));
         feature_elem.AddCondiStats(all_mean, all_stddev);
     }
     else
     {
-        feature_elem.ReserveCondiStats(nb_class_);
         for (size_t i_class(0); i_class < nb_class_; ++i_class)
         {
             arma::Mat<double> &&norm_count_vect_i = norm_count_vect_.elem(arma::find(label_vect_ == i_class));
@@ -265,6 +263,7 @@ const void Scorer::CalcFeatureStats(FeatureElem &feature_elem)
             feature_elem.AddCondiStats(condi_mean, condi_stddev);
         }
     }
+    feature_elem.ShrinkCondiStats();
 }
 
 const double Scorer::EvaluateScore(const FeatureElem &feature_elem) const
