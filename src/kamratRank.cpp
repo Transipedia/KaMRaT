@@ -14,6 +14,9 @@
 #include "common/tab_header.hpp"
 #include "rank/rank_runinfo.hpp" // including scorer, scorer includes feature_elem
 
+#define RESET "\033[0m"
+#define BOLDYELLOW  "\033[1m\033[33m"
+
 const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &nf_vect, TabHeader &tab_header,
                               const std::string &raw_counts_path, const std::string &idx_path, const std::string &rep_column)
 {
@@ -50,7 +53,7 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
 
     std::vector<float> count_vect;
     std::string value_str;
-    double mean_sample_sum(0), rep_value;
+    double rep_value;
     while (std::getline(kmer_count_instream, line))
     {
         conv.str(line);
@@ -59,13 +62,12 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
         for (size_t i(0); i < count_vect.size(); ++i)
         {
             nf_vect[i] += count_vect[i];
-            mean_sample_sum += count_vect[i];
         }
         count_vect.clear();
         conv.clear();
     }
     feature_vect.shrink_to_fit();
-    mean_sample_sum /= nf_vect.size(); // mean of sample-sum vector
+    double mean_sample_sum = (std::accumulate(nf_vect.cbegin(), nf_vect.cend(), 0.0) / nf_vect.size());
     for (size_t i(0); i < nf_vect.size(); ++i)
     {
         if (nf_vect[i] == 0)
@@ -88,6 +90,11 @@ void PrintNF(const std::string &smp_sum_outpath, const std::vector<double> &nf_v
     {
         if (tab_header.IsColCount(i))
         {
+            if (nf_vect[j] > 100 || nf_vect[j] < 0.01)
+            {
+                std::cerr << BOLDYELLOW << "[warning]"
+                          << RESET << " sample " << tab_header.GetColNameAt(i) << " has nomralization vector above 100 or below 0.01" << std::endl;
+            }
             sum_out << tab_header.GetColNameAt(i) << "\t" << nf_vect[j++] << std::endl;
         }
     }
@@ -171,7 +178,7 @@ void PrintHeader(std::ostream &out_s, const TabHeader &tab_header, const ScoreMe
         }
         else
         {
-            value_str += std::move("\t" + tab_header.GetColNameAt(i));
+            value_str += "\t" + tab_header.GetColNameAt(i);
         }
     }
     out_s << value_str << std::endl; // then output sample counts
