@@ -27,7 +27,7 @@ if (no.norm == "no") {
 
 count.tab$mean <- apply(count.tab[, names(smp.nf)], MARGIN = 1, function(r) mean(r * smp.nf))
 count.tab$sd <- apply(count.tab[, names(smp.nf)], MARGIN = 1, function(r) sd(r * smp.nf))
-count.tab$rsd <- count.tab$sd / count.tab$mean
+count.tab$rsd <- apply(count.tab, MARGIN = 1, function(r) ifelse(r["mean"] > 1, yes = r["sd"] / r["mean"], no = r["sd"]))
 
 write.table(count.tab[order(abs(count.tab$rsd), decreasing = T), ],
 	    file = paste0(out.dir, "/masked-counts.rankRSD.byR.tsv"), 
