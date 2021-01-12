@@ -65,8 +65,10 @@ const void FeatureElem::RetrieveCountVect(std::vector<float> &count_vect, std::i
     idx_file.read(reinterpret_cast<char *>(&count_vect[0]), nb_count * sizeof(float));
 }
 
-const void FeatureElem::RetrieveValueStr(std::string &value_str, std::ifstream &idx_file, const size_t nb_count) const
+const void FeatureElem::RetrieveCountVectValueStr(std::vector<float> &count_vect, std::string &value_str,
+                                                  std::ifstream &idx_file, const size_t nb_count) const
 {
-    idx_file.seekg(idx_pos_ + nb_count * sizeof(float));
+    idx_file.seekg(idx_pos_);
+    idx_file.read(reinterpret_cast<char *>(&count_vect[0]), nb_count * sizeof(float));
     std::getline(idx_file, value_str);
 }

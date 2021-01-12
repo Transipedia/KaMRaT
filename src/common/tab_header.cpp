@@ -1,7 +1,7 @@
 #include "tab_header.hpp"
 
 TabHeader::TabHeader()
-    : rep_colpos_(0)
+    : nb_count_(0), rep_colpos_(0)
 {
 }
 
@@ -56,6 +56,7 @@ const void TabHeader::MakeColumns(std::istringstream &line_conv, const std::stri
         while (line_conv >> term)
         {
             col_namenat_vect_.emplace_back(std::make_pair(term, 1)); // sample without given condition label
+            ++nb_count_;
         }
     }
     else // following columns with given sample-info file
@@ -70,8 +71,15 @@ const void TabHeader::MakeColumns(std::istringstream &line_conv, const std::stri
             else
             {
                 std::unordered_map<std::string, size_t>::const_iterator &&iter = smp2lab_.find(term);
-                size_t col_label = (iter == smp2lab_.cend() ? 0 : iter->second);
-                col_namenat_vect_.emplace_back(std::make_pair(term, col_label));
+                if (iter == smp2lab_.cend())
+                {
+                    col_namenat_vect_.emplace_back(std::make_pair(term, 0));
+                }
+                else
+                {
+                    col_namenat_vect_.emplace_back(std::make_pair(term, iter->second));
+                    ++nb_count_;
+                }
             }
         }
     }
@@ -93,7 +101,7 @@ const size_t TabHeader::GetNbCol() const
 
 const size_t TabHeader::GetNbCount() const
 {
-    return (smp2lab_.empty() ? (GetNbCol() - 1) : smp2lab_.size()); // if sample-info file not provided, all except the first column are samples
+    return nb_count_;
 }
 
 const size_t TabHeader::GetRepColPos() const
@@ -151,12 +159,11 @@ const double TabHeader::ParseRowStr(std::vector<float> &count_vect, std::string 
 {
     static std::string term;
     term.clear();
-    size_t nb_count = GetNbCount();
     count_vect.clear();
     non_count_str.clear();
 
     double rep_val(0);
-    line_conv >> term; // skip the first column which is k-mer/tag/contig/sequence
+    line_conv >> term;
     non_count_str += term;
     for (size_t i(1); (i < GetNbCol()) && (line_conv >> term); ++i)
     {
@@ -173,10 +180,10 @@ const double TabHeader::ParseRowStr(std::vector<float> &count_vect, std::string 
             }
         }
     }
-    if (count_vect.size() != nb_count)
+    if (count_vect.size() != nb_count_)
     {
         throw std::domain_error("parsing string line to fields failed: " +
-                                std::to_string(count_vect.size()) + " vs " + std::to_string(nb_count));
+                                std::to_string(count_vect.size()) + " vs " + std::to_string(nb_count_));
     }
     return rep_val;
 }

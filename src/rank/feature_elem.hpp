@@ -21,7 +21,7 @@ public:
     const double GetCondiMeanAt(size_t i_smp) const;
     const double GetCondiStddevAt(size_t i_smp) const;
     const void RetrieveCountVect(std::vector<float> &count_vect, std::ifstream &idx_file, size_t nb_count) const;
-    const void RetrieveValueStr(std::string &value_str, std::ifstream &idx_file, const size_t nb_count) const;
+    const void RetrieveCountVectValueStr(std::vector<float> &count_vect, std::string &value_str, std::ifstream &idx_file, const size_t nb_count) const;
 
 private:
     size_t idx_pos_;                                // serial in count table

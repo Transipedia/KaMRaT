@@ -39,6 +39,7 @@ public:
     const double ParseRowStr(std::vector<float> &count_vect, std::string &non_count_str, std::istringstream &line_conv) const; // Parse the table row string
 
 private:
+    size_t nb_count_;                                                // number of count columns in the table
     size_t rep_colpos_;                                              // position of column indicating representative or score value
     std::vector<std::string> condi_name_vect_;                       // vector of condition names
     std::unordered_map<std::string, size_t> smp2lab_;                // sample name to label, condition name to label

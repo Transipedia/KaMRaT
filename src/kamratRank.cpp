@@ -147,18 +147,19 @@ void PrintHeader(std::ostream &out_s, const TabHeader &tab_header, const ScoreMe
     std::cout << tab_header.GetColNameAt(0);
     if (score_method_code == ScoreMethodCode::kRelatSD) // relative sd ranking output stats for all samples
     {
-        std::cout << "\t" << kScoreMethodName[score_method_code] << "\tmean\tsd";
+        std::cout << "\t" << kScoreMethodName[score_method_code] << "\tmean.all\tsd.all";
     }
     else if (score_method_code != ScoreMethodCode::kUser) // user ranking do not output score or condition stats
     {
+        const std::vector<std::string> &condi_name_vect = tab_header.GetCondiNameVect();
         std::cout << "\t" << kScoreMethodName[score_method_code];
         for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
         {
-            std::cout << "\tmean" << static_cast<char>('A' + i);
+            std::cout << "\tmean." << condi_name_vect[i];
         }
         for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
         {
-            std::cout << "\tsd" << static_cast<char>('A' + i);
+            std::cout << "\tsd." << condi_name_vect[i];
         }
     }
     std::string value_str;
@@ -181,10 +182,9 @@ void PrintFeature(std::ostream &out_s, const FeatureElem &feature_elem, std::ifs
 {
     static std::vector<float> count_vect(nb_count);
     static std::string value_str;
-    feature_elem.RetrieveCountVect(count_vect, idx_file, nb_count);
-    feature_elem.RetrieveValueStr(value_str, idx_file, nb_count);
+    feature_elem.RetrieveCountVectValueStr(count_vect, value_str, idx_file, nb_count);
     size_t split_pos = value_str.find_first_of(" \t");
-    out_s << std::move(value_str.substr(0, split_pos));
+    out_s << value_str.substr(0, split_pos);
     if (score_method_code != ScoreMethodCode::kUser)
     {
         std::cout << "\t" << feature_elem.GetScore();
@@ -199,16 +199,16 @@ void PrintFeature(std::ostream &out_s, const FeatureElem &feature_elem, std::ifs
     }
     if (split_pos != std::string::npos) // if some other value remains in value string
     {
-        out_s << std::move(value_str.substr(split_pos));
+        out_s << value_str.substr(split_pos);
     }
-    for (float c : count_vect)
+    for (size_t i(0); i < nb_count; ++i)
     {
-        out_s << "\t" << c;
+        out_s << "\t" << count_vect[i];
     }
     out_s << std::endl;
 }
 
-void ModelPrint(featureVect_t &feature_vect, std::ifstream &idx_file, const size_t nb_sel,
+void ModelPrint(const featureVect_t &feature_vect, std::ifstream &idx_file, const size_t nb_sel,
                 const TabHeader &tab_header, const std::string &out_path, const ScoreMethodCode score_method_code)
 {
     std::ofstream out_file;
