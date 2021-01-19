@@ -42,8 +42,8 @@
 
 const float kMinDistance = 0, kMaxDistance = 1;
 
-void ScanCountTable(TabHeader &tab_header, kMerTab_t &kmer_count_tab, code2serial_t &code2serial, std::vector<double> &nf_vect,
-                    const size_t k_len, const bool stranded, const std::string &kmer_count_path, const std::string &idx_path)
+void ScanCountTable(TabHeader &tab_header, code2kmer_t &code2kmer, std::vector<double> &nf_vect, const size_t k_len, const bool stranded,
+                    const std::string &kmer_count_path, const std::string &idx_path)
 {
     std::ifstream kmer_count_file(kmer_count_path);
     if (!kmer_count_file.is_open())
@@ -67,7 +67,6 @@ void ScanCountTable(TabHeader &tab_header, kMerTab_t &kmer_count_tab, code2seria
     std::istringstream conv(line);
     tab_header.MakeColumns(conv, "");
     conv.clear();
-
     nf_vect.resize(tab_header.GetNbCount(), 0);
     std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
 
@@ -84,7 +83,6 @@ void ScanCountTable(TabHeader &tab_header, kMerTab_t &kmer_count_tab, code2seria
     {
         conv.str(line);
         float rep_value = tab_header.ParseRowStr(count_vect, value_str, conv);
-        kmer_count_tab.emplace_back(rep_value, count_vect, value_str, idx_file);
         for (size_t ismp(0); ismp < count_vect.size(); ++ismp)
         {
             nf_vect[ismp] += count_vect[ismp];
@@ -94,13 +92,12 @@ void ScanCountTable(TabHeader &tab_header, kMerTab_t &kmer_count_tab, code2seria
         {
             throw std::domain_error("the given k-len parameter not coherent with input k-mer: " + seq);
         }
-        if (!code2serial.insert({Seq2Int(seq, seq.size(), stranded), iline}).second)
+        if (!code2kmer.insert({Seq2Int(seq, seq.size(), stranded), std::make_unique<KMerElem>(rep_value, count_vect, value_str, idx_file)}).second)
         {
-            throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
+            throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list): " + seq);
         }
         conv.clear();
     }
-    kmer_count_tab.shrink_to_fit();
     double mean_sample_sum = (std::accumulate(nf_vect.cbegin(), nf_vect.cend(), 0.0) / nf_vect.size());
     for (size_t i(0); i < nf_vect.size(); ++i)
     {
@@ -147,23 +144,33 @@ void EstablishSeqListFromMultilineFasta(std::vector<std::unique_ptr<SeqElem>> &s
     contig_list_file.close();
 }
 
-const float EvaluatePrintSeqDist(std::string &max_kmer1, std::string &max_kmer2,
-                                 const std::string &contig_seq, const std::vector<double> &nf_vect, const bool no_norm,
-                                 const size_t k_len, const bool stranded, const std::string &eval_method,
-                                 const kMerTab_t &kmer_count_tab, const code2serial_t &code2serial,
-                                 std::ifstream &idx_file, const size_t nb_count, const size_t max_shift)
+const float EvaluateSeqDist(std::string &max_kmer1, std::string &max_kmer2,
+                            const std::string &contig_seq, const std::vector<double> &nf_vect, const bool no_norm,
+                            const size_t k_len, const bool stranded, const std::string &eval_method,
+                            const code2kmer_t &code2kmer, std::ifstream &idx_file, const size_t nb_count, const size_t max_shift)
 {
+    if (contig_seq.size() == k_len && code2kmer.find(Seq2Int(contig_seq, k_len, stranded)) != code2kmer.cend()) // if seq is a k-mer in k-mer count table
+    {
+        max_kmer1 = max_kmer2 = contig_seq;
+        return kMinDistance;
+    }
+    else if (contig_seq.size() <= k_len) // if seq is a k-mer but not in k-mer count table or if it's shorter than a k-mer
+    {
+        max_kmer1 = max_kmer2 = "NONE";
+        return kMaxDistance;
+    }
+
     static std::vector<float> left_count_vect, right_count_vect;
     size_t seq_size = contig_seq.size(), max_kmer_code1, max_kmer_code2;
 
     // Start condition: left k-mer as the first findable one in the k-mer count table //
     size_t start_pos1 = 0;
-    uint64_t kmer_code1 = Seq2Int(contig_seq.substr(0, k_len), k_len, true); // first k-mer
-    auto iter1 = code2serial.find(kmer_code1);
+    uint64_t kmer_code1 = Seq2Int(contig_seq.substr(0, k_len), k_len, true);
+    auto iter1 = code2kmer.find(kmer_code1);
     while (start_pos1 + k_len < seq_size)
     {
-        if ((iter1 = code2serial.find(kmer_code1)) != code2serial.cend() ||
-            (!stranded && (iter1 = code2serial.find(GetRC(kmer_code1, k_len))) != code2serial.cend()))
+        if ((iter1 = code2kmer.find(kmer_code1)) != code2kmer.cend() ||
+            (!stranded && (iter1 = code2kmer.find(GetRC(kmer_code1, k_len))) != code2kmer.cend()))
         {
             break;
         }
@@ -175,14 +182,7 @@ const float EvaluatePrintSeqDist(std::string &max_kmer1, std::string &max_kmer2,
         max_kmer1 = max_kmer2 = "NONE";
         return kMaxDistance;
     }
-    kmer_count_tab[iter1->second].GetCountVect(left_count_vect, idx_file, nb_count);
-    if (!no_norm)
-    {
-        for (size_t i = 0; i < nb_count; ++i)
-        {
-            left_count_vect[i] *= nf_vect[i];
-        }
-    }
+    no_norm ? iter1->second->GetCountVect(left_count_vect, idx_file, nb_count) : iter1->second->GetCountVect(left_count_vect, idx_file, nb_count, nf_vect);
 
     // Traverse the whole sequence //
     float max_dist = kMinDistance, dist_x;
@@ -195,8 +195,8 @@ const float EvaluatePrintSeqDist(std::string &max_kmer1, std::string &max_kmer2,
         {
             kmer_code2 = NextCode(kmer_code2, k_len, contig_seq[start_pos2 + k_len]);
             start_pos2++;
-            if ((iter2 = code2serial.find(kmer_code2)) != code2serial.cend() ||
-                (!stranded && (iter2 = code2serial.find(GetRC(kmer_code2, k_len))) != code2serial.cend()))
+            if ((iter2 = code2kmer.find(kmer_code2)) != code2kmer.cend() ||
+                (!stranded && (iter2 = code2kmer.find(GetRC(kmer_code2, k_len))) != code2kmer.cend()))
             {
                 break;
             }
@@ -207,14 +207,7 @@ const float EvaluatePrintSeqDist(std::string &max_kmer1, std::string &max_kmer2,
             max_kmer2 = "NONE";
             return kMaxDistance;
         }
-        kmer_count_tab[iter2->second].GetCountVect(right_count_vect, idx_file, nb_count);
-        if (!no_norm)
-        {
-            for (size_t i = 0; i < nb_count; ++i)
-            {
-                right_count_vect[i] *= nf_vect[i];
-            }
-        }
+        no_norm ? iter2->second->GetCountVect(right_count_vect, idx_file, nb_count) : iter2->second->GetCountVect(right_count_vect, idx_file, nb_count, nf_vect);
         if ((eval_method == "pearson" && (dist_x = CalcPearsonDist(left_count_vect, right_count_vect)) > max_dist) ||
             (eval_method == "spearman" && (dist_x = CalcSpearmanDist(left_count_vect, right_count_vect)) > max_dist) ||
             (eval_method == "mac" && (dist_x = CalcMACDist(left_count_vect, right_count_vect)) > max_dist)) // short-circuit operator
@@ -226,11 +219,92 @@ const float EvaluatePrintSeqDist(std::string &max_kmer1, std::string &max_kmer2,
         start_pos1 = start_pos2;
         kmer_code1 = kmer_code2;
         iter1 = iter2;
-        right_count_vect = left_count_vect;
+        left_count_vect.swap(right_count_vect); // same as left_count_vect = right_count_vect, but in constant complexity
     }
+
     Int2Seq(max_kmer1, max_kmer_code1, k_len);
     Int2Seq(max_kmer2, max_kmer_code2, k_len);
     return max_dist;
+}
+
+const std::vector<float> &EvaluateSeqCount(std::vector<float> &count_vect, const std::string &contig_seq, const std::vector<double> &nf_vect,
+                                           const code2kmer_t &code2kmer, std::ifstream &idx_file, const bool no_norm,
+                                           const size_t k_len, const bool stranded, const std::string &eval_method)
+{
+    const size_t nb_count = count_vect.size(), seq_len = contig_seq.size();
+    auto iter = code2kmer.cend();
+    if (eval_method == "mean")
+    {
+        static std::vector<float> count_vect_x;
+        size_t nb_mem_kmer = 0, kmer_code;
+        kmer_code = Seq2Int(contig_seq.substr(0, k_len), k_len, true);
+        for (size_t start_pos(0); start_pos < seq_len - k_len + 1; ++start_pos)
+        {
+            if (((iter = code2kmer.find(kmer_code)) != code2kmer.cend()) ||
+                (!stranded && (iter = code2kmer.find(GetRC(kmer_code, k_len))) != code2kmer.cend()))
+            {
+                if (no_norm)
+                {
+                    iter->second->GetCountVect(count_vect_x, idx_file, nb_count);
+                }
+                else
+                {
+                    iter->second->GetCountVect(count_vect_x, idx_file, nb_count, nf_vect);
+                }
+                for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
+                {
+                    count_vect[i_smp] += count_vect_x[i_smp];
+                }
+                nb_mem_kmer++;
+            }
+            if (start_pos + k_len < seq_len)
+            {
+                kmer_code = NextCode(kmer_code, k_len, contig_seq[start_pos + k_len]);
+            }
+        }
+        for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
+        {
+            count_vect[i_smp] /= nb_mem_kmer;
+        }
+    }
+    else if (eval_method == "median")
+    {
+        static std::vector<std::vector<float>> kmer_count_mat;
+        static std::vector<float> count_vect_x;
+        kmer_count_mat.clear();
+        size_t kmer_code = Seq2Int(contig_seq.substr(0, k_len), k_len, true);
+        for (size_t start_pos(0); start_pos < seq_len - k_len + 1; ++start_pos)
+        {
+            if (((iter = code2kmer.find(kmer_code)) != code2kmer.cend()) ||
+                (!stranded && (iter = code2kmer.find(GetRC(kmer_code, k_len))) != code2kmer.cend()))
+            {
+                kmer_count_mat.emplace_back(std::vector<float>(nb_count, 0));
+                if (no_norm)
+                {
+                    iter->second->GetCountVect(kmer_count_mat.back(), idx_file, nb_count);
+                }
+                else
+                {
+                    iter->second->GetCountVect(kmer_count_mat.back(), idx_file, nb_count, nf_vect);
+                }
+            }
+            if (start_pos + k_len < seq_len)
+            {
+                kmer_code = NextCode(kmer_code, k_len, contig_seq[start_pos + k_len]);
+            }
+        }
+        const size_t nb_mem_kmer = kmer_count_mat.size();
+        count_vect_x.resize(nb_mem_kmer);
+        for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
+        {
+            for (size_t i_kmer(0); i_kmer < nb_mem_kmer; ++i_kmer)
+            {
+                count_vect_x[i_kmer] = kmer_count_mat[i_kmer][i_smp];
+            }
+            count_vect[i_smp] = CalcVectMedian(count_vect_x);
+        }
+    }
+    return count_vect;
 }
 
 int main(int argc, char **argv)
@@ -247,10 +321,9 @@ int main(int argc, char **argv)
     inter_time = clock();
 
     TabHeader tab_header(colname_list_path);
-    kMerTab_t kmer_count_tab;
-    code2serial_t code2serial;
+    code2kmer_t code2kmer;
     std::vector<double> nf_vect;
-    ScanCountTable(tab_header, kmer_count_tab, code2serial, nf_vect, k_len, stranded, kmer_count_path, idx_path);
+    ScanCountTable(tab_header, code2kmer, nf_vect, k_len, stranded, kmer_count_path, idx_path);
 
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
@@ -259,7 +332,22 @@ int main(int argc, char **argv)
     EstablishSeqListFromMultilineFasta(fasta_vect, contig_fasta_path);
     std::cerr << "Number of sequence for evaluation: " << fasta_vect.size() << std::endl;
 
-    std::cout << "contig\teval_dist\tkmer1\tkmer2" << std::endl;
+    if (eval_method == "pearson" || eval_method == "spearman" || eval_method == "mac")
+    {
+        std::cout << "contig\teval_dist\tkmer1\tkmer2" << std::endl;
+    }
+    else if (eval_method == "mean" || eval_method == "median")
+    {
+        std::cout << "contig";
+        for (size_t i(0); i < tab_header.GetNbCol(); ++i)
+        {
+            if (tab_header.IsColCount(i))
+            {
+                std::cout << "\t" << tab_header.GetColNameAt(i);
+            }
+        }
+        std::cout << std::endl;
+    }
     std::string contig_seq, max_kmer1, max_kmer2;
     std::ifstream idx_file(idx_path);
     if (!idx_file.is_open())
@@ -271,27 +359,25 @@ int main(int argc, char **argv)
         contig_seq = seq_elem_ptr->GetSeq();
         if (contig_name)
         {
-            std::cout << seq_elem_ptr->GetName() << "\t";
+            std::cout << seq_elem_ptr->GetName();
         }
         else
         {
-            std::cout << contig_seq << "\t";
+            std::cout << contig_seq;
         }
-
-        if (contig_seq.size() == k_len &&
-            code2serial.find(Seq2Int(contig_seq, k_len, stranded)) != code2serial.cend()) // if seq is a k-mer and is in k-mer count table
+        if (eval_method == "pearson" || eval_method == "spearman" || eval_method == "mac")
         {
-            std::cout << kMinDistance << "\t" << contig_seq << "\t" << contig_seq << std::endl;
-        }
-        else if (contig_seq.size() <= k_len) // if seq is a k-mer but not in k-mer count table or if it's shorter than a k-mer
-        {
-            std::cout << kMaxDistance << "\tNONE\tNONE" << std::endl;
-        }
-        else
-        {
-            std::cout << EvaluatePrintSeqDist(max_kmer1, max_kmer2, contig_seq, nf_vect, no_norm, k_len, stranded, eval_method,
-                                              kmer_count_tab, code2serial, idx_file, tab_header.GetNbCount(), max_shift)
+            std::cout << "\t" << EvaluateSeqDist(max_kmer1, max_kmer2, contig_seq, nf_vect, no_norm, k_len, stranded, eval_method, code2kmer, idx_file, tab_header.GetNbCount(), max_shift)
                       << "\t" << max_kmer1 << "\t" << max_kmer2 << std::endl;
+        }
+        else if (eval_method == "mean" || eval_method == "median")
+        {
+            static std::vector<float> count_vect(tab_header.GetNbCount(), 0);
+            for (const float c : EvaluateSeqCount(count_vect, contig_seq, nf_vect, code2kmer, idx_file, no_norm, k_len, stranded, eval_method))
+            {
+                std::cout << "\t" << c;
+            }
+            std::cout << std::endl;
         }
     }
     std::cerr << "Contig evaluation finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
