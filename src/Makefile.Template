@@ -17,8 +17,8 @@ kamratFilter.o : kamratFilter.cpp common/tab_header.cpp
 kamratRank.o : kamratRank.cpp rank/scorer.cpp common/tab_header.cpp common/kmer_elem.cpp rank/feature_elem.cpp
 	g++ -c kamratRank.cpp common/tab_header.cpp rank/scorer.cpp rank/feature_elem.cpp -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams $(CPPFLAGS)
 
-contigEvaluate : contigEvaluate.cpp common/tab_header.cpp common/kmer_elem.cpp evaluate/seq_elem.cpp
-	g++ -o ../bin/contigEvaluate contigEvaluate.cpp common/tab_header.cpp common/kmer_elem.cpp evaluate/seq_elem.cpp -lboost_iostreams $(CPPFLAGS)
+contigEvaluate : contigEvaluate.cpp common/tab_header.cpp common/kmer_elem.cpp
+	g++ -o ../bin/contigEvaluate contigEvaluate.cpp common/tab_header.cpp common/kmer_elem.cpp -lboost_iostreams $(CPPFLAGS)
 
 clean :
 	rm -f *.o

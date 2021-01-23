@@ -38,7 +38,6 @@
 #include "common/vec_operation.hpp"
 #include "common/kmer_elem.hpp"
 #include "evaluate/evaluate_runinfo.hpp"
-#include "evaluate/seq_elem.hpp"
 
 const float kMinDistance = 0, kMaxDistance = 1;
 
@@ -114,7 +113,7 @@ void ScanCountTable(TabHeader &tab_header, code2kmer_t &code2kmer, std::vector<d
     idx_file.close();
 }
 
-void EstablishSeqListFromMultilineFasta(std::vector<std::unique_ptr<SeqElem>> &seq_vect, const std::string &contig_fasta_path)
+void EstablishSeqListFromMultilineFasta(fastaVect_t &seq_vect, const std::string &contig_fasta_path)
 {
     std::ifstream contig_list_file(contig_fasta_path);
     if (!contig_list_file.is_open())
@@ -129,8 +128,8 @@ void EstablishSeqListFromMultilineFasta(std::vector<std::unique_ptr<SeqElem>> &s
         {
             if (!is_first_line)
             {
-                seq_vect.emplace_back(std::make_unique<SeqElem>(seq_name, seq)); // cache the previous sequence
-                seq.clear();                                                     // prepare for the next sequence
+                seq_vect.emplace_back(std::make_unique<seqElem_t>(std::make_pair(seq_name, seq))); // cache the previous sequence
+                seq.clear();                                                                       // prepare for the next sequence
             }
             seq_name = line.substr(1); // record the next sequence name
             is_first_line = false;
@@ -140,7 +139,7 @@ void EstablishSeqListFromMultilineFasta(std::vector<std::unique_ptr<SeqElem>> &s
             seq += line;
         }
     }
-    seq_vect.emplace_back(std::make_unique<SeqElem>(seq_name, seq)); // cache the last sequence
+    seq_vect.emplace_back(std::make_unique<seqElem_t>(std::make_pair(seq_name, seq))); // cache the last sequence
     contig_list_file.close();
 }
 
@@ -356,10 +355,10 @@ int main(int argc, char **argv)
     }
     for (const auto &seq_elem_ptr : fasta_vect)
     {
-        contig_seq = seq_elem_ptr->GetSeq();
+        contig_seq = seq_elem_ptr->second;
         if (contig_name)
         {
-            std::cout << seq_elem_ptr->GetName();
+            std::cout << seq_elem_ptr->first;
         }
         else
         {
