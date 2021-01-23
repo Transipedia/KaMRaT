@@ -4,8 +4,12 @@
 #include <iostream>
 #include <string>
 #include <set>
+#include <memory>
 
 const std::set<std::string> kEvaluateMethodUniv{"pearson", "spearman", "mac", "mean", "median"};
+
+using seqElem_t = std::pair<std::string, std::string>;
+using fastaVect_t = std::vector<std::unique_ptr<seqElem_t>>;
 
 inline void PrintContigEvaluateHelper()
 {
