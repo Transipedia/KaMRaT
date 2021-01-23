@@ -53,4 +53,4 @@ echo
 
 col_list_str=`awk '{print $1}' $col_list_path`    # only consider the first column no matter how many columns does the input file have
 
-awk -v col2print="$col_list_str" 'BEGIN {nc2p = split(col2print, c2p);} NR == 1 {for (i = 1; i <= NF; ++i) hname[$i]=i} {printf("%s", $1); for (j = 1; j <= nc2p; ++j) if (c2p[j] in hname) printf("\t%s", $hname[c2p[j]]); print ""}' $mat_path > $out_submat_path
+awk -v col2print="$col_list_str" 'BEGIN {nc2p = split(col2print, c2p)} NR == 1 {for (i = 1; i <= NF; ++i) hname[$i]=i} {printf("%s", $1); for (j = 1; j <= nc2p; ++j) if (c2p[j] in hname) printf("\t%s", $(hname[c2p[j]])); print ""}' $mat_path > $out_submat_path

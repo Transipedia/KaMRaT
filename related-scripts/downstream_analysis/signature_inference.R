@@ -19,13 +19,13 @@ library(caret)
 
 cmdArgs <- commandArgs(trailingOnly = TRUE)
 top.contig.path <- cmdArgs[1]
-# top.contig.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/data/merged-diff-counts.tsv"
+top.contig.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/data/merged-diff-counts.tsv"
 sample.info.path <- cmdArgs[2]
-# sample.info.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/data/sample-info.txt"
+sample.info.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/data/sample-info.txt"
 out.sig.path <- cmdArgs[3]
-# out.sig.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/new.results/signatures.fa"
+out.sig.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/new.results/signatures.fa"
 out.mdl.path <- cmdArgs[4]
-# out.mdl.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/new.results/model.rds"
+out.mdl.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/new.results/model.rds"
 if (length(cmdArgs) == 5) {
     nf.vect.path <- cmdArgs[5]
     # nf.vect.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-test/sample-nf-snr.tsv"
@@ -34,14 +34,15 @@ if (length(cmdArgs) == 5) {
 }
 
 ExtractSignatureStb <- function(df, thres, num.runs){
-    X <- df[, !(names(df) %in% c("sample", "condition"))] %>% data.matrix()
-    Y <- df$condition
-    feature.names <- colnames(X)
-    model.cv.glm <- cv.glmnet(x = X, y = Y, family = "binomial", alpha = 1, type.measure = "mse")
+    x.train <- df[, !(names(df) %in% c("sample", "condition"))] %>% data.matrix()
+    y.train <- df$condition
+    feature.names <- colnames(x.train)
+    model.cv.glm <- cv.glmnet(x = x.train, y = y.train, 
+                              family = "binomial", alpha = 1, type.measure = "mse")
     StabSel <- function(i) {
-        n <- nrow(X)
+        n <- nrow(x.train)
         b_sort <- sort(sample(1 : n, round(3 * n / 4)))
-        out <- glmnet(X[b_sort, ], Y[b_sort],
+        out <- glmnet(x.train[b_sort, ], y.train[b_sort],
                       lambda = model.cv.glm$lambda.1se, family = "binomial", 
                       alpha = 1, standardize = FALSE)
         return(as.numeric(out$beta[, ncol(out$beta)] != 0))
@@ -82,14 +83,18 @@ sig.contigs <- ExtractSignatureStb(data.tab, thres = thres.lasso, num.runs = 2e3
 
 # Train model with selected signatures
 data.tab.sel <- data.tab[, c(sig.contigs, "condition")]
-mdl.postsel <- glmnet(x = data.matrix(data.tab.sel[, sig.contigs]),
-                      y = data.tab.sel$condition, 
-                      family = "binomial",
-                      type.measure = "auc")
-# eval.postsel <- assess.glmnet(mdl.postsel,
-#                               newx = data.matrix(data.tab.sel[, sig.contigs]),
-#                               newy = data.tab.sel$condition,
-#                               family = "binomial")
+ctrl <- trainControl(method = "repeatedcv",
+                     number = 10,
+                     repeats = 20,
+                     classProbs = TRUE,
+                     summaryFunction = twoClassSummary,
+                     savePredictions = TRUE)
+mdl.postsel <- train(condition ~ ., data = data.tab.sel,
+                     method = "glm",
+                     metric = "ROC",
+                     family = "binomial",
+                     preProc = c("center", "scale"),
+                     trControl = ctrl)  
 
 # Save model and contig fasta
 saveRDS(mdl.postsel, file = out.mdl.path)

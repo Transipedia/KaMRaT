@@ -68,9 +68,9 @@ get_seeded_random() {
 	openssl enc -aes-256-ctr -pass pass:"$seed" -nosalt </dev/zero 2>/dev/null
 }
 
-if ls $out_dir/sampleshuf.tmp.*.tsv 1> /dev/null 2>&1
+if ls $out_dir/sampleshuf.tmp*.tsv 1> /dev/null 2>&1
 then
-	echo -e ${RED}"ERROR: some file named sampleshuf.tmp.*.tsv exist in the output directory\n       stop for avoiding conflict"${NOCOLOR}
+	echo -e ${RED}"ERROR: some file named sampleshuf.tmp*.tsv exist in the output directory\n       stop for avoiding conflict"${NOCOLOR}
 	exit 1
 fi
 
@@ -78,30 +78,34 @@ out_train_path=$out_dir/$(basename $smp_condi_path .tsv).train.tsv
 out_test_path=$out_dir/$(basename $smp_condi_path .tsv).test.tsv
 
 # Make sure that sample condtion for TRAIN does not exist
-if [ -f $out_dir/sample-condition.train.tsv ]
+if [ -f $out_dir/sampleshuf.train*.tsv ]
 then
-	echo -e ${RED}"ERROR: sample-condition.train.tsv already exists in the output directory\n       stop for avoiding accidental overwriting"${NOCOLOR}
+	echo -e ${RED}"ERROR: sampleshuf.train*.tsv already exists in the output directory\n       stop for avoiding accidental overwriting"${NOCOLOR}
 	exit 1
 fi
 # Make sure that sample condition for TEST does not exist
-if [ -f $out_dir/sample-condition.test.tsv ]
+if [ -f $out_dir/sampleshuf.test*.tsv ]
 then
-	echo -e ${RED}"ERROR: sample-condition.test.tsv already exists in the output directory\n        stop for avoiding accidental overwriting"${NOCOLOR}
+	echo -e ${RED}"ERROR: sampleshuf.test*.tsv already exists in the output directory\n        stop for avoiding accidental overwriting"${NOCOLOR}
 	exit 1
 fi
 
-# Splitting starts 
-shuf --random-source=<(get_seeded_random 91400) $smp_condi_path | awk -v outd=$out_dir -v nfold=$nb_fold '{print $0 >> outd"/sampleshuf.tmp."$2"_"NR%nfold".tsv"}'
-
-for i in $(seq 0 $(( $nb_fold - 1 )))
+# Splitting starts
+awk -v outd=$out_dir '{print $0 >> outd"/sampleshuf.tmp1."$2".tsv"}' $smp_condi_path
+for fs in $out_dir/sampleshuf.tmp1.*.tsv
 do
-	cat $out_dir/sampleshuf.tmp.*_$i.tsv > $out_dir/sampleshuf.tmp.fold$i.tsv
+	shuf --random-source=<(get_seeded_random 91400) $fs | awk -v outd=$out_dir -v nfold=$nb_fold '{print $0 >> outd"/sampleshuf.tmp2."$2"_"NR%nfold".tsv"}'
 done
 
 for i in $(seq 0 $(( $nb_fold - 1 )))
 do
-	cat `ls $out_dir/sampleshuf.tmp.fold*.tsv | grep -v sampleshuf.tmp.fold$i.tsv` > $out_dir/sampleshuf.train$i.tsv
-	cat $out_dir/sampleshuf.tmp.fold$i.tsv > $out_dir/sampleshuf.test$i.tsv
+	cat $out_dir/sampleshuf.tmp2.*_$i.tsv > $out_dir/sampleshuf.tmp3.fold$i.tsv
 done
 
-rm -f $out_dir/sampleshuf.tmp.*.tsv
+for i in $(seq 0 $(( $nb_fold - 1 )))
+do
+	cat `ls $out_dir/sampleshuf.tmp3.fold*.tsv | grep -v sampleshuf.tmp3.fold$i.tsv` > $out_dir/sampleshuf.train$i.tsv
+	cat $out_dir/sampleshuf.tmp3.fold$i.tsv > $out_dir/sampleshuf.test$i.tsv
+done
+
+rm -f $out_dir/sampleshuf.tmp*.tsv
