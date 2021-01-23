@@ -331,6 +331,20 @@ int main(int argc, char **argv)
     EstablishSeqListFromMultilineFasta(fasta_vect, contig_fasta_path);
     std::cerr << "Number of sequence for evaluation: " << fasta_vect.size() << std::endl;
 
+    std::ofstream out_file;
+    if (!out_path.empty())
+    {
+        out_file.open(out_path);
+        if (!out_file.is_open())
+        {
+            throw std::domain_error("cannot open file: " + out_path);
+        }
+    }
+    auto backup_buf = std::cout.rdbuf();
+    if (!out_path.empty()) // output to file if a path is given, to screen if not
+    {
+        std::cout.rdbuf(out_file.rdbuf());
+    }
     if (eval_method == "pearson" || eval_method == "spearman" || eval_method == "mac")
     {
         std::cout << "contig\teval_dist\tkmer1\tkmer2" << std::endl;
@@ -378,6 +392,11 @@ int main(int argc, char **argv)
             }
             std::cout << std::endl;
         }
+    }
+    std::cout.rdbuf(backup_buf);
+    if (out_file.is_open())
+    {
+        out_file.close();
     }
     std::cerr << "Contig evaluation finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
 
