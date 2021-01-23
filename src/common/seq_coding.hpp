@@ -8,7 +8,7 @@
 
 /* ================================== *\
  * Used by kamratMerge and kamratMask *
-\* ================================== */ 
+\* ================================== */
 
 static inline uint8_t Nuc2Num(const char nuc)
 {
@@ -131,13 +131,13 @@ static inline uint64_t MutIntAtPos(uint64_t code, const size_t k_length, const i
     return code;
 }
 
-static inline uint64_t NextSeq(uint64_t code, const size_t k_length, const char new_nuc) 
+static inline uint64_t NextCode(uint64_t code, const size_t k_length, const char new_nuc)
 // Attention: should not return the RC code if unstranded !
 //            returning of RC code would disturb the calculation of downstreaming k-mers.
 {
     uint64_t x = (k_length - 1) * 2, up = 3;
     // Unset the first nucleotide
-    code &= ~(up << x);
+    code &= ~(up << x); // TO TEST: is this necessary ?
     code <<= 2;
     code = MutIntAtPos(code, k_length, k_length - 1, new_nuc);
     return code;

@@ -38,11 +38,11 @@
 #include "common/vec_operation.hpp"
 #include "common/kmer_elem.hpp"
 #include "evaluate/evaluate_runinfo.hpp"
+#include "evaluate/seq_elem.hpp"
 
 const float kMinDistance = 0, kMaxDistance = 1;
 
-void ScanCountTable(TabHeader &tab_header, kMerTab_t &kmer_count_tab, code2serial_t &code2serial,
-                    const size_t k_len, const bool stranded,
+void ScanCountTable(TabHeader &tab_header, code2kmer_t &code2kmer, std::vector<double> &nf_vect, const size_t k_len, const bool stranded,
                     const std::string &kmer_count_path, const std::string &idx_path)
 {
     std::ifstream kmer_count_file(kmer_count_path);
@@ -66,45 +66,55 @@ void ScanCountTable(TabHeader &tab_header, kMerTab_t &kmer_count_tab, code2seria
     std::getline(kmer_count_instream, line);
     std::istringstream conv(line);
     tab_header.MakeColumns(conv, "");
+    conv.clear();
+    nf_vect.resize(tab_header.GetNbCount(), 0);
+    std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
+
+    std::ofstream idx_file(idx_path);
+    if (!idx_file.is_open()) // to ensure the file is opened
+    {
+        throw std::domain_error("error open file: " + idx_path);
+    }
+
     //----- Dealing with Following k-mer Count Lines -----//
     std::vector<float> count_vect;
     std::string value_str, seq;
-    std::ofstream idx_file;
-    if (!idx_path.empty())
-    {
-        idx_file.open(idx_path);
-        if (!idx_file.is_open()) // to ensure the file is opened
-        {
-            throw std::domain_error("error open file: " + idx_path);
-        }
-    }
     for (size_t iline(0); std::getline(kmer_count_instream, line); ++iline)
     {
         conv.str(line);
         float rep_value = tab_header.ParseRowStr(count_vect, value_str, conv);
-        kmer_count_tab.emplace_back(rep_value, count_vect, value_str, idx_file);
-        seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
+        for (size_t ismp(0); ismp < count_vect.size(); ++ismp)
+        {
+            nf_vect[ismp] += count_vect[ismp];
+        }
+        seq = line.substr(0, line.find_first_of(" \t")); // first column as feature (string)
         if (seq.size() != k_len)
         {
             throw std::domain_error("the given k-len parameter not coherent with input k-mer: " + seq);
         }
-        uint64_t kmer_uniqcode = Seq2Int(seq, seq.size(), stranded);
-        if (!code2serial.insert({kmer_uniqcode, iline}).second)
+        if (!code2kmer.insert({Seq2Int(seq, seq.size(), stranded), std::make_unique<KMerElem>(rep_value, count_vect, value_str, idx_file)}).second)
         {
-            throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
+            throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list): " + seq);
         }
         conv.clear();
     }
-    if (idx_file.is_open())
+    double mean_sample_sum = (std::accumulate(nf_vect.cbegin(), nf_vect.cend(), 0.0) / nf_vect.size());
+    for (size_t i(0); i < nf_vect.size(); ++i)
     {
-        idx_file.close();
+        if (nf_vect[i] == 0)
+        {
+            nf_vect[i] = 0;
+        }
+        else
+        {
+            nf_vect[i] = mean_sample_sum / nf_vect[i];
+        }
     }
-    kmer_count_tab.shrink_to_fit();
     kmer_count_file.close();
+    idx_file.close();
 }
 
-void EstablishSeqListFromMultilineFasta(std::unordered_map<std::string, std::string> &name2seq,
-                                        const std::string &contig_fasta_path)
+void EstablishSeqListFromMultilineFasta(std::vector<std::unique_ptr<SeqElem>> &seq_vect, const std::string &contig_fasta_path)
 {
     std::ifstream contig_list_file(contig_fasta_path);
     if (!contig_list_file.is_open())
@@ -112,206 +122,266 @@ void EstablishSeqListFromMultilineFasta(std::unordered_map<std::string, std::str
         throw std::domain_error("contig fasta file " + contig_fasta_path + "was not found");
     }
     std::string seq_name, seq, line;
-    size_t nline(0);
-    while (true)
+    bool is_first_line(true);
+    while (std::getline(contig_list_file, line))
     {
-        std::getline(contig_list_file, line);
-        if (nline == 0) // reading the first line
+        if (line[0] == '>') // if a header line (i.e. a new sequence)
         {
-            seq_name = line.substr(1);
-        }
-        else if (line[0] == '>') // reading in middle of the file
-        {
-            name2seq.insert({seq_name, seq});
-            seq_name = line.substr(1);
-            seq.clear();
-        }
-        else if (contig_list_file.eof()) // reading the last line
-        {
-            name2seq.insert({seq_name, seq});
-            seq.clear();
-            break;
+            if (!is_first_line)
+            {
+                seq_vect.emplace_back(std::make_unique<SeqElem>(seq_name, seq)); // cache the previous sequence
+                seq.clear();                                                     // prepare for the next sequence
+            }
+            seq_name = line.substr(1); // record the next sequence name
+            is_first_line = false;
         }
         else
         {
             seq += line;
         }
-        ++nline;
     }
+    seq_vect.emplace_back(std::make_unique<SeqElem>(seq_name, seq)); // cache the last sequence
     contig_list_file.close();
 }
 
-const void EvaluatePrintSeqElemFarthest(const std::string &name, const std::string &seq,
-                                        const size_t k_len, const bool stranded, const std::string &eval_method,
-                                        const kMerTab_t &kmer_count_tab, const code2serial_t &code2serial,
-                                        const std::string &idx_path, const size_t nb_count)
+const float EvaluateSeqDist(std::string &max_kmer1, std::string &max_kmer2,
+                            const std::string &contig_seq, const std::vector<double> &nf_vect, const bool no_norm,
+                            const size_t k_len, const bool stranded, const std::string &eval_method,
+                            const code2kmer_t &code2kmer, std::ifstream &idx_file, const size_t nb_count, const size_t max_shift)
 {
-    static std::vector<float> pred_count_vect, succ_count_vect;
-    std::ifstream idx_file(idx_path);
-    size_t start_pos1 = 0, start_pos2 = seq.size() - k_len;
-    std::string kmer1 = seq.substr(start_pos1, k_len), kmer2 = seq.substr(start_pos2, k_len);
-    while (start_pos1 < start_pos2 && code2serial.find(Seq2Int(kmer1, k_len, stranded)) == code2serial.cend())
+    if (contig_seq.size() == k_len && code2kmer.find(Seq2Int(contig_seq, k_len, stranded)) != code2kmer.cend()) // if seq is a k-mer in k-mer count table
     {
-        ++start_pos1;
-        kmer1 = seq.substr(start_pos1, k_len);
+        max_kmer1 = max_kmer2 = contig_seq;
+        return kMinDistance;
     }
-    while (start_pos1 < start_pos2 && code2serial.find(Seq2Int(kmer2, k_len, stranded)) == code2serial.cend())
+    else if (contig_seq.size() <= k_len) // if seq is a k-mer but not in k-mer count table or if it's shorter than a k-mer
     {
-        --start_pos2;
-        kmer2 = seq.substr(start_pos2, k_len);
+        max_kmer1 = max_kmer2 = "NONE";
+        return kMaxDistance;
     }
-    if (start_pos1 >= start_pos2)
-    {
-        std::cout << name << "\t" << kMaxDistance << "\tNONE\tNONE" << std::endl;
-    }
-    else
-    {
-        auto iter1 = code2serial.find(Seq2Int(kmer1, k_len, stranded)),
-             iter2 = code2serial.find(Seq2Int(kmer2, k_len, stranded));
-        std::cout << name << "\t";
-        if (eval_method == "mac")
-        {
-            std::cout << CalcMACDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
-                                     kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
-        }
-        else if (eval_method == "pearson")
-        {
-            std::cout << CalcPearsonDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
-                                         kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
-        }
-        else if (eval_method == "spearman")
-        {
-            std::cout << CalcSpearmanDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
-                                          kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
-        }
-        std::cout << "\t" << kmer1 << "\t" << kmer2 << std::endl;
-    }
-    idx_file.close();
-}
 
-const void EvaluatePrintSeqElemWorstAdj(const std::string &name, const std::string &seq,
-                                        const size_t k_len, const bool stranded, const std::string &eval_method,
-                                        const kMerTab_t &kmer_count_tab, const code2serial_t &code2serial,
-                                        const std::string &idx_path, const size_t nb_count)
-{
-    static std::vector<float> pred_count_vect, succ_count_vect;
-    std::ifstream idx_file(idx_path);
-    size_t seq_size = seq.size(), start_pos1 = 0, start_pos2;
-    std::string kmer1, kmer2;
-    float dist = kMinDistance - 1;
+    static std::vector<float> left_count_vect, right_count_vect;
+    size_t seq_size = contig_seq.size(), max_kmer_code1, max_kmer_code2;
+
+    // Start condition: left k-mer as the first findable one in the k-mer count table //
+    size_t start_pos1 = 0;
+    uint64_t kmer_code1 = Seq2Int(contig_seq.substr(0, k_len), k_len, true);
+    auto iter1 = code2kmer.find(kmer_code1);
     while (start_pos1 + k_len < seq_size)
     {
-        float dist_x = dist;
-        std::string kmer1_x = seq.substr(start_pos1, k_len);
-        while (start_pos1 + k_len < seq_size && code2serial.find(Seq2Int(kmer1_x, k_len, stranded)) == code2serial.cend())
+        if ((iter1 = code2kmer.find(kmer_code1)) != code2kmer.cend() ||
+            (!stranded && (iter1 = code2kmer.find(GetRC(kmer_code1, k_len))) != code2kmer.cend()))
         {
-            ++start_pos1;
-            if (start_pos1 + k_len < seq_size)
-            {
-                kmer1_x.erase(0, 1);
-                kmer1_x.push_back(seq[start_pos1 + k_len - 1]);
-            }
+            break;
         }
-        start_pos2 = start_pos1 + 1;
-        std::string kmer2_x = seq.substr(start_pos2, k_len);
-        while (start_pos2 + k_len <= seq_size && code2serial.find(Seq2Int(kmer2_x, k_len, stranded)) == code2serial.cend())
+        kmer_code1 = NextCode(kmer_code1, k_len, contig_seq[start_pos1 + k_len]);
+        start_pos1++;
+    }
+    if (start_pos1 + k_len >= seq_size) // not able to find a left k-mer to start
+    {
+        max_kmer1 = max_kmer2 = "NONE";
+        return kMaxDistance;
+    }
+    no_norm ? iter1->second->GetCountVect(left_count_vect, idx_file, nb_count) : iter1->second->GetCountVect(left_count_vect, idx_file, nb_count, nf_vect);
+
+    // Traverse the whole sequence //
+    float max_dist = kMinDistance, dist_x;
+    size_t start_pos2 = start_pos1;
+    uint64_t kmer_code2 = kmer_code1;
+    auto iter2 = iter1;
+    while (start_pos1 + k_len < seq_size)
+    {
+        do
         {
-            ++start_pos2;
-            if (start_pos2 + k_len <= seq_size)
+            kmer_code2 = NextCode(kmer_code2, k_len, contig_seq[start_pos2 + k_len]);
+            start_pos2++;
+            if ((iter2 = code2kmer.find(kmer_code2)) != code2kmer.cend() ||
+                (!stranded && (iter2 = code2kmer.find(GetRC(kmer_code2, k_len))) != code2kmer.cend()))
             {
-                kmer2_x.erase(0, 1);
-                kmer2_x.push_back(seq[start_pos2 + k_len - 1]);
+                break;
             }
+        } while (start_pos2 + k_len <= seq_size && start_pos2 - start_pos1 <= max_shift);
+        if (start_pos2 + k_len > seq_size || start_pos2 - start_pos1 > max_shift) // not able to find a right k-mer within allowed zone
+        {
+            Int2Seq(max_kmer1, kmer_code1, k_len);
+            max_kmer2 = "NONE";
+            return kMaxDistance;
         }
-        if (start_pos2 + k_len <= seq_size)
+        no_norm ? iter2->second->GetCountVect(right_count_vect, idx_file, nb_count) : iter2->second->GetCountVect(right_count_vect, idx_file, nb_count, nf_vect);
+        if ((eval_method == "pearson" && (dist_x = CalcPearsonDist(left_count_vect, right_count_vect)) > max_dist) ||
+            (eval_method == "spearman" && (dist_x = CalcSpearmanDist(left_count_vect, right_count_vect)) > max_dist) ||
+            (eval_method == "mac" && (dist_x = CalcMACDist(left_count_vect, right_count_vect)) > max_dist)) // short-circuit operator
         {
-            auto iter1 = code2serial.find(Seq2Int(kmer1_x, k_len, stranded)),
-                 iter2 = code2serial.find(Seq2Int(kmer2_x, k_len, stranded));
-            if (eval_method == "mac")
-            {
-                dist_x = CalcMACDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
-                                     kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
-            }
-            else if (eval_method == "pearson")
-            {
-                dist_x = CalcPearsonDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
-                                         kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
-            }
-            else if (eval_method == "spearman")
-            {
-                dist_x = CalcSpearmanDist(kmer_count_tab[iter1->second].GetCountVect(pred_count_vect, idx_file, nb_count),
-                                          kmer_count_tab[iter2->second].GetCountVect(succ_count_vect, idx_file, nb_count));
-            }
-            if (dist_x > dist)
-            {
-                dist = dist_x;
-                kmer1 = kmer1_x;
-                kmer2 = kmer2_x;
-            }
+            max_dist = dist_x;
+            max_kmer_code1 = kmer_code1;
+            max_kmer_code2 = kmer_code2;
         }
         start_pos1 = start_pos2;
-    }
-    if (kmer1.empty() || kmer2.empty())
-    {
-        std::cout << name << "\t" << kMaxDistance << "\tNONE\tNONE" << std::endl;
-    }
-    else
-    {
-        std::cout << name << "\t" << dist << "\t" << kmer1 << "\t" << kmer2 << std::endl;
+        kmer_code1 = kmer_code2;
+        iter1 = iter2;
+        left_count_vect.swap(right_count_vect); // same as left_count_vect = right_count_vect, but in constant complexity
     }
 
-    idx_file.close();
+    Int2Seq(max_kmer1, max_kmer_code1, k_len);
+    Int2Seq(max_kmer2, max_kmer_code2, k_len);
+    return max_dist;
+}
+
+const std::vector<float> &EvaluateSeqCount(std::vector<float> &count_vect, const std::string &contig_seq, const std::vector<double> &nf_vect,
+                                           const code2kmer_t &code2kmer, std::ifstream &idx_file, const bool no_norm,
+                                           const size_t k_len, const bool stranded, const std::string &eval_method)
+{
+    const size_t nb_count = count_vect.size(), seq_len = contig_seq.size();
+    auto iter = code2kmer.cend();
+    if (eval_method == "mean")
+    {
+        static std::vector<float> count_vect_x;
+        size_t nb_mem_kmer = 0, kmer_code;
+        kmer_code = Seq2Int(contig_seq.substr(0, k_len), k_len, true);
+        for (size_t start_pos(0); start_pos < seq_len - k_len + 1; ++start_pos)
+        {
+            if (((iter = code2kmer.find(kmer_code)) != code2kmer.cend()) ||
+                (!stranded && (iter = code2kmer.find(GetRC(kmer_code, k_len))) != code2kmer.cend()))
+            {
+                if (no_norm)
+                {
+                    iter->second->GetCountVect(count_vect_x, idx_file, nb_count);
+                }
+                else
+                {
+                    iter->second->GetCountVect(count_vect_x, idx_file, nb_count, nf_vect);
+                }
+                for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
+                {
+                    count_vect[i_smp] += count_vect_x[i_smp];
+                }
+                nb_mem_kmer++;
+            }
+            if (start_pos + k_len < seq_len)
+            {
+                kmer_code = NextCode(kmer_code, k_len, contig_seq[start_pos + k_len]);
+            }
+        }
+        for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
+        {
+            count_vect[i_smp] /= nb_mem_kmer;
+        }
+    }
+    else if (eval_method == "median")
+    {
+        static std::vector<std::vector<float>> kmer_count_mat;
+        static std::vector<float> count_vect_x;
+        kmer_count_mat.clear();
+        size_t kmer_code = Seq2Int(contig_seq.substr(0, k_len), k_len, true);
+        for (size_t start_pos(0); start_pos < seq_len - k_len + 1; ++start_pos)
+        {
+            if (((iter = code2kmer.find(kmer_code)) != code2kmer.cend()) ||
+                (!stranded && (iter = code2kmer.find(GetRC(kmer_code, k_len))) != code2kmer.cend()))
+            {
+                kmer_count_mat.emplace_back(std::vector<float>(nb_count, 0));
+                if (no_norm)
+                {
+                    iter->second->GetCountVect(kmer_count_mat.back(), idx_file, nb_count);
+                }
+                else
+                {
+                    iter->second->GetCountVect(kmer_count_mat.back(), idx_file, nb_count, nf_vect);
+                }
+            }
+            if (start_pos + k_len < seq_len)
+            {
+                kmer_code = NextCode(kmer_code, k_len, contig_seq[start_pos + k_len]);
+            }
+        }
+        const size_t nb_mem_kmer = kmer_count_mat.size();
+        count_vect_x.resize(nb_mem_kmer);
+        for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
+        {
+            for (size_t i_kmer(0); i_kmer < nb_mem_kmer; ++i_kmer)
+            {
+                count_vect_x[i_kmer] = kmer_count_mat[i_kmer][i_smp];
+            }
+            count_vect[i_smp] = CalcVectMedian(count_vect_x);
+        }
+    }
+    return count_vect;
 }
 
 int main(int argc, char **argv)
 {
     std::clock_t begin_time = clock(), inter_time;
-    std::string contig_fasta_path, eval_method, eval_mode, colname_list_path, idx_path, kmer_count_path, out_path;
-    unsigned int k_len(31);
-    bool stranded(true);
+    std::string contig_fasta_path, eval_method, colname_list_path, idx_path, kmer_count_path, out_path;
+    size_t k_len, max_shift = std::numeric_limits<size_t>::max();
+    bool stranded(true), no_norm(false), contig_name(false);
 
-    ParseOptions(argc, argv, contig_fasta_path, eval_method, eval_mode, idx_path, stranded, k_len, colname_list_path, out_path, kmer_count_path);
-    PrintRunInfo(contig_fasta_path, eval_method, eval_mode, idx_path, stranded, k_len, colname_list_path, out_path, kmer_count_path);
+    ParseOptions(argc, argv, k_len, contig_fasta_path, eval_method, idx_path, stranded, colname_list_path, no_norm, contig_name, out_path, kmer_count_path);
+    PrintRunInfo(k_len, contig_fasta_path, eval_method, idx_path, stranded, colname_list_path, no_norm, contig_name, out_path, kmer_count_path);
 
     std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
     TabHeader tab_header(colname_list_path);
-    kMerTab_t kmer_count_tab;
-    code2serial_t code2serial;
-    ScanCountTable(tab_header, kmer_count_tab, code2serial, k_len, stranded, kmer_count_path, idx_path);
+    code2kmer_t code2kmer;
+    std::vector<double> nf_vect;
+    ScanCountTable(tab_header, code2kmer, nf_vect, k_len, stranded, kmer_count_path, idx_path);
 
     std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    std::unordered_map<std::string, std::string> name2seq;
-    EstablishSeqListFromMultilineFasta(name2seq, contig_fasta_path);
-    std::cerr << "Number of sequence for evaluation: " << name2seq.size() << std::endl;
+    fastaVect_t fasta_vect;
+    EstablishSeqListFromMultilineFasta(fasta_vect, contig_fasta_path);
+    std::cerr << "Number of sequence for evaluation: " << fasta_vect.size() << std::endl;
 
-    std::cout << "name\teval_dist\tkmer1\tkmer2" << std::endl;
-    for (const auto &ns_pair : name2seq)
+    if (eval_method == "pearson" || eval_method == "spearman" || eval_method == "mac")
     {
-        auto name = ns_pair.first, seq = ns_pair.second;
-        if (seq.size() == k_len && code2serial.find(Seq2Int(seq, k_len, stranded)) != code2serial.cend()) // if seq is a k-mer and is in k-mer count table
+        std::cout << "contig\teval_dist\tkmer1\tkmer2" << std::endl;
+    }
+    else if (eval_method == "mean" || eval_method == "median")
+    {
+        std::cout << "contig";
+        for (size_t i(0); i < tab_header.GetNbCol(); ++i)
         {
-            std::cout << name << "\t" << kMinDistance << "\t" << seq << "\t" << seq << std::endl;
+            if (tab_header.IsColCount(i))
+            {
+                std::cout << "\t" << tab_header.GetColNameAt(i);
+            }
         }
-        else if (seq.size() <= k_len) // if seq is a k-mer but not in k-mer count table or if it's shorter than a k-mer
+        std::cout << std::endl;
+    }
+    std::string contig_seq, max_kmer1, max_kmer2;
+    std::ifstream idx_file(idx_path);
+    if (!idx_file.is_open())
+    {
+        throw std::domain_error("could not open index file " + idx_path);
+    }
+    for (const auto &seq_elem_ptr : fasta_vect)
+    {
+        contig_seq = seq_elem_ptr->GetSeq();
+        if (contig_name)
         {
-            std::cout << name << "\t" << kMaxDistance << "\tNONE\tNONE" << std::endl;
+            std::cout << seq_elem_ptr->GetName();
         }
-        else if (eval_mode == "farthest") // if seq has multiple k-mers, and evaluation mode is "farthest"
+        else
         {
-            EvaluatePrintSeqElemFarthest(name, seq, k_len, stranded, eval_method, kmer_count_tab, code2serial, idx_path, tab_header.GetNbCount());
+            std::cout << contig_seq;
         }
-        else if (eval_mode == "worstAdj") // if seq has multiple k-mers, and evaluation mode is "worstAdj"
+        if (eval_method == "pearson" || eval_method == "spearman" || eval_method == "mac")
         {
-            EvaluatePrintSeqElemWorstAdj(name, seq, k_len, stranded, eval_method, kmer_count_tab, code2serial, idx_path, tab_header.GetNbCount());
+            std::cout << "\t" << EvaluateSeqDist(max_kmer1, max_kmer2, contig_seq, nf_vect, no_norm, k_len, stranded, eval_method, code2kmer, idx_file, tab_header.GetNbCount(), max_shift)
+                      << "\t" << max_kmer1 << "\t" << max_kmer2 << std::endl;
+        }
+        else if (eval_method == "mean" || eval_method == "median")
+        {
+            static std::vector<float> count_vect(tab_header.GetNbCount(), 0);
+            for (const float c : EvaluateSeqCount(count_vect, contig_seq, nf_vect, code2kmer, idx_file, no_norm, k_len, stranded, eval_method))
+            {
+                std::cout << "\t" << c;
+            }
+            std::cout << std::endl;
         }
     }
-
     std::cerr << "Contig evaluation finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
-    std::cerr << "Total executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
 
+    std::cerr << "Total executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     return EXIT_SUCCESS;
 }
