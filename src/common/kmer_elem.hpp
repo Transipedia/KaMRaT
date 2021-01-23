@@ -42,6 +42,6 @@ protected:
 };
 
 using kMerTab_t = std::vector<KMerElem>;                                     // feature table
-using code2kmer_t = std::unordered_map<uint64_t, std::unique_ptr<KMerElem>>; // external dictionary to link k-mer with k-mer element
+using code2kmer_t = std::unordered_map<uint64_t, KMerElem>; // external dictionary to link k-mer with k-mer element
 
 #endif //KAMRAT_COMMON_KMERELEM_HPP

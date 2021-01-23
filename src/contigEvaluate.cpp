@@ -91,7 +91,7 @@ void ScanCountTable(TabHeader &tab_header, code2kmer_t &code2kmer, std::vector<d
         {
             throw std::domain_error("the given k-len parameter not coherent with input k-mer: " + seq);
         }
-        if (!code2kmer.insert({Seq2Int(seq, seq.size(), stranded), std::make_unique<KMerElem>(rep_value, count_vect, value_str, idx_file)}).second)
+        if (!code2kmer.insert({Seq2Int(seq, seq.size(), stranded), KMerElem(rep_value, count_vect, value_str, idx_file)}).second)
         {
             throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list): " + seq);
         }
@@ -181,7 +181,7 @@ const float EvaluateSeqDist(std::string &max_kmer1, std::string &max_kmer2,
         max_kmer1 = max_kmer2 = "NONE";
         return kMaxDistance;
     }
-    no_norm ? iter1->second->GetCountVect(left_count_vect, idx_file, nb_count) : iter1->second->GetCountVect(left_count_vect, idx_file, nb_count, nf_vect);
+    no_norm ? iter1->second.GetCountVect(left_count_vect, idx_file, nb_count) : iter1->second.GetCountVect(left_count_vect, idx_file, nb_count, nf_vect);
 
     // Traverse the whole sequence //
     float max_dist = kMinDistance, dist_x;
@@ -206,7 +206,7 @@ const float EvaluateSeqDist(std::string &max_kmer1, std::string &max_kmer2,
             max_kmer2 = "NONE";
             return kMaxDistance;
         }
-        no_norm ? iter2->second->GetCountVect(right_count_vect, idx_file, nb_count) : iter2->second->GetCountVect(right_count_vect, idx_file, nb_count, nf_vect);
+        no_norm ? iter2->second.GetCountVect(right_count_vect, idx_file, nb_count) : iter2->second.GetCountVect(right_count_vect, idx_file, nb_count, nf_vect);
         if ((eval_method == "pearson" && (dist_x = CalcPearsonDist(left_count_vect, right_count_vect)) > max_dist) ||
             (eval_method == "spearman" && (dist_x = CalcSpearmanDist(left_count_vect, right_count_vect)) > max_dist) ||
             (eval_method == "mac" && (dist_x = CalcMACDist(left_count_vect, right_count_vect)) > max_dist)) // short-circuit operator
@@ -244,11 +244,11 @@ const std::vector<float> &EvaluateSeqCount(std::vector<float> &count_vect, const
             {
                 if (no_norm)
                 {
-                    iter->second->GetCountVect(count_vect_x, idx_file, nb_count);
+                    iter->second.GetCountVect(count_vect_x, idx_file, nb_count);
                 }
                 else
                 {
-                    iter->second->GetCountVect(count_vect_x, idx_file, nb_count, nf_vect);
+                    iter->second.GetCountVect(count_vect_x, idx_file, nb_count, nf_vect);
                 }
                 for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
                 {
@@ -280,11 +280,11 @@ const std::vector<float> &EvaluateSeqCount(std::vector<float> &count_vect, const
                 kmer_count_mat.emplace_back(std::vector<float>(nb_count, 0));
                 if (no_norm)
                 {
-                    iter->second->GetCountVect(kmer_count_mat.back(), idx_file, nb_count);
+                    iter->second.GetCountVect(kmer_count_mat.back(), idx_file, nb_count);
                 }
                 else
                 {
-                    iter->second->GetCountVect(kmer_count_mat.back(), idx_file, nb_count, nf_vect);
+                    iter->second.GetCountVect(kmer_count_mat.back(), idx_file, nb_count, nf_vect);
                 }
             }
             if (start_pos + k_len < seq_len)
