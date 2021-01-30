@@ -18,7 +18,7 @@ enum ScoreMethodCode
     kSVM,
     kUser
 };
-const std::vector<std::string> kScoreMethodName{"relat.sd", "t-test", "snr", "lrc.f1", "nbc.f1", "svm.hingeloss", "user"};
+const std::vector<std::string> kScoreMethodName{"relat_sd", "ttest.padj", "snr", "lrc.f1", "nbc.f1", "svm.hingeloss", "user"};
 enum SortModeCode
 {
     kInc = 0,
