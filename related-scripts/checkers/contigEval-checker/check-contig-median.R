@@ -9,6 +9,8 @@ r.tab.path <- cmdArgs[2]
 kamrat.tab <- read.table(kamrat.tab.path, header = T, row.names = 1)
 r.tab <- read.table(r.tab.path, header = T, row.names = 1)
 
+kamrat.tab <- kamrat.tab[, names(r.tab)]
+
 diff.tab <- abs(kamrat.tab - r.tab)
 for (i in 1 : nrow(diff.tab)) {
     for (j in 1 : ncol(diff.tab)) {

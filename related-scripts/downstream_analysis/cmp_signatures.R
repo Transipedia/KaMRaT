@@ -8,7 +8,7 @@ library(stringr)
 cmdArgs <- commandArgs(trailingOnly = T)
 out.path <- cmdArgs[1]
 # out.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/cv.results/b_deseq2_contigs/signature_among_train.tsv"
-stranded <- cmdArgs[2] %>% as.logical()
+is_stranded <- cmdArgs[2] %>% as.logical()
 # stranded <- TRUE
 sig.path.list <- NULL
 for (i in 3 : length(cmdArgs)) {

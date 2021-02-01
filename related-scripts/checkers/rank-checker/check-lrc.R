@@ -15,8 +15,8 @@ nb.fold <- 5
 count.tab <- read.table(count.path, header = T, row.names = 1)
 smp.info <- read.table(smp.info.path, header = F, row.names = 1)
 
-label.vect <- smp.info[names(count.tab)[names(count.tab) %in% rownames(smp.info)], 1]
-    
+label.vect <- smp.info[names(count.tab)[names(count.tab) %in% rownames(smp.info)], 1] %>%
+    as.character()
     
 if (no.norm == "no") {
     smp.sum <- colSums(count.tab)
