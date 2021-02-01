@@ -1,0 +1,227 @@
+#!/bin/python3
+
+#######################################################################
+# The MIT License
+#
+# Copyright (c) 2017, Jérôme Audoux (jerome.audoux@inserm.fr)
+#                     modified in 2021 for KaMRaT by Haoliang Xue
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files
+# (the “Software”), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# The Software is provided “as is”, without warranty of any kind,
+# express or implied, including but not limited to the warranties of
+# merchantability, fitness for a particular purpose and
+# noninfringement. In no event shall the authors or copyright holders
+# be liable for any claim, damages or other liability, whether in an
+# action of contract, tort or otherwise, arising from, out of or in
+# connection with the software or the use or other dealings in the
+# Software.
+#######################################################################
+
+import os
+import csv
+import gzip
+import datetime
+from sys import platform
+
+
+configfile: "config.json"
+
+# COMMON VARIABLES
+SAMPLES_TSV = config['samples_tsv']
+CONDITION_COL = "condition"
+CONDITION_A = config['condition']['A']
+CONDITION_B = config['condition']['B']
+MIN_REC_AB = config['min_recurrence_abundance'] if 'min_recurrence_abundance' in config else 5
+LIB_TYPE = config['lib_type'] if 'lib_type' in config else "rf"
+R1_SUFFIX = config['r1_suffix'] if 'r1_suffix' in config else "_1.fastq.gz"
+R2_SUFFIX = config['r2_suffix'] if 'r2_suffix' in config else "_2.fastq.gz"
+TMP_DIR = config['tmp_dir'] if 'tmp_dir' in config else os.getcwd()
+KMER_LENGTH = config['kmer_length'] if 'kmer_length' in config else 31
+OUTPUT_DIR = config['output_dir']
+FASTQ_DIR = config['fastq_dir']
+
+# DIRECTORIES
+BIN_DIR = workflow.basedir
+TMP_DIR = temp(TMP_DIR + "/dekupl_tmp")
+COUNTS_DIR = OUTPUT_DIR + "/kmer_counts"
+METADATA_DIR = OUTPUT_DIR + "/metadata"
+LOGS = OUTPUT_DIR + "/Logs"
+
+# FILES
+KMER_COUNT_TAB = COUNTS_DIR + "/raw-counts.tsv.gz"
+SAMPLE_CONDITIONS = METADATA_DIR + "/sample_conditions.tsv"
+
+# binaries
+REVCOMP = BIN_DIR + "/revCompFastq.pl"
+JOIN_COUNTS = BIN_DIR + "dekupl-joinCounts/joinCounts"
+JELLYFISH = "jellyfish"
+JELLYFISH_COUNT = JELLYFISH + " count"
+JELLYFISH_DUMP = JELLYFISH + " dump"
+PIGZ = "pigz"
+ZCAT = "gunzip -c"
+SORT = "sort"
+
+# SET MEMORY/THREAD USAGE FOR EACH RULE
+MAX_MEM_JELLYFISH = 8000
+MAX_MEM_SORT = 3000
+MAX_CPU = 20
+MAX_CPU_JELLYFISH = 10
+MAX_CPU_SORT = 10
+
+# LOAD SAMPLES FROM TSV FILE
+SAMPLES = []
+with open(SAMPLES_TSV) as f:
+    #sys.stderr.write("loading samples and conditions from " + SAMPLES_TSV + "\n")
+    reader = csv.DictReader(f, delimiter='\t')
+    if "name" not in reader.fieldnames:
+        sys.exit("Missing column 'name' in " + SAMPLES_TSV)
+    elif CONDITION_COL not in reader.fieldnames:
+        sys.exit("Missing condition column '" + CONDITION_COL + "' in " + SAMPLES_TSV)
+    for row in reader:
+        SAMPLES.append({'name': row['name'], 'condition': row[CONDITION_COL]})
+
+SAMPLE_NAMES = [i['name'] for i in SAMPLES]
+
+# DEFAULT MIN_REC SETTING CALCULATION
+# Depends on the size of the input condition with the least replicates
+countCA = 0
+countCB = 0
+for smpls in SAMPLES:
+    if smpls['condition'] == CONDITION_A:
+        countCA += 1
+    elif smpls['condition'] == CONDITION_B:
+        countCB += 1
+    else:
+        sys.exit("Condition names not matching" + json.dumps(s))
+DFLT_MIN_REC = int(round(float(min(countCA, countCB)) * 10 / 100)) + 2
+MIN_REC = config['min_recurrence'] if 'min_recurrence' in config else DFLT_MIN_REC
+
+if platform == "darwin":
+    SORT = "gsort"
+
+# VERIFY LIB_TYPE VALUE
+if LIB_TYPE not in ['rf', 'fr', 'unstranded']:
+    sys.exit("Invalid value for 'lib_type', possible choices are: rf, fr, and unstranded")
+
+# VALIDATE sample names, because they will be used with R and cause errors if malformed
+# Sample names must start with at least one letter and then only letters, numbers and underscore characters are allowed
+for name in SAMPLE_NAMES:
+    if not re.match(r"^[a-zA-Z][0-9a-zA-Z_]*$", name):
+        sys.exit("Invalid sample name '" + name + "'.\n")
+
+# Print Variables in use
+onstart:
+    sys.stderr.write("***************** PARAMETERS ******************\n")
+    sys.stderr.write("\n* General\n")
+    sys.stderr.write("KMER_LENGTH = " + str(KMER_LENGTH) + "\n")
+    sys.stderr.write("\n* k-mer counting\n")
+    sys.stderr.write("MIN_REC = " + str(MIN_REC) + "\n")
+    sys.stderr.write("MIN_REC_AB = " + str(MIN_REC_AB) + "\n")
+    return []
+
+
+def current_date():
+    return datetime.datetime.now().strftime("%d %B %Y, %H:%M:%S")
+
+
+def start_log(log_file, rule_name):
+    with open(log_file, "w") as f:
+        f.write("******\n")
+        f.write("start of rule " + rule_name + " : " + current_date() + "\n")
+
+
+def end_log(log_file, rule_name):
+    with open(log_file, "a") as f:
+        f.write("\nend of rule " + rule_name + " : " + current_date() + "\n")
+        f.write("******\n")
+
+
+###############################################################################
+#
+# TARGET
+#
+rule all:
+    input: KMER_COUNT_TAB
+
+###############################################################################
+#
+# UTILS
+# Create a tabulated file with sample names and conditions without header row
+#
+rule sample_conditions:
+    output: SAMPLE_CONDITIONS
+    run:
+        with open(output[0], "w") as f:
+            f.write("\t".join(["sample", CONDITION_COL]) + "\n")
+            for sample in SAMPLES:
+                f.write("\t".join([sample["name"], sample[CONDITION_COL]]) + "\n")
+
+###############################################################################
+#
+# KMER COUNTS
+# Count k-mers on all the samples
+#
+rule jellyfish_count:
+    input:
+        r1 = FASTQ_DIR + "/{sample}" + R1_SUFFIX,
+        r2 = FASTQ_DIR + "/{sample}" + R2_SUFFIX
+    output: COUNTS_DIR + "/{sample}.jf"
+    log:
+        exec_time = LOGS + "/{sample}_jellyfishRawCounts_exec_time.log"
+    threads: MAX_CPU_JELLYFISH
+    resources: ram = MAX_MEM_SORT
+    run:
+        options = "-L 2 -m {KMER_LENGTH} -s 10000 -t {threads} -o {output} -F 2"
+        start_log(log['exec_time'], "jellyfish_count (raw counts)")
+        r1_pipe = "{ZCAT} {input.r1}" if input.r1.endswith(".gz") else "cat {input.r1}"
+        r2_pipe = "{ZCAT} {input.r2}" if input.r2.endswith(".gz") else "cat {input.r2}"
+        if LIB_TYPE == "rf":
+            options += " <(%s | {REVCOMP}) <(%s)" % (r1_pipe, r2_pipe)
+            shell("echo -e \"R1 is rev comp\n\" >>{log.exec_time}")
+        elif LIB_TYPE == "fr":
+            options += " <(%s) <(%s | {REVCOMP})" % (r1_pipe, r2_pipe)
+            shell("echo -e \"R2 is rev comp\n\" >>{log.exec_time}")
+        elif LIB_TYPE == "unstranded":
+            options += " -C <(%s) <(%s)" % (r1_pipe, r2_pipe)
+        else:
+            sys.exit('Unknown library type')
+        shell("{JELLYFISH_COUNT} " + options)
+        end_log(log['exec_time'], "jellyfish_count")
+
+rule jellyfish_dump:
+    input: COUNTS_DIR + "/{sample}.jf"
+    output: COUNTS_DIR + "/{sample}.txt.gz"
+    threads: MAX_CPU_SORT
+    resources: ram = MAX_MEM_SORT
+    log:
+        exec_time = LOGS + "/{sample}_jellyfishDumpRawCounts_exec_time.log"
+    run:
+        start_log(log['exec_time'], "jellyfish_dump")
+        shell("{JELLYFISH_DUMP} -c {input} | {SORT} -T {TMP_DIR} -k 1 -S {resources.ram}M --parallel {threads}| {PIGZ} -p {threads} -c > {output}")
+        end_log(log['exec_time'], "jellyfish_dump")
+
+rule join_counts:
+    input:
+        fastq_files = expand("{counts_dir}/{sample}.txt.gz", counts_dir=COUNTS_DIR, sample=SAMPLE_NAMES),
+        binary = JOIN_COUNTS
+    params:
+        sample_names = "\t".join(SAMPLE_NAMES)
+    output: KMER_COUNT_TAB
+    log:
+        exec_time = LOGS + "/joinRawCounts_exec_time.log"
+    run:
+        shell("echo 'tag\t{params.sample_names}' | gzip -c > {output}")
+        start_log(log['exec_time'], "join_counts")
+        shell(
+            "{JOIN_COUNTS} -r {MIN_REC} -a {MIN_REC_AB} {input.fastq_files} | gzip -c >> {output}")
+        end_log(log['exec_time'], "join_counts")

@@ -1,0 +1,15 @@
+{
+  "fastq_dir": "data",
+  "kmer_length": 31,
+  "lib_type": "rf",
+  "output_dir": "DEkupl_result",
+  "r1_suffix": "_1.fastq.gz",
+  "r2_suffix": "_2.fastq.gz",
+  "min_recurrence": 2,
+  "min_recurrence_abundance": 5,
+  "condition": {
+    "A": "A",
+    "B": "B"
+  },
+  "samples_tsv": "samples.tsv"
+}
