@@ -43,7 +43,7 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
     conv.clear();
 
     nf_vect.resize(tab_header.GetNbCount(), 0);
-    std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
+    std::cerr << "\t => Number of samples parsed: " << nf_vect.size() << std::endl;
 
     std::ofstream idx_file(idx_path);
     if (!idx_file.is_open()) // to ensure the file is opened
@@ -67,6 +67,7 @@ const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &
         conv.clear();
     }
     feature_vect.shrink_to_fit();
+    std::cerr << "\t => Number of features parsed: " << feature_vect.size() << std::endl;
     double mean_sample_sum = (std::accumulate(nf_vect.cbegin(), nf_vect.cend(), 0.0) / nf_vect.size());
     for (size_t i(0); i < nf_vect.size(); ++i)
     {
