@@ -11,4 +11,4 @@ fi
 mkdir bin
 make -C src
 
-make -C related-scripts/prepare_kmer_table/dekupl-joinCounts # dekupl-joinCounts in related-tools/
+make -C related-tools/prepare_kmer_table/dekupl-joinCounts # dekupl-joinCounts in related-tools/

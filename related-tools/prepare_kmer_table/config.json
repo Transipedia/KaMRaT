@@ -8,8 +8,8 @@
   "min_recurrence": 2,
   "min_recurrence_abundance": 5,
   "condition": {
-    "A": "A",
-    "B": "B"
+    "A": "condAname",
+    "B": "condBname"
   },
   "samples_tsv": "samples.tsv"
 }

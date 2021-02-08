@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#PBS -N gen_ref
+#PBS -q common
+#PBS -l nodes=1:ppn=1
+#PBS -m bea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+set -e
+
+tx_path="/data/work/I2BC/haoliang.xue/kamrat/paper/a_ensembl_data/gencode.v34.transcripts.fa"
+gvf_path="/data/work/I2BC/haoliang.xue/kamrat/paper/a_ensembl_data/1000GENOMES-phase_3.gvf"
+out_dir="/data/work/I2BC/haoliang.xue/kamrat/paper/b_reference_gen"
+
+mkdir $out_dir
+
+/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/projects/KaMRaT-paper/submodules/b1_select_transcript.R $tx_path $out_dir/a_selected_transcripts.fa
+/store/USERS/haoliang.xue/projects/KaMRaT-paper/submodules/b2_generate_events.bash $gvf_path $out_dir
+/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/projects/KaMRaT-paper/submodules/b3_generate_events.R $out_dir/b_1000GENOMES-phase_3.sel.gvf $out_dir/c_variation_events.fa

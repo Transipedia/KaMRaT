@@ -1,6 +1,21 @@
+rm(list = ls())
+
+library(stringr)
+library(magrittr)
 library(ModelMetrics) # F1 score
 library(e1071) # Naive Bayes, SVM
 library(SVMMaj) # Hinge
+library(FSelectorRcpp) # Information Gain
+
+cmdArgs <- commandArgs(trailingOnly = T)
+count.path <- cmdArgs[1]
+# count.path <- "/home/haoliang.xue/development/kamrat-test/data/test-counts.tsv"
+smp.info.path <- cmdArgs[2]
+# smp.info.path <- "/home/haoliang.xue/development/kamrat-test/data/test-sample-conditions.tsv"
+out.dir <- cmdArgs[3]
+# out.dir <- ""
+no.norm <- cmdArgs[4] %>% as.logical()
+# no.norm <- FALSE
 
 calcRelatSD <- function(count_tab, smp_nf) {
     row.mean <- apply(count_tab[, names(smp_nf)], MARGIN = 1, function(r) mean(r * smp_nf))
@@ -82,3 +97,38 @@ calcSVMHingeLoss <- function(count_tab, smp_info, smp_nf) {
         unlist()
     return(row.hingeloss)
 }
+
+calcInfoGain <- function(count_tab, smp_info, smp_nf) {
+    for (s in names(smp_nf)) {
+        count_tab[, s] <- count_tab[, s] * smp_nf[s]
+    }
+    row.infogain <- apply(count_tab, MARGIN = 1,
+                          function(r) information_gain(x = as.data.frame(r), 
+                                                       y = as.vector(smp.info$V2), 
+                                                       type = "infogain")$importance) %>%
+        unlist()
+    return(row.infogain)
+}
+
+smp.info <- read.table(smp.info.path, header = F, row.names = 1)
+count.tab <- read.table(count.path, header = T, row.names = 1)[, rownames(smp.info)]
+
+if (!no.norm) {
+    smp.sum <- colSums(count.tab)
+    smp.nf <- mean(smp.sum) / smp.sum
+} else {
+    smp.nf <- rep(1, nrow(smp.info))
+    names(smp.nf) <- row.names(smp.info)
+}
+
+feature.score <- data.frame(row.names = rownames(count.tab), 
+                            "relat_sd" = calcRelatSD(count.tab, smp.nf),
+                            "ttest.padj" = calcTtestPvalue(count.tab, smp.info, smp.nf),
+                            "snr" = calcSNR(count.tab, smp.info, smp.nf),
+                            "lrc.f1" = calcLRCF1(count.tab, smp.info, smp.nf),
+                            "nbc.f1" = calcNBCF1(count.tab, smp.info, smp.nf),
+                            "svm.hingeloss" = calcSVMHingeLoss(count.tab, smp.info, smp.nf),
+                            "info.gain" = calcInfoGain(count.tab, smp.info, smp.nf))
+
+write.table(feature.score, file = paste0(out.dir, "/feature-scores.byR.", ifelse(no.norm, yes = "raw", no = "norm"), ".tsv"), 
+            col.names = T, row.names = T, quote = F, sep = "\t")

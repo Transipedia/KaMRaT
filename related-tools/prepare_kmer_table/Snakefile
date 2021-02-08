@@ -45,29 +45,26 @@ MIN_REC_AB = config['min_recurrence_abundance'] if 'min_recurrence_abundance' in
 LIB_TYPE = config['lib_type'] if 'lib_type' in config else "rf"
 R1_SUFFIX = config['r1_suffix'] if 'r1_suffix' in config else "_1.fastq.gz"
 R2_SUFFIX = config['r2_suffix'] if 'r2_suffix' in config else "_2.fastq.gz"
-TMP_DIR = config['tmp_dir'] if 'tmp_dir' in config else os.getcwd()
-KMER_LENGTH = config['kmer_length'] if 'kmer_length' in config else 31
 OUTPUT_DIR = config['output_dir']
+KMER_LENGTH = config['kmer_length'] if 'kmer_length' in config else 31
 FASTQ_DIR = config['fastq_dir']
+JELLYFISH = config['jellyfish'] if 'jellyfish' in config else "jellyfish"
+PIGZ = config['pigz'] if 'pigz' in config else "pigz"
 
 # DIRECTORIES
 BIN_DIR = workflow.basedir
-TMP_DIR = temp(TMP_DIR + "/dekupl_tmp")
 COUNTS_DIR = OUTPUT_DIR + "/kmer_counts"
 METADATA_DIR = OUTPUT_DIR + "/metadata"
 LOGS = OUTPUT_DIR + "/Logs"
 
 # FILES
-KMER_COUNT_TAB = COUNTS_DIR + "/raw-counts.tsv.gz"
-SAMPLE_CONDITIONS = METADATA_DIR + "/sample_conditions.tsv"
+KMER_COUNT_TAB = COUNTS_DIR + "/count-table.tsv.gz"
 
 # binaries
 REVCOMP = BIN_DIR + "/revCompFastq.pl"
-JOIN_COUNTS = BIN_DIR + "dekupl-joinCounts/joinCounts"
-JELLYFISH = "jellyfish"
+JOIN_COUNTS = BIN_DIR + "/dekupl-joinCounts/joinCounts"
 JELLYFISH_COUNT = JELLYFISH + " count"
 JELLYFISH_DUMP = JELLYFISH + " dump"
-PIGZ = "pigz"
 ZCAT = "gunzip -c"
 SORT = "sort"
 
@@ -83,14 +80,14 @@ SAMPLES = []
 with open(SAMPLES_TSV) as f:
     #sys.stderr.write("loading samples and conditions from " + SAMPLES_TSV + "\n")
     reader = csv.DictReader(f, delimiter='\t')
-    if "name" not in reader.fieldnames:
-        sys.exit("Missing column 'name' in " + SAMPLES_TSV)
+    if "sample" not in reader.fieldnames:
+        sys.exit("Missing column 'sample' in " + SAMPLES_TSV)
     elif CONDITION_COL not in reader.fieldnames:
         sys.exit("Missing condition column '" + CONDITION_COL + "' in " + SAMPLES_TSV)
     for row in reader:
-        SAMPLES.append({'name': row['name'], 'condition': row[CONDITION_COL]})
+        SAMPLES.append({'sample': row['sample'], 'condition': row[CONDITION_COL]})
 
-SAMPLE_NAMES = [i['name'] for i in SAMPLES]
+SAMPLE_NAMES = [i['sample'] for i in SAMPLES]
 
 # DEFAULT MIN_REC SETTING CALCULATION
 # Depends on the size of the input condition with the least replicates
@@ -155,19 +152,6 @@ rule all:
 
 ###############################################################################
 #
-# UTILS
-# Create a tabulated file with sample names and conditions without header row
-#
-rule sample_conditions:
-    output: SAMPLE_CONDITIONS
-    run:
-        with open(output[0], "w") as f:
-            f.write("\t".join(["sample", CONDITION_COL]) + "\n")
-            for sample in SAMPLES:
-                f.write("\t".join([sample["name"], sample[CONDITION_COL]]) + "\n")
-
-###############################################################################
-#
 # KMER COUNTS
 # Count k-mers on all the samples
 #
@@ -207,7 +191,7 @@ rule jellyfish_dump:
         exec_time = LOGS + "/{sample}_jellyfishDumpRawCounts_exec_time.log"
     run:
         start_log(log['exec_time'], "jellyfish_dump")
-        shell("{JELLYFISH_DUMP} -c {input} | {SORT} -T {TMP_DIR} -k 1 -S {resources.ram}M --parallel {threads}| {PIGZ} -p {threads} -c > {output}")
+        shell("{JELLYFISH_DUMP} -c {input} | {SORT} -k 1 -S {resources.ram}M --parallel {threads}| {PIGZ} -p {threads} -c > {output}")
         end_log(log['exec_time'], "jellyfish_dump")
 
 rule join_counts:

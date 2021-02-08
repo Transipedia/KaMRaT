@@ -9,6 +9,6 @@ bin/
 test*/
 kamrat-simg/
 notes.txt
-paper-code/
+.runinfo/
 src/Makefile
 .Rhistory
