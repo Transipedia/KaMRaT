@@ -1,0 +1,17 @@
+{
+  "jellyfish": "/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/jellyfish",
+  "pigz": "/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/pigz",
+  "fastq_dir": "/store/EQUIPES/SSFA/MEMBERS/thi-ngoc-ha.nguyen/Prostate_Singularity/data",
+  "kmer_length": 31,
+  "lib_type": "unstranded",
+  "output_dir": "/data/work/I2BC/haoliang.xue/PRAD_TCGA/a_gen_kmer_matrix",
+  "r1_suffix": "_1.fastq.gz",
+  "r2_suffix": "_2.fastq.gz",
+  "min_recurrence": 3,
+  "min_recurrence_abundance": 10,
+  "condition": {
+    "A": "LR",
+    "B": "HR"
+  },
+  "samples_tsv": "/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/data/sample-condition.risk.tsv"
+}

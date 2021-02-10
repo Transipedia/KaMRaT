@@ -1,17 +1,17 @@
 rm(list = ls())
 
-cmdArgs <- commandArgs(trailingOnly = T)
-gvf.path <- cmdArgs[1]
-out.path <- cmdArgs[2]
-
-# gvf.path <- "/home/haoliang.xue/media/data/kamrat/paper/b_reference_gen/b_1000GENOMES-phase_3.sel.gvf"
-# out.path <- "/home/haoliang.xue/media/data/kamrat/paper/b_reference_gen/c_variation_events.fa"
-
 library(stringr)
 library(magrittr)
 library(httr)
 library(jsonlite)
 library(xml2)
+
+cmdArgs <- commandArgs(trailingOnly = T)
+gvf.path <- cmdArgs[1]
+out.path <- cmdArgs[2]
+
+# gvf.path <- "/home/haoliang.xue/media/data/kamrat/paper/.old.res/b_reference_gen/b_1000GENOMES-phase_3.sel.gvf"
+# out.path <- "/home/haoliang.xue/media/data/kamrat/paper/.old.res/b_reference_gen/c_variation_events.fa"
 
 gvf.tab <- read.table(gvf.path, header = F, sep = "\t")[, c(1, 4, 5, 7, 3, 9)]
 names(gvf.tab) <- c("chr", "start", "end", "strand", "event_type", "info")

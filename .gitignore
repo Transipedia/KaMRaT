@@ -9,6 +9,8 @@ bin/
 test*/
 kamrat-simg/
 notes.txt
+.snakemake/
 .runinfo/
 src/Makefile
 .Rhistory
+*.[oe][0-9][0-9]*

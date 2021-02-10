@@ -9,13 +9,13 @@ library(ggplot2)
 cmdArgs <- commandArgs(trailingOnly = TRUE)
 fasta.path <- cmdArgs[1]
 out.dir <- cmdArgs[2]
+nb.rep <- cmdArgs[3]
 
-# fasta.path <- "/home/haoliang.xue/media/data/kamrat/paper/c_simulated_reads/a_ref/ref4simu.fa"
-# out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/c_simulated_reads/d_witherr_100vs100"
+fasta.path <- "/home/haoliang.xue/media/data/kamrat/paper/.old.res/c_simulated_reads/a_ref/ref4simu.fa"
+out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/c_simulated_reads/d_witherr_100vs100"
+nb.rep <- 50
 
-nb.rep <- 100
 run_seed <- 91400
-
 set.seed(run_seed)
 
 ref.fasta <- readDNAStringSet(fasta.path)
