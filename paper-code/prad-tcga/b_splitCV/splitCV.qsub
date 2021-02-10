@@ -11,7 +11,7 @@ set -e
 full_smp_condi_path="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/data/sample-condition.risk.tsv"
 ori_counttab_path="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/data/count-table.tsv.gz"
 nb_fold=5
-out_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA/b_splitCV"
+out_dir="/data/work/I2BC/haoliang.xue/kamrat/paper/prad-tcga/b_splitCV"
 
 mkdir -p $out_dir
 
@@ -22,8 +22,8 @@ for m in `echo train test`
 do
 	for i in $(seq 0 $((nb_fold - 1)))
 	do
-		/store/USERS/haoliang.xue/development/KaMRaT/related-tools/upstream_analysis/selectSubmat.bash -m <(zcat $ori_counttab_path) -l $out_dir"/sampleshuf.$m$i.tsv" -o $out_dir"/masked-counts.$m$i.tsv"
-		gzip $out_dir"/masked-counts.$m$i.tsv"
+		/store/USERS/haoliang.xue/development/KaMRaT/related-tools/upstream_analysis/selectSubmat.bash -m <(zcat $ori_counttab_path) -l $out_dir"/sampleshuf.$m$i.tsv" -o $out_dir"/count-table.$m$i.tsv"
+		gzip $out_dir"/count-table.$m$i.tsv"
 		sed -i "1i $smp_condi_header" $out_dir/sampleshuf.$m$i.tsv # add header after retrieving sub-matrix
 	done
 done

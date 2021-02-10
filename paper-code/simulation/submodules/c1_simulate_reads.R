@@ -7,7 +7,11 @@ library(stringr)
 cmdArgs <- commandArgs(trailingOnly = TRUE)
 fasta.path <- cmdArgs[1]
 out.dir <- cmdArgs[2]
-with.err <- cmdArgs[3]
+with.err <- cmdArgs[3] %>% as.logical()
+
+print(fasta.path)
+print(out.dir)
+print(with.err)
 
 run_seed <- 91400
 
@@ -23,25 +27,9 @@ fold_change <- matrix(1, ncol = 2, nrow = num_tx)
 read_per_tx <- round(20 * width(ref) / 100) # ~20x coverage for each transcript
 
 # remove quotes from transcript IDs:
-if (with.err) {	
-	simulate_experiment(fasta = fasta.path, 
-        	            outdir = out.dir,
-                	    num_reps = c(5, 5),
-	                    reads_per_transcript = read_per_tx,
-        	            fold_changes = fold_change,
-                	    paired = TRUE,
-	                    readlen = 100,
-        	            error_model = "illumina4",
-	                    seed = run_seed)
-} else {
-	simulate_experiment(fasta = fasta.path, 
-        	            outdir = out.dir,
-                	    num_reps = c(5, 5),
-	                    reads_per_transcript = read_per_tx,
-        	            fold_changes = fold_change,
-                	    paired = TRUE,
-	                    readlen = 100,
-        	            error_model = "uniform",
-                	    error_rate = 0, 
-	                    seed = run_seed)
-}
+simulate_experiment(fasta = fasta.path, outdir = out.dir,
+                    reads_per_transcript = read_per_tx, fold_changes = fold_change,
+            	    paired = TRUE, readlen = 100, num_reps = c(5, 5),
+    	            error_model = ifelse(with.err, yes = "illumina4", no = "uniform"),
+            	    error_rate = ifelse(with.err, yes = 0.005, no = 0), 
+                    seed = run_seed)

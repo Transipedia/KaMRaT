@@ -1,7 +1,6 @@
 rm(list = ls())
 
 library(Biostrings)
-library(polyester)
 library(stringr)
 library(magrittr)
 library(ggplot2)
@@ -9,11 +8,11 @@ library(ggplot2)
 cmdArgs <- commandArgs(trailingOnly = TRUE)
 fasta.path <- cmdArgs[1]
 out.dir <- cmdArgs[2]
-nb.rep <- cmdArgs[3]
+nb.rep <- cmdArgs[3] %>% as.integer()
 
-fasta.path <- "/home/haoliang.xue/media/data/kamrat/paper/.old.res/c_simulated_reads/a_ref/ref4simu.fa"
-out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/c_simulated_reads/d_witherr_100vs100"
-nb.rep <- 50
+# fasta.path <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/.old.res/c_simulated_reads/a_ref/ref4simu.fa"
+# out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/.old.res/c_simulated_reads/d_witherr_100vs100"
+# nb.rep <- 50
 
 run_seed <- 91400
 set.seed(run_seed)
@@ -82,6 +81,3 @@ simu.fasta.path <- paste0(out.dir, "/ref4simu.fa")
 writeXStringSet(filepath = simu.fasta.path, x = simu.fasta)
 simu.count.mat <- rbind(tx.count.mat, ev.count.mat)
 write.table(simu.count.mat, paste0(out.dir, "/countmat4simu.tsv"), row.names = T, col.names = T, quote = F, sep = "\t")
-simulate_experiment_countmat(fasta = simu.fasta.path, readmat = simu.count.mat, outdir = out.dir,
-                             paired = TRUE, readlen = 100, error_model = "illumina4",
-                             seed = run_seed)
