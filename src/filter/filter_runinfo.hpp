@@ -34,7 +34,8 @@ const void PrintRunInfo(const std::string &filter_info_path,
     std::cerr << "Up-regulated lower bound:                   " << std::endl
               << "    at least " << up_min_rec << " up-regulated samples are counted at least " << up_min_abd << std::endl;
     std::cerr << "Down-regulated upper bound:                 " << std::endl
-              << "    at least " << down_min_rec << " down-regulated samples are counted at most " << down_max_abd << std::endl;
+              << "    at least " << down_min_rec << " down-regulated samples are counted at most " 
+              << (down_max_abd == std::numeric_limits<size_t>::max() ? "inf" : std::to_string(down_max_abd)) << std::endl;
     if (!out_path.empty())
     {
         std::cerr << "Output path:                   " << out_path << std::endl;
@@ -105,6 +106,11 @@ const void ParseOptions(int argc, char *argv[],
         throw std::domain_error("k-mer count table path is mandatory");
     }
     count_tab_path = argv[i_opt++];
+    if (filter_info_path.empty())
+    {
+        PrintFilterHelper();
+        throw std::domain_error("filter-info path is mandatory");
+    }
 }
 
 #endif //KAMRAT_FILTER_FILTERRUNINFO_HPP
