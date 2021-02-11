@@ -14,6 +14,9 @@
 #include "common/tab_header.hpp"
 #include "filter/filter_runinfo.hpp"
 
+#define RESET "\033[0m"
+#define BOLDYELLOW "\033[1m\033[33m"
+
 void ScanCountTab(TabHeader &tab_header,
                   const std::string &count_tab_path,
                   const size_t up_min_rec, const size_t up_min_abd,
@@ -57,6 +60,28 @@ void ScanCountTab(TabHeader &tab_header,
     tab_header.MakeColumns(conv, "");
     std::cout << line << std::endl;
     conv.clear();
+    size_t nb_up_col(0), nb_down_col(0);
+    for (size_t i(0); i < tab_header.GetNbCol(); ++i)
+    {
+        if (tab_header.IsColCount(i) && tab_header.GetColCondiAt(i) == "UP")
+        {
+            nb_up_col++;
+        }
+        else if (tab_header.IsColCount(i) && tab_header.GetColCondiAt(i) == "DOWN")
+        {
+            nb_down_col++;
+        }
+    }
+    if (nb_up_col < up_min_rec)
+    {
+        std::cerr << BOLDYELLOW << "[warning] " << RESET << "UP column number smaller than given minimum recurrence threshold: "
+                  << nb_up_col << "<" << up_min_rec << std::endl;
+    }
+    if (nb_down_col < down_min_rec)
+    {
+        std::cerr << BOLDYELLOW << "[warning] " << RESET << "DOWN column number smaller than given minimum recurrence threshold: "
+                  << nb_down_col << "<" << down_min_rec << std::endl;
+    }
     while (std::getline(kmer_count_instream, line))
     {
         conv.str(line);
@@ -94,7 +119,7 @@ int FilterMain(int argc, char *argv[])
 {
     std::clock_t begin_time = clock();
     std::string filter_info_path, count_tab_path, out_path;
-    size_t up_min_rec(1), up_min_abd(1), down_min_rec(1), down_max_abd(std::numeric_limits<size_t>::max());
+    size_t up_min_rec(0), up_min_abd(0), down_min_rec(0), down_max_abd(std::numeric_limits<size_t>::max());
 
     ParseOptions(argc, argv, filter_info_path, up_min_rec, up_min_abd, down_min_rec, down_max_abd, out_path, count_tab_path);
     PrintRunInfo(filter_info_path, up_min_rec, up_min_abd, down_min_rec, down_max_abd, out_path, count_tab_path);
@@ -105,7 +130,7 @@ int FilterMain(int argc, char *argv[])
         if (condi != "UP" && condi != "DOWN")
         {
             PrintFilterHelper();
-            throw std::domain_error("condition name in filter-info file could only be either UP or DOWN");
+            throw std::domain_error("condition name in filter-info file could only be either UP or DOWN: " + condi);
         }
     }
     ScanCountTab(tab_header, count_tab_path, up_min_rec, up_min_abd, down_min_rec, down_max_abd, out_path);
