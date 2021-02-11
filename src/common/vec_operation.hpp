@@ -93,7 +93,7 @@ const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &
     {
         if (x[i] != y[i]) // if x[i] == y[i], then ctrst += 0.0
         {
-            ctrst += fabs(static_cast<double>(x[i] - y[i])) / (x[i] + y[i]);
+            ctrst += fabs(static_cast<double>(x[i] - y[i]) / (x[i] + y[i]));
         }
     }
     return (ctrst / nb_sample);

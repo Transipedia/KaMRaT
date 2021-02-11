@@ -1,48 +1,46 @@
 #include "tab_header.hpp"
 
-TabHeader::TabHeader()
+TabHeader::TabHeader(const std::string &smp_info_path)
     : nb_count_(0), rep_colpos_(0)
 {
-}
-
-TabHeader::TabHeader(const std::string &smp_info_path)
-    : TabHeader()
-{
-    std::ifstream smp_info_file(smp_info_path);
-    if (!smp_info_file.is_open())
+    if (!smp_info_path.empty())
     {
-        throw std::domain_error("error open sample-info file: " + smp_info_path);
-    }
-    std::string line, smp_name, condi_name;
-    std::istringstream conv;
-
-    size_t condi_serial;
-    while (std::getline(smp_info_file, line))
-    {
-        conv.str(line);
-        conv >> smp_name >> condi_name;
-        if (conv.fail())
+        std::ifstream smp_info_file(smp_info_path);
+        if (!smp_info_file.is_open())
         {
-            condi_name = ""; // empty string indicating the unique condition
+            throw std::domain_error("error open sample-info file: " + smp_info_path);
         }
-        for (condi_serial = 0; condi_serial < condi_name_vect_.size(); ++condi_serial)
+        std::string line, smp_name, condi_name;
+        std::istringstream conv;
+
+        size_t condi_serial;
+        while (std::getline(smp_info_file, line))
         {
-            if (condi_name_vect_[condi_serial] == condi_name)
+            conv.str(line);
+            conv >> smp_name >> condi_name;
+            if (conv.fail())
             {
-                break;
+                condi_name = ""; // empty string indicating the unique condition
             }
+            for (condi_serial = 0; condi_serial < condi_name_vect_.size(); ++condi_serial)
+            {
+                if (condi_name_vect_[condi_serial] == condi_name)
+                {
+                    break;
+                }
+            }
+            if (condi_serial == condi_name_vect_.size())
+            {
+                condi_name_vect_.emplace_back(condi_name);
+            }
+            if (!smp2lab_.insert({smp_name, condi_serial + 1}).second) // sample labels start from 1, but condition name vector index starts from 0
+            {
+                throw std::domain_error("sample-info file has duplicated sample name: " + smp_name);
+            }
+            conv.clear();
         }
-        if (condi_serial == condi_name_vect_.size())
-        {
-            condi_name_vect_.emplace_back(condi_name);
-        }
-        if (!smp2lab_.insert({smp_name, condi_serial + 1}).second) // sample labels start from 1, but condition name vector index starts from 0
-        {
-            throw std::domain_error("sample-info file has duplicated sample name: " + smp_name);
-        }
-        conv.clear();
+        smp_info_file.close();
     }
-    smp_info_file.close();
 }
 
 const void TabHeader::MakeColumns(std::istringstream &line_conv, const std::string &rep_colname)

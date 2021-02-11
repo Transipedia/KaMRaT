@@ -19,7 +19,6 @@
 class TabHeader
 {
 public:
-    TabHeader();                                 // all columns except the first are about sample count
     TabHeader(const std::string &smp_info_path); // to indicate which columns are about sample count
 
     const void MakeColumns(std::istringstream &line_conv, const std::string &rep_colname); // Make columns from header row string
