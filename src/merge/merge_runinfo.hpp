@@ -106,10 +106,6 @@ const void ParseOptions(int argc, char *argv[],
         else if (arg == "-klen" && i_opt + 1 < argc)
         {
             k_len = atoi(argv[++i_opt]);
-            if (min_overlap == 0)
-            {
-                min_overlap = (k_len / 2);
-            }
         }
         else if (arg == "-idx-path" && i_opt + 1 < argc)
         {
@@ -167,6 +163,10 @@ const void ParseOptions(int argc, char *argv[],
         throw std::invalid_argument("temporary index path is mandatory");
     }
 
+    if (min_overlap == 0)
+    {
+        min_overlap = (k_len / 2);
+    }
     // dealing intervention method //
     std::string threshold_str;
     size_t split_pos = interv_method.find(":");
