@@ -80,9 +80,10 @@ const double CalcSpearmanDist(const std::vector<float> &x, const std::vector<flo
     static std::vector<float> x_rk, y_rk;
     CalcVectRank(x_rk, x);
     CalcVectRank(y_rk, y);
+    const double spearman_dist = CalcPearsonDist(x_rk, y_rk);
     x_rk.clear();
     y_rk.clear();
-    return CalcPearsonDist(x_rk, y_rk);
+    return spearman_dist;
 }
 
 const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &y)
