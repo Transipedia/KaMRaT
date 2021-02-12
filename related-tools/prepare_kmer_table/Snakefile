@@ -33,15 +33,10 @@ import gzip
 import datetime
 from sys import platform
 
-
 configfile: "config.json"
 
 # COMMON VARIABLES
 SAMPLES_TSV = config['samples_tsv']
-CONDITION_COL = "condition"
-CONDITION_A = config['condition']['A']
-CONDITION_B = config['condition']['B']
-MIN_REC_AB = config['min_recurrence_abundance'] if 'min_recurrence_abundance' in config else 5
 LIB_TYPE = config['lib_type'] if 'lib_type' in config else "rf"
 R1_SUFFIX = config['r1_suffix'] if 'r1_suffix' in config else "_1.fastq.gz"
 R2_SUFFIX = config['r2_suffix'] if 'r2_suffix' in config else "_2.fastq.gz"
@@ -54,15 +49,13 @@ PIGZ = config['pigz'] if 'pigz' in config else "pigz"
 # DIRECTORIES
 BIN_DIR = workflow.basedir
 COUNTS_DIR = OUTPUT_DIR + "/kmer_counts"
-METADATA_DIR = OUTPUT_DIR + "/metadata"
 LOGS = OUTPUT_DIR + "/Logs"
 
 # FILES
-KMER_COUNT_TAB = COUNTS_DIR + "/count-table.tsv.gz"
+KMER_COUNT_TAB = COUNTS_DIR + "/kmer-counts.tsv.gz"
 
 # binaries
 REVCOMP = BIN_DIR + "/revCompFastq.pl"
-JOIN_COUNTS = BIN_DIR + "/dekupl-joinCounts/joinCounts"
 JELLYFISH_COUNT = JELLYFISH + " count"
 JELLYFISH_DUMP = JELLYFISH + " dump"
 ZCAT = "gunzip -c"
@@ -80,28 +73,14 @@ SAMPLES = []
 with open(SAMPLES_TSV) as f:
     #sys.stderr.write("loading samples and conditions from " + SAMPLES_TSV + "\n")
     reader = csv.DictReader(f, delimiter='\t')
-    if "sample" not in reader.fieldnames:
+    if 'sample' not in reader.fieldnames:
         sys.exit("Missing column 'sample' in " + SAMPLES_TSV)
-    elif CONDITION_COL not in reader.fieldnames:
-        sys.exit("Missing condition column '" + CONDITION_COL + "' in " + SAMPLES_TSV)
+    elif 'condition' not in reader.fieldnames:
+        sys.exit("Missing condition column '" + 'condition' + "' in " + SAMPLES_TSV)
     for row in reader:
-        SAMPLES.append({'sample': row['sample'], 'condition': row[CONDITION_COL]})
+        SAMPLES.append({'sample': row['sample'], 'condition': row['condition']})
 
 SAMPLE_NAMES = [i['sample'] for i in SAMPLES]
-
-# DEFAULT MIN_REC SETTING CALCULATION
-# Depends on the size of the input condition with the least replicates
-countCA = 0
-countCB = 0
-for smpls in SAMPLES:
-    if smpls['condition'] == CONDITION_A:
-        countCA += 1
-    elif smpls['condition'] == CONDITION_B:
-        countCB += 1
-    else:
-        sys.exit("Condition names not matching" + json.dumps(s))
-DFLT_MIN_REC = int(round(float(min(countCA, countCB)) * 10 / 100)) + 2
-MIN_REC = config['min_recurrence'] if 'min_recurrence' in config else DFLT_MIN_REC
 
 if platform == "darwin":
     SORT = "gsort"
@@ -122,8 +101,6 @@ onstart:
     sys.stderr.write("\n* General\n")
     sys.stderr.write("KMER_LENGTH = " + str(KMER_LENGTH) + "\n")
     sys.stderr.write("\n* k-mer counting\n")
-    sys.stderr.write("MIN_REC = " + str(MIN_REC) + "\n")
-    sys.stderr.write("MIN_REC_AB = " + str(MIN_REC_AB) + "\n")
     return []
 
 
@@ -148,7 +125,7 @@ def end_log(log_file, rule_name):
 # TARGET
 #
 rule all:
-    input: KMER_COUNT_TAB
+    input: expand("{counts_dir}/{sample}.txt.gz", counts_dir = COUNTS_DIR, sample = SAMPLE_NAMES)
 
 ###############################################################################
 #
@@ -194,18 +171,3 @@ rule jellyfish_dump:
         shell("{JELLYFISH_DUMP} -c {input} | {SORT} -k 1 -S {resources.ram}M --parallel {threads}| {PIGZ} -p {threads} -c > {output}")
         end_log(log['exec_time'], "jellyfish_dump")
 
-rule join_counts:
-    input:
-        fastq_files = expand("{counts_dir}/{sample}.txt.gz", counts_dir=COUNTS_DIR, sample=SAMPLE_NAMES),
-        binary = JOIN_COUNTS
-    params:
-        sample_names = "\t".join(SAMPLE_NAMES)
-    output: KMER_COUNT_TAB
-    log:
-        exec_time = LOGS + "/joinRawCounts_exec_time.log"
-    run:
-        shell("echo 'tag\t{params.sample_names}' | gzip -c > {output}")
-        start_log(log['exec_time'], "join_counts")
-        shell(
-            "{JOIN_COUNTS} -r {MIN_REC} -a {MIN_REC_AB} {input.fastq_files} | gzip -c >> {output}")
-        end_log(log['exec_time'], "join_counts")

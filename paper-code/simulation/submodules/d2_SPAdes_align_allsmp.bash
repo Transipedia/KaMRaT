@@ -4,12 +4,12 @@ read_dir=$1
 out_dir=$2
 blastdb_name=$3
 
+cat $read_dir/*_1.fasta > $out_dir/all_samples_1.fasta
+cat $read_dir/*_2.fasta > $out_dir/all_samples_2.fasta
+
 mkdir -p $out_dir/all_samples
 
-cat $read_dir/*_1.fasta > $out_dir/all_samples/all_samples_1.fasta
-cat $read_dir/*_2.fasta > $out_dir/all_samples/all_samples_2.fasta
-
-/home/haoliang.xue/.conda/envs/spades/bin/spades.py -o $out_dir/all_samples --rna -1 $out_dir/all_samples/all_samples_1.fasta -2 $out_dir/all_samples/all_samples_2.fasta -t 10 -k 31
+/home/haoliang.xue/.conda/envs/spades/bin/spades.py -o $out_dir/all_samples --rna -1 $out_dir/all_samples_1.fasta -2 $out_dir/all_samples_2.fasta -t 10 -k 31
 
 #	-o <output_dir>             directory to store all the resulting files (required)
 #  	--rna                       this flag is required for RNA-Seq data

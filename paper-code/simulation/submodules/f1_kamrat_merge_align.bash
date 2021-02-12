@@ -15,7 +15,8 @@ fi
 in_tab_name=$(basename $in_tab_path .tsv)
 	
 out_tab_path=$out_prefix-$in_tab_name.${interv_method/:/_}.tsv
-/store/USERS/haoliang.xue/development/KaMRaT/bin/kamrat merge -klen $klen $min_overlap -unstrand -interv-method $interv_method -quant-mode mean -out-path $out_tab_path $in_tab_path
+out_idx_path=$out_prefix-$in_tab_name.${interv_method/:/_}.count.idx
+/store/USERS/haoliang.xue/development/KaMRaT/bin/kamrat merge -klen $klen -idx-path $out_idx_path $min_overlap -unstrand -interv-method $interv_method -quant-mode mean -out-path $out_tab_path $in_tab_path
 
 out_fa_path=$out_prefix-${in_tab_name/raw-counts/contigs}.${interv_method/:/_}.fa
 awk 'NR > 1 {print ">contig_"NR - 1"\n"$1}' $out_tab_path > $out_fa_path

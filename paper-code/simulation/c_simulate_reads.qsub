@@ -20,4 +20,4 @@ makeblastdb -in $outdir/a_ref/ref4simu.fa -dbtype nucl -title 3765tx_612var -par
 
 /home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/c1_simulate_reads.R $outdir/a_ref/ref4simu.fa $outdir/b_errfree_10smp false
 /home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/c1_simulate_reads.R $outdir/a_ref/ref4simu.fa $outdir/c_witherr_10smp true
-/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/c2_simulate_reads_from_mat.R $outdir/a_ref/ref4simu.fa $outdir/d_witherr_50vs50 50
+/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/c2_simulate_matrix.R $outdir/a_ref/ref4simu.fa $outdir/d_witherr_50vs50 50

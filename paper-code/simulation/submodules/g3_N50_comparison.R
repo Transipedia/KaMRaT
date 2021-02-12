@@ -34,10 +34,11 @@ res.summary <- NULL
 # Error-free
 spades.res.dir1 <- paste0(spades.res.dir, "/a_errfree")
 spades.n50 <- NULL
-for (s in dir(spades.res.dir1)) {
-    fname <- paste0(spades.res.dir1, "/", s, "/transcripts.fasta")
-    spades.n50 <- c(spades.n50, get_N50(readDNAStringSet(fname)))
-}
+#for (s in dir(spades.res.dir1)) {
+s <- "all_samples"
+fname <- paste0(spades.res.dir1, "/", s, "/transcripts.fasta")
+spades.n50 <- c(spades.n50, get_N50(readDNAStringSet(fname)))
+#}
 res.summary <- rbind(res.summary,
                      data.frame("software" = "SPAdes",
                                 "N50" = paste0(min(spades.n50), "-", max(spades.n50)),
@@ -56,10 +57,11 @@ rm(fname, kamrat.res.prefix, m)
 # With-error
 spades.res.dir1 <- paste0(spades.res.dir, "/b_witherr")
 spades.n50 <- NULL
-for (s in dir(spades.res.dir1)) {
-    fname <- paste0(spades.res.dir1, "/", s, "/transcripts.fasta")
-    spades.n50 <- c(spades.n50, get_N50(readDNAStringSet(fname)))
-}
+#for (s in dir(spades.res.dir1)) {
+s <- "all_samples"
+fname <- paste0(spades.res.dir1, "/", s, "/transcripts.fasta")
+spades.n50 <- c(spades.n50, get_N50(readDNAStringSet(fname)))
+#}
 res.summary <- rbind(res.summary,
                      data.frame("software" = "SPAdes",
                                 "N50" = paste0(min(spades.n50), "-", max(spades.n50)),

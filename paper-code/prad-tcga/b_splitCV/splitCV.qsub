@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -N split_dataset
+#PBS -N makeCV
 #PBS -q common
 #PBS -l nodes=1:ppn=1
 #PBS -m ea
@@ -9,21 +9,22 @@
 set -e
 
 full_smp_condi_path="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/data/sample-condition.risk.tsv"
-ori_counttab_path="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/data/count-table.tsv.gz"
+jellyfish_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA/a_gen_kmer_matrix/kmer_counts"
+out_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA/b_splitCV"
 nb_fold=5
-out_dir="/data/work/I2BC/haoliang.xue/kamrat/paper/prad-tcga/b_splitCV"
+min_rec=3
+min_rec_abd=10
 
 mkdir -p $out_dir
 
 smp_condi_header=`head -n1 $full_smp_condi_path`
-/store/USERS/haoliang.xue/development/KaMRaT/related-tools/upstream_analysis/splitCV.bash -s <(sed '1d' $full_smp_condi_path) -n 5 -o $out_dir
+/store/USERS/haoliang.xue/development/KaMRaT/related-tools/prepare_kmer_table/splitCV.bash -s <(sed '1d' $full_smp_condi_path) -n 5 -o $out_dir
 
-for m in `echo train test`
+for f in $out_dir/sampleshuf.t*.tsv
 do
-	for i in $(seq 0 $((nb_fold - 1)))
-	do
-		/store/USERS/haoliang.xue/development/KaMRaT/related-tools/upstream_analysis/selectSubmat.bash -m <(zcat $ori_counttab_path) -l $out_dir"/sampleshuf.$m$i.tsv" -o $out_dir"/count-table.$m$i.tsv"
-		gzip $out_dir"/count-table.$m$i.tsv"
-		sed -i "1i $smp_condi_header" $out_dir/sampleshuf.$m$i.tsv # add header after retrieving sub-matrix
-	done
+	t="${f/sampleshuf/kmer-counts}.gz"
+	awk 'BEGIN{printf("tag")} {printf("\t%s", $1)} END{print ""}' $f | gzip -c >> $t 
+	path_list=`awk -v jd=$jellyfish_dir '{print jd"/"$1".txt.gz"}' $f`
+	/store/USERS/haoliang.xue/development/KaMRaT/related-tools/prepare_kmer_table/dekupl-joinCounts/joinCounts -r $min_rec -a $min_rec_abd ${path_list[@]} | gzip -c >> $t
+	sed -i "1i $smp_condi_header" $f # add header after retrieving sub-matrix
 done

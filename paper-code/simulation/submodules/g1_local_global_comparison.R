@@ -10,8 +10,8 @@ kamrat.res.dir.prefix <- cmdArgs[1]
 spades.res.dir <- cmdArgs[2]
 out.dir <- cmdArgs[3]
 
-# kamrat.res.dir.prefix <- "/home/haoliang.xue/media/data/kamrat/paper/f_kamrat_res/a_errfree_randsel/merged-contigs-align-100pct-1-1."
-# spades.res.dir <- "/home/haoliang.xue/media/data/kamrat/paper/d_SPAdes_res/a_errfree"
+# kamrat.res.dir.prefix <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/f_kamrat_res/a_errfree_randsel/merged-contigs-align-100pct-1-1."
+# spades.res.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/d_SPAdes_res/a_errfree"
 # out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/g_KaMRaT_merge_eval"
 
 get_quantile <- function(val, val.quant.vect) {
@@ -25,12 +25,14 @@ get_quantile <- function(val, val.quant.vect) {
     }
 }
 
-spades.res <- NULL
-for (s in dir(spades.res.dir)) {
-    spades.res.x <- read.table(paste0(spades.res.dir, "/", s, "/blastn.alignment.tsv"), header = T)
-    spades.res.x$qseqid <- paste0(s, "_", spades.res.x$qseqid)
-    spades.res <- rbind(spades.res, spades.res.x)
-}
+# spades.res <- NULL
+# for (s in dir(spades.res.dir)) {
+s <- "all_samples"
+spades.res.x <- read.table(paste0(spades.res.dir, "/", s, "/blastn.alignment.tsv"), header = T)
+spades.res.x$qseqid <- paste0(s, "_", spades.res.x$qseqid)
+spades.res <- spades.res.x
+# spades.res <- rbind(spades.res, spades.res.x)
+# }
 spades.res$align.length <- apply(spades.res[, c("qlen", "length")], MARGIN = 1, FUN = max)
 spades.res$rident <- spades.res$nident / spades.res$align.length
 spades.res$jacc.idx <- spades.res$nident / (spades.res$qlen + spades.res$slen - spades.res$nident)

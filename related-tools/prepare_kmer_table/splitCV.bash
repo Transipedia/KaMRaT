@@ -78,13 +78,13 @@ out_train_path=$out_dir/$(basename $smp_condi_path .tsv).train.tsv
 out_test_path=$out_dir/$(basename $smp_condi_path .tsv).test.tsv
 
 # Make sure that sample condtion for TRAIN does not exist
-if [ -f $out_dir/sampleshuf.train*.tsv ]
+if ls $out_dir/sampleshuf.train*.tsv 1> /dev/null 2>&1
 then
 	echo -e ${RED}"ERROR: sampleshuf.train*.tsv already exists in the output directory\n       stop for avoiding accidental overwriting"${NOCOLOR}
 	exit 1
 fi
 # Make sure that sample condition for TEST does not exist
-if [ -f $out_dir/sampleshuf.test*.tsv ]
+if ls $outdir/sampleshuf.test*.tsv 1> /dev/null 2>&1
 then
 	echo -e ${RED}"ERROR: sampleshuf.test*.tsv already exists in the output directory\n        stop for avoiding accidental overwriting"${NOCOLOR}
 	exit 1
