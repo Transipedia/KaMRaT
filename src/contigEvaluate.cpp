@@ -128,8 +128,8 @@ void EstablishSeqListFromMultilineFasta(fastaVect_t &seq_vect, const std::string
         {
             if (!is_first_line)
             {
-                seq_vect.emplace_back(std::make_unique<seqElem_t>(std::make_pair(seq_name, seq))); // cache the previous sequence
-                seq.clear();                                                                       // prepare for the next sequence
+                seq_vect.emplace_back(std::make_pair(seq_name, seq)); // cache the previous sequence
+                seq.clear();                                          // prepare for the next sequence
             }
             seq_name = line.substr(1); // record the next sequence name
             is_first_line = false;
@@ -139,7 +139,7 @@ void EstablishSeqListFromMultilineFasta(fastaVect_t &seq_vect, const std::string
             seq += line;
         }
     }
-    seq_vect.emplace_back(std::make_unique<seqElem_t>(std::make_pair(seq_name, seq))); // cache the last sequence
+    seq_vect.emplace_back(std::make_pair(seq_name, seq)); // cache the last sequence
     contig_list_file.close();
 }
 
@@ -293,14 +293,22 @@ const std::vector<float> &EvaluateSeqCount(std::vector<float> &count_vect, const
             }
         }
         const size_t nb_mem_kmer = kmer_count_mat.size();
-        count_vect_x.resize(nb_mem_kmer);
-        for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
+        if (nb_mem_kmer == 0)
         {
-            for (size_t i_kmer(0); i_kmer < nb_mem_kmer; ++i_kmer)
+            count_vect.assign(nb_count, 0);
+        }
+        else
+        {
+            count_vect_x.resize(nb_mem_kmer);
+            for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
             {
-                count_vect_x[i_kmer] = kmer_count_mat[i_kmer][i_smp];
+                for (size_t i_kmer(0); i_kmer < nb_mem_kmer; ++i_kmer)
+                {
+                    count_vect_x[i_kmer] = kmer_count_mat[i_kmer][i_smp];
+                }
+                count_vect[i_smp] = CalcVectMedian(count_vect_x);
             }
-            count_vect[i_smp] = CalcVectMedian(count_vect_x);
+            count_vect_x.clear();
         }
     }
     return count_vect;
@@ -367,12 +375,12 @@ int main(int argc, char **argv)
     {
         throw std::domain_error("could not open index file " + idx_path);
     }
-    for (const auto &seq_elem_ptr : fasta_vect)
+    for (const std::pair<std::string, std::string> &seq_elem : fasta_vect)
     {
-        contig_seq = seq_elem_ptr->second;
+        contig_seq = seq_elem.second;
         if (contig_name)
         {
-            std::cout << seq_elem_ptr->first;
+            std::cout << seq_elem.first;
         }
         else
         {
