@@ -9,15 +9,15 @@ library(ROCR)
 
 cmdArgs <- commandArgs(trailingOnly = T)
 trained.mdl.path <- cmdArgs[1]
-# trained.mdl.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/cv.results/b_deseq2_contigs/model.train0/fitted-model-randomforest.rds"
+# trained.mdl.path <- "/home/haoliang.xue/media/data/PRAD_TCGA/e_gene_level/b_rank_res/train0-lrc/fitted-model-lasso.rds"
 sig.count.path <- cmdArgs[2]
-# sig.count.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/cv.results/b_deseq2_contigs/count-in-tests/contig-counts.test0-randomforest.tsv"
+# sig.count.path <- "/home/haoliang.xue/media/data/PRAD_TCGA/e_gene_level/b_rank_res/train0-lrc/signatures-in-test.tsv"
 smp.info.path <- cmdArgs[3]
-# smp.info.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/cv.results/a_splitted_dataset/sampleshuf.test0.tsv"
+# smp.info.path <- "/home/haoliang.xue/media/data/PRAD_TCGA/b_splitCV/sampleshuf.test0.tsv"
 
 evalModel <- function(mdl.fit, test.x, test.y, mdl.name) {
     if (mdl.name == "lasso" || mdl.name == "elasticnet" || mdl.name == "ridge") {
-        pred <- predict(mdl.fit, newx = test.x, type = "response")
+        pred <- predict(mdl.fit, newx = test.x, type = "response", lambda = lambda.1se)
         pred4auc <- prediction(predictions = pred, labels = test.y)
         auc.pred <- performance(pred4auc, measure = "auc")@y.values[[1]]
     } else if (mdl.name == "randomforest") {
@@ -41,6 +41,7 @@ sig.count <- read.table(sig.count.path, header = T, row.names = 1)[, rownames(sm
     t() %>%
     data.matrix()
 
+sig.count <- sig.count[, rownames(coef(trained.mdl))[-1]]
 if (!all(rownames(sig.count) == rownames(smp.info))) {
     stop("test.x and test.y not consistent")
 }

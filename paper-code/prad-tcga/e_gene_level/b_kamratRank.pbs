@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#PBS -N KaMRaT-rank
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+set -e
+
+smp_condi_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA/b_splitCV"
+work_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA/e_gene_level"
+
+for i in $(seq 0 4)
+do
+	method_list=(rsd ttest snr lrc nbc svm)
+	for m in ${method_list[@]} 
+	do
+		out_dir=$work_dir/b_rank_res/train$i-$m
+		mkdir -p $out_dir
+
+		if [ $m == "ttest" ]
+		then	
+			trans=" -ln"
+		elif [ $m == "svm" ]
+		then
+			trans=" -standardize"
+		else
+			trans=""
+		fi
+		/store/USERS/haoliang.xue/development/KaMRaT/bin/kamrat rank -idx-path $out_dir/rank.idx -nf-path $out_dir/smp-nf.tsv -smp-info <(sed '1d' $smp_condi_dir/sampleshuf.train$i.tsv) -score-method $m$trans -out-path $out_dir/ranked-gene-counts.tsv $work_dir/a_matrices/gene-counts.train$i.tsv
+	done
+done

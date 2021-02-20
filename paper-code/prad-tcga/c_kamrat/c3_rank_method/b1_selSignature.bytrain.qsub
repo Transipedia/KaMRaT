@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+#PBS -q common
+
+set -e
+
+smp_info="$1"
+merged_res_dir="$2"
+out_prefix="$3"
+test_tab="$4"
+test_smp_info="$5"
+
+method_list=(rsd ttest snr lrc nbc svm)
+for m in ${method_list[@]} 
+do
+	out_dir=$out_prefix-$m
+	mkdir -p $out_dir
+	head -n 5001 $merged_res_dir/ranked-contig-counts.$m.tsv > $out_dir/contig-counts.$m.top5000.tsv
+	/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/fitModel.R $out_dir/contig-counts.$m.top5000.tsv $smp_info $out_dir lasso $merged_res_dir/smp-nf.$m.tsv
+	/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/checkers/contigEval-checker/calc-contig-median.R $out_dir/signatures-lasso.fa <(zcat $test_tab) $out_dir/contig-counts.test.byR.tsv FALSE $test_smp_info
+done
+

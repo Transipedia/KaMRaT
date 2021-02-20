@@ -1,0 +1,26 @@
+#!/bin/bash
+
+smp_condi=$1
+merge_tab=$2
+out_dir=$3
+
+echo ""
+echo $smp_condi
+echo $merge_tab
+echo $out_dir
+echo ""
+
+method_list=(rsd ttest snr lrc nbc svm)
+for m in ${method_list[@]} 
+do
+	if [ $m == "ttest" ]
+	then	
+		trans=" -ln"
+	elif [ $m == "svm" ]
+	then
+		trans=" -standardize"
+	else
+		trans=""
+	fi
+	/store/USERS/haoliang.xue/development/KaMRaT/bin/kamrat rank -idx-path $out_dir/rank.$m.idx -nf-path $out_dir/smp-nf.$m.tsv -smp-info <(sed '1d' $smp_condi) -score-method $m$trans -out-path $out_dir/ranked-contig-counts.$m.tsv $merge_tab
+done

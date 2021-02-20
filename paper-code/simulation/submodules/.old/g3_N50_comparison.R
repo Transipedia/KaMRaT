@@ -11,9 +11,9 @@ kamrat.res.dir <- cmdArgs[1]
 spades.res.dir <- cmdArgs[2]
 out.dir <- cmdArgs[3]
 
-# kamrat.res.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/f_kamrat_res"
-# spades.res.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/d_SPAdes_res"
-# out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/g_KaMRaT_merge_eval"
+# kamrat.res.dir <- "/home/haoliang.xue/media/data/kamrat/paper/f_kamrat_res"
+# spades.res.dir <- "/home/haoliang.xue/media/data/kamrat/paper/d_SPAdes_res"
+# out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/g_KaMRaT_merge_eval"
 
 get_N50 <- function(contig.list) {
     len.list <- nchar(contig.list)
@@ -33,13 +33,17 @@ res.summary <- NULL
 
 # Error-free
 spades.res.dir1 <- paste0(spades.res.dir, "/a_errfree")
-fname <- paste0(spades.res.dir1, "/all_samples/transcripts.fasta")
-spades.n50 <- get_N50(readDNAStringSet(fname))
+spades.n50 <- NULL
+#for (s in dir(spades.res.dir1)) {
+s <- "all_samples"
+fname <- paste0(spades.res.dir1, "/", s, "/transcripts.fasta")
+spades.n50 <- c(spades.n50, get_N50(readDNAStringSet(fname)))
+#}
 res.summary <- rbind(res.summary,
                      data.frame("software" = "SPAdes",
                                 "N50" = paste0(min(spades.n50), "-", max(spades.n50)),
                                 "dataset" = "error-free"))
-rm(fname, spades.res.dir1, spades.n50)
+rm(fname, spades.res.dir1, spades.n50, s)
 kamrat.res.prefix <- paste0(kamrat.res.dir, "/a_errfree_randsel/merged-contigs-100pct-1-1.")
 for (m in c("mac_0.32", "none", "pearson_0.21", "spearman_0.23")) {
     fname <- paste0(kamrat.res.prefix, m, ".fa")
@@ -52,13 +56,17 @@ rm(fname, kamrat.res.prefix, m)
 
 # With-error
 spades.res.dir1 <- paste0(spades.res.dir, "/b_witherr")
-fname <- paste0(spades.res.dir1, "/all_samples/transcripts.fasta")
-spades.n50 <-get_N50(readDNAStringSet(fname))
+spades.n50 <- NULL
+#for (s in dir(spades.res.dir1)) {
+s <- "all_samples"
+fname <- paste0(spades.res.dir1, "/", s, "/transcripts.fasta")
+spades.n50 <- c(spades.n50, get_N50(readDNAStringSet(fname)))
+#}
 res.summary <- rbind(res.summary,
                      data.frame("software" = "SPAdes",
                                 "N50" = paste0(min(spades.n50), "-", max(spades.n50)),
                                 "dataset" = "with-error"))
-rm(fname, spades.res.dir1, spades.n50)
+rm(fname, spades.res.dir1, spades.n50, s)
 kamrat.res.prefix <- paste0(kamrat.res.dir, "/c_witherr_filter/merged-contigs-100pct")
 for (f in c("-1-1", "-1-2", "-1-3", "-1-4", "-1-5", "-3-5")) {
     for (m in c("mac_0.32", "none", "pearson_0.21", "spearman_0.23")) {

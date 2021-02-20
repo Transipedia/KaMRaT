@@ -18,17 +18,17 @@ library(randomForest)
 library(parallel)
 
 cmdArgs <- commandArgs(trailingOnly = TRUE)
-contig.mat.path <- cmdArgs[1]
-# contig.mat.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/cv.results/b_deseq2_contigs/dekupl-run.train0/merged-diff-counts.tsv"
+feature.mat.path <- cmdArgs[1]
+# feature.mat.path <- "/home/haoliang.xue/media/data/PRAD_TCGA/e_gene_level/b_rank_res/train0-lrc/top5000-gene-counts.tsv"
 smp.info.path <- cmdArgs[2]
-# smp.info.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/cv.results/a_splitted_dataset/sampleshuf.train0.tsv"
+# smp.info.path <- "/home/haoliang.xue/media/data/PRAD_TCGA/b_splitCV/sampleshuf.train0.tsv"
 out.dir <- cmdArgs[3]
 # out.dir <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/cv.results/b_deseq2_contigs/model.train0"
 model.name <- cmdArgs[4]
 # model.name <- "lasso"
 if (length(cmdArgs) == 5) {
     nf.vect.path <- cmdArgs[5]
-    # nf.vect.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/cv.results/c_kamrat_contigs/kamrat-snr.train0/smp-nf.tsv"
+    # nf.vect.path <- "/home/haoliang.xue/media/data/PRAD_TCGA/e_gene_level/b_rank_res/train0-lrc/smp-nf.tsv"
 } else {
     nf.vect.path <- NA
 }
@@ -77,9 +77,7 @@ print(paste0("============> ", model.name, " <============"))
 smp.info <- read.table(smp.info.path, header = T)
 smp.info <- smp.info[, c("sample", "condition")]
 
-contig.mat <- read.table(contig.mat.path, header = T)
-rownames(contig.mat) <- contig.mat$contig
-contig.mat <- contig.mat[, as.character(smp.info$sample)] %>%
+feature.mat <- read.table(feature.mat.path, header = T, row.names = 1)[, as.character(smp.info$sample)] %>%
     t() %>%
     data.matrix()
 
@@ -87,15 +85,15 @@ if (!is.na(nf.vect.path)) {
     print("    normalizing count table...")
     nf.vect <- read.table(nf.vect.path, header = FALSE, row.names = 1)
     for (s in rownames(nf.vect)) {
-        contig.mat[s, ] <- contig.mat[s, ] * nf.vect[s, 1]
+        feature.mat[s, ] <- feature.mat[s, ] * nf.vect[s, 1]
     }
 }
 
-if (!all(rownames(contig.mat) == smp.info$sample)) {
+if (!all(rownames(feature.mat) == smp.info$sample)) {
     stop("train.x and train.y not consistent")
 }
 
-mdl.fit <- fitModel(train.x = contig.mat, train.y = smp.info$condition, mdl.name = model.name)
+mdl.fit <- fitModel(train.x = feature.mat, train.y = smp.info$condition, mdl.name = model.name)
 saveRDS(mdl.fit, file = paste0(out.dir, "/fitted-model-", model.name, ".rds"))
 
 # Model Tuning Figure
@@ -107,21 +105,26 @@ dev.off()
 
 # Signatures and Model Assessment
 if (model.name == "lasso" || model.name == "elasticnet" || model.name == "ridge") {
-    sig.contigs <- rownames(coefficients(mdl.fit))[-1]
-    auc.mdl <- assess.glmnet(mdl.fit, 
-                             newx = data.matrix(contig.mat[, sig.contigs]), newy = smp.info$condition,
-                             family = "binomial", s = "lambda.1se")$auc
-    print(paste("AUC:", round(auc.mdl, 3)))
+    sig.features <- rownames(coefficients(mdl.fit))[-1]
+    if (length(sig.features) == 0) {
+        print("no feature selected!")
+    } else {
+        auc.mdl <- assess.glmnet(mdl.fit, 
+                                 newx = data.matrix(feature.mat[, sig.features]), newy = smp.info$condition,
+                                 family = "binomial", s = "lambda.1se")$auc
+        print(paste("AUC:", round(auc.mdl, 3)))
+    }
 } else {
     print(mdl.fit$confusion)
-    sig.contigs <- rownames(importance(mdl.fit))
+    sig.features <- rownames(importance(mdl.fit))
 }
 
-sig.contigs.fa <- cbind(paste0(">sig_contig_", seq(1 : length(sig.contigs))), 
-                        matrix(sig.contigs, length(sig.contigs), byrow = T)) %>%
+sig.features.fa <- cbind(paste0(">sig_feature_", seq(1 : length(sig.features))), 
+                        matrix(sig.features, length(sig.features), byrow = T)) %>%
     t() %>%
     as.vector()
-write.table(sig.contigs.fa, file = paste0(out.dir, "/signatures-", model.name, ".fa"), 
+write.table(sig.features.fa, file = paste0(out.dir, "/signatures-", model.name, ".fa"), 
             quote = FALSE, row.names = FALSE, col.names = FALSE)
 
 print("")
+

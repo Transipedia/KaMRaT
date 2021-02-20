@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#PBS -N models_assessG
+#PBS -q ssfa
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+#PBS -W depend=afterok:826726
+
+set -e
+
+proj_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA"
+mdl_dir=$proj_dir"/e_gene_level/b_rank_res"
+out_dir=$proj_dir"/e_gene_level/c_assess_res"
+
+#mkdir $out_dir
+
+method_list=(ttest snr lrc nbc svm)
+for n in $(seq 0 4)
+do
+	for m in ${method_list[@]} 
+	do
+		trained_mdl_path=$mdl_dir/train$n-$m/fitted-model-lasso.rds
+		test_count_path=$mdl_dir/train$n-$m/signatures-in-test.tsv
+		smp_info_path=$proj_dir/b_splitCV/sampleshuf.test$n.tsv
+		/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/evaluateModel.R $trained_mdl_path $test_count_path $smp_info_path >> $out_dir/assess_results_rankmethods.tsv
+	done
+done

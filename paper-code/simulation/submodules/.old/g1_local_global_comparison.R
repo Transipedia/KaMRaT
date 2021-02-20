@@ -10,9 +10,9 @@ kamrat.res.dir.prefix <- cmdArgs[1]
 spades.res.dir <- cmdArgs[2]
 out.dir <- cmdArgs[3]
 
-# kamrat.res.dir.prefix <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/f_kamrat_res/a_errfree_randsel/merged-contigs-align-100pct-1-1."
-# spades.res.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/d_SPAdes_res/a_errfree"
-# out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/g_KaMRaT_merge_eval"
+kamrat.res.dir.prefix <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/f_kamrat_res/a_errfree_randsel/merged-contigs-align-100pct-1-1."
+spades.res.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/d_SPAdes_res/a_errfree"
+out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/g_KaMRaT_merge_eval"
 
 get_quantile <- function(val, val.quant.vect) {
     bin.left <- val.quant.vect[-length(val.quant.vect)]
@@ -25,18 +25,30 @@ get_quantile <- function(val, val.quant.vect) {
     }
 }
 
-spades.res <- read.table(paste0(spades.res.dir, "/all_samples/blastn.alignment.tsv"), header = T)
-spades.res$qseqid <- paste0("all_samples", "_", spades.res$qseqid)
+# spades.res <- NULL
+# for (s in dir(spades.res.dir)) {
+s <- "all_samples"
+spades.res.x <- read.table(paste0(spades.res.dir, "/", s, "/blastn.alignment.tsv"), header = T)
+spades.res.x$qseqid <- paste0(s, "_", spades.res.x$qseqid)
+spades.res <- spades.res.x
+# spades.res <- rbind(spades.res, spades.res.x)
+# }
 spades.res$align.length <- apply(spades.res[, c("qlen", "length")], MARGIN = 1, FUN = max)
 spades.res$rident <- spades.res$nident / spades.res$align.length
 spades.res$jacc.idx <- spades.res$nident / (spades.res$qlen + spades.res$slen - spades.res$nident)
 spades.res$software <- "SPAdes"
 
-kamrat.res <- read.table(paste0(kamrat.res.dir.prefix, "none.tsv"), header = T)
-kamrat.res$align.length <- apply(kamrat.res[, c("qlen", "length")], MARGIN = 1, FUN = max)
-kamrat.res$rident <- kamrat.res$nident / kamrat.res$align.length
-kamrat.res$jacc.idx <- kamrat.res$nident / (kamrat.res$qlen + kamrat.res$slen - kamrat.res$nident)
-kamrat.res$software <- "KaMRaT-none"
+# kamrat.res <- NULL
+# for (m in c("mac_0.32", "pearson_0.21", "spearman_0.23", "none")) {
+m <- "none"  
+kamrat.res.x <- read.table(paste0(kamrat.res.dir.prefix, m, ".tsv"), header = T)
+kamrat.res.x$align.length <- apply(kamrat.res.x[, c("qlen", "length")], MARGIN = 1, FUN = max)
+kamrat.res.x$rident <- kamrat.res.x$nident / kamrat.res.x$align.length
+kamrat.res.x$jacc.idx <- kamrat.res.x$nident / (kamrat.res.x$qlen + kamrat.res.x$slen - kamrat.res.x$nident)
+kamrat.res.x$software <- paste0("KaMRaT-", str_replace(m, pattern = "_", replacement = ":"))
+kamrat.res <- kamrat.res.x
+# kamrat.res <- rbind(kamrat.res, kamrat.res.x)
+# }
 
 to_draw <- rbind(spades.res[, c("qlen", "rident", "jacc.idx", "software")], 
                  kamrat.res[, c("qlen", "rident", "jacc.idx", "software")])
@@ -56,31 +68,31 @@ names(to_draw.sum) <- c("len_rg", "software", "count")
 p.bar <- ggplot(data = to_draw.sum) +
     geom_col(aes(x = len_rg, y = count, fill = software, color = software, group = software), 
              size = 0.75, position = position_dodge2(width = 0.9, preserve = "single")) +
-    scale_fill_manual(values = c("azure", "gray")) +
-    scale_color_manual(values = c("azure4", "dimgray")) +
+    scale_fill_manual(values = c("khaki", "azure", "lightblue", "darkseagreen1", "gray")) +
+    scale_color_manual(values = c("gold4", "azure4", "royalblue", "darkseagreen4", "dimgray")) +
     ylab("count") +
-    theme(text = element_text(size = 26),
+    theme(text = element_text(size = 22),
           axis.text.x = element_blank(),
           axis.title.x = element_blank())
 
 p.box.local <- ggplot(data = to_draw) +
     geom_boxplot(aes(x = len_rg, y = rident, color = software, fill = software), size = 0.75, outlier.size = 1, 
                  position = position_dodge2(width = 0.9, preserve = "single")) +
-    scale_fill_manual(values = c("azure", "gray")) +
-    scale_color_manual(values = c("azure4", "dimgray")) +
+    scale_fill_manual(values = c("khaki", "azure", "lightblue", "darkseagreen1", "gray")) +
+    scale_color_manual(values = c("gold4", "azure4", "royalblue", "darkseagreen4", "dimgray")) +
     ylab("local identical ratio") +
-    theme(text = element_text(size = 26),
+    theme(text = element_text(size = 22),
           axis.text.x = element_blank(),
           axis.title.x = element_blank())
 
 p.box.global <- ggplot(data = to_draw) +
     geom_boxplot(aes(x = len_rg, y = jacc.idx, color = software, fill = software), size = 0.75, outlier.size = 1, 
                  position = position_dodge2(width = 0.9, preserve = "single")) +
-    scale_fill_manual(values = c("azure", "gray")) +
-    scale_color_manual(values = c("azure4", "dimgray")) +
+    scale_fill_manual(values = c("khaki", "azure", "lightblue", "darkseagreen1", "gray")) +
+    scale_color_manual(values = c("gold4", "azure4", "royalblue", "darkseagreen4", "dimgray")) +
     xlab("contig length range in group") +
     ylab("jaccard index") +
-    theme(text = element_text(size = 26))
+    theme(text = element_text(size = 22))
 
 p.bar + theme(legend.position = "top") + 
     p.box.local + theme(legend.position = "none") + 
@@ -90,4 +102,4 @@ p.bar + theme(legend.position = "top") +
                   "/global_local_comparison.", 
                   str_extract(basename(spades.res.dir), pattern = "[a-z]+$"), 
                   str_extract(kamrat.res.dir.prefix, pattern = "-[0-9]+-[0-9]+"), ".png"), 
-           width = 16, height = 10)
+           width = 21, height = 9)

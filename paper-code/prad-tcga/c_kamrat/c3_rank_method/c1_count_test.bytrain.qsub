@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+#PBS -q common
+
+set -e
+
+test_tab="$1"
+test_smp_info="$2"
+out_prefix="$3"
+
+method_list=(rsd ttest snr lrc nbc svm)
+for m in ${method_list[@]} 
+do
+	out_dir=$out_prefix-$m
+	/store/USERS/haoliang.xue/development/KaMRaT/bin/contigEvaluate -klen 31 -fasta $out_dir/signatures-lasso.fa -eval-method median -idx-path $out_dir/counts.$m.idx -unstrand -smp-info <(sed '1d' $test_smp_info) -out-path $out_dir/contig-counts.test.tsv $test_tab
+done
+

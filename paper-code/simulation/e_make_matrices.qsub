@@ -13,22 +13,26 @@ witherr_smp_dir="/data/work/I2BC/haoliang.xue/kamrat/paper/simulation/c_simulate
 out_dir="/data/work/I2BC/haoliang.xue/kamrat/paper/simulation/e_jellyfish_joinCount_res"
 
 # error-free dataset #
-for klen in $(echo 31 25 21 19 15)
-do
-	mkdir -p $out_dir/a_errfree/$klen
-	bash /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/e1_jellyfish.bash $errfree_smp_dir $out_dir/a_errfree/$klen $klen
+klen=31
+#for klen in $(echo 31 25 21 19 15)
+#do
+#	mkdir -p $out_dir/a_errfree/$klen
+#	bash /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/e1_jellyfish.bash $errfree_smp_dir $out_dir/a_errfree/$klen $klen
 	bash /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/e2_joinCounts.bash $out_dir/a_errfree/$klen/raw-counts-100pct 1 1 $out_dir/a_errfree/$klen/*.txt.gz
-done
+#done
+
+# with-error dataset #
+#mkdir -p $out_dir/b_witherr/31
+#bash /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/e1_jellyfish.bash $witherr_smp_dir $out_dir/b_witherr/31 31
+a=3
+#for a in $(seq 1 5)
+#do
+	bash /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/e2_joinCounts.bash $out_dir/b_witherr/31/raw-counts-100pct 1 $a $out_dir/b_witherr/31/*.txt.gz
+#done
+#bash /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/e2_joinCounts.bash $out_dir/b_witherr/31/raw-counts-100pct 3 5 $out_dir/b_witherr/31/*.txt.gz
+
 for r in $(seq 0.1 0.1 0.9)
 do
 	awk -v keep_r=$r 'BEGIN {srand(91400)} NR == 1 || rand() <= keep_r' $out_dir/a_errfree/31/raw-counts-100pct-1-1.tsv >> $out_dir/a_errfree/31/raw-counts-${r##*.}0pct-1-1.tsv
+	awk -v keep_r=$r 'BEGIN {srand(91400)} NR == 1 || rand() <= keep_r' $out_dir/b_witherr/31/raw-counts-100pct-1-3.tsv >> $out_dir/b_witherr/31/raw-counts-${r##*.}0pct-1-3.tsv
 done
-
-# with-error dataset #
-mkdir -p $out_dir/b_witherr/31
-bash /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/e1_jellyfish.bash $witherr_smp_dir $out_dir/b_witherr/31 31
-for a in $(seq 1 5)
-do
-	bash /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/e2_joinCounts.bash $out_dir/b_witherr/31/raw-counts-100pct 1 $a $out_dir/b_witherr/31/*.txt.gz
-done
-bash /store/USERS/haoliang.xue/development/KaMRaT/paper-code/simulation/submodules/e2_joinCounts.bash $out_dir/b_witherr/31/raw-counts-100pct 3 5 $out_dir/b_witherr/31/*.txt.gz

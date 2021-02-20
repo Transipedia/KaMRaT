@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#PBS -N models_assess
+#PBS -q ssfa
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+set -e
+
+proj_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA"
+out_dir=$proj_dir"/d_signatures/d3_cmp_merge_rank"
+
+mkdir $out_dir
+
+p="/d_signatures/d1_merge-first"
+for n in $(seq 0 4)
+do
+	trained_mdl_path=$proj_dir/$p/model.train$n/fitted-model-lasso.rds
+	test_count_path=$proj_dir/$p/count-in-tests/contig-counts.test$n.byR.tsv
+	smp_info_path=$proj_dir/b_splitCV/sampleshuf.test$n.tsv
+	/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/evaluateModel.R $trained_mdl_path $test_count_path $smp_info_path >> $out_dir/assess_results.tsv
+done
+
+p="/d_signatures/d2_rank-first"
+for n in $(seq 0 4)
+do
+	trained_mdl_path=$proj_dir/$p/model.train$n/fitted-model-lasso.rds
+	test_count_path=$proj_dir/$p/count-in-tests/contig-counts.test$n.byR.tsv
+	smp_info_path=$proj_dir/b_splitCV/sampleshuf.test$n.tsv
+	/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/evaluateModel.R $trained_mdl_path $test_count_path $smp_info_path >> $out_dir/assess_results.tsv
+done

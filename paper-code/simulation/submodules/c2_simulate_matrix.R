@@ -10,8 +10,8 @@ fasta.path <- cmdArgs[1]
 out.dir <- cmdArgs[2]
 nb.rep <- cmdArgs[3] %>% as.integer()
 
-# fasta.path <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/.old.res/c_simulated_reads/a_ref/ref4simu.fa"
-# out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/.old.res/c_simulated_reads/d_witherr_100vs100"
+# fasta.path <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/c_simulated_reads/a_ref/ref4simu.fa"
+# out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/c_simulated_reads/d_witherr_50vs50"
 # nb.rep <- 50
 
 run_seed <- 91400
@@ -35,12 +35,16 @@ tx.mean <- tx.nread * tx.fc     # mu parameter in NB model
 tx.size <- tx.nread * tx.fc / 3 # size parameter in NB model = read_number * fold_change / 3
 
 tx.count.mat <- lapply(1 : tx.nb,
-                      function(i) return(c(rnbinom(n = nb.rep, size = tx.size[i, 1], mu = tx.mean[i, 1]),
-                                           rnbinom(n = nb.rep, size = tx.size[i, 2], mu = tx.mean[i, 2])))) %>%
+                       function(i) {
+                          row.x <- c(rnbinom(n = nb.rep, size = tx.size[i, 1], mu = tx.mean[i, 1]),
+                                     rnbinom(n = nb.rep, size = tx.size[i, 2], mu = tx.mean[i, 2]))
+                          names(row.x) <- c(paste0("A", 1 : nb.rep), paste0("B", 1 : nb.rep))
+                          return(row.x)
+                        }) %>%
     do.call(what = rbind) # negative binomial with different means between conditions
 
-grp1.means <- rowMeans(tx.count.mat[, 1 : nb.rep])
-grp2.means <- rowMeans(tx.count.mat[, (nb.rep + 1) : (2 * nb.rep)])
+grp1.means <- rowMeans(tx.count.mat[, str_detect(colnames(tx.count.mat), pattern = "A")])
+grp2.means <- rowMeans(tx.count.mat[, str_detect(colnames(tx.count.mat), pattern = "B")])
 simu.fc <- grp2.means / grp1.means
 
 rownames(tx.count.mat) <- names(tx.fasta)
@@ -63,15 +67,20 @@ ev.size <- ev.nread / 3
 
 ev.count.mat <- lapply(1 : ev.nb,
                        function (i) {
-                           count.row <- rep(0, 2 * nb.rep)
+                           row.x <- rep(0, 2 * nb.rep)
                            express.smp.nb <- round(runif(1, min = 10, max = 20))
+                           grp.i <- sample(c(0, 1), size = 1, replace = F)
                            express.smp.i <- sample(1 : nb.rep, size = express.smp.nb, replace = F)
-                           count.row[express.smp.i] <- rnbinom(express.smp.nb, size = ev.size[i], mu = ev.mean[i])
-                           return(count.row) 
+                           row.x[grp.i * nb.rep + express.smp.i] <- rnbinom(express.smp.nb, size = ev.size[i], mu = ev.mean[i])
+                           names(row.x) <- c(paste0("A", 1 : nb.rep), paste0("B", 1 : nb.rep))
+                           return(row.x) 
                        }) %>%
     do.call(what = rbind)
 
 rownames(ev.count.mat) <- names(ev.fasta)
+
+print(sum(rowSums(ev.count.mat[, str_detect(colnames(ev.count.mat), pattern = "A")]) > 0))
+print(sum(rowSums(ev.count.mat[, str_detect(colnames(ev.count.mat), pattern = "B")]) > 0))
 
 rm(ev.pres_grp, ev.nb, ev.nread, ev.mean, ev.size)
 
@@ -79,5 +88,11 @@ rm(ev.pres_grp, ev.nb, ev.nread, ev.mean, ev.size)
 simu.fasta <- c(tx.fasta, ev.fasta)
 simu.fasta.path <- paste0(out.dir, "/ref4simu.fa")
 writeXStringSet(filepath = simu.fasta.path, x = simu.fasta)
-simu.count.mat <- rbind(tx.count.mat, ev.count.mat)
-write.table(simu.count.mat, paste0(out.dir, "/countmat4simu.tsv"), row.names = T, col.names = T, quote = F, sep = "\t")
+simu.count.mat <- rbind(tx.count.mat, ev.count.mat) %>%
+    as.data.frame()
+smp.info <- data.frame("sample" = colnames(simu.count.mat))
+smp.info$condition <- str_extract(smp.info$sample, pattern = "A|B")
+write.table(smp.info, paste0(out.dir, "/sample-info.tsv"), row.names = F, col.names = F, quote = F, sep = "\t")
+simu.count.mat$feature <- rownames(simu.count.mat)
+simu.count.mat <- simu.count.mat[, c("feature", as.character(smp.info$sample))]
+write.table(simu.count.mat, paste0(out.dir, "/countmat4simu.tsv"), row.names = F, col.names = T, quote = F, sep = "\t")

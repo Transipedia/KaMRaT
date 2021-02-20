@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#PBS -N selSignature
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+#PBS -q ssfa
+#PBS -l nodes=1:ppn=4
+#PBS -W depend=afterok:806832:806833:806834:806835:806836
+
+set -e
+
+dir_prefix="/data/work/I2BC/haoliang.xue/PRAD_TCGA"
+out_prefix="/data/work/I2BC/haoliang.xue/PRAD_TCGA/d_signatures/d2_rank-first"
+
+smp_info_dir=$dir_prefix"/b_splitCV"
+merged_res_dir=$dir_prefix"/c_kamratRes/c2_rank-first"
+
+for i in $(seq 0 4)
+do
+	out_dir=$out_prefix/model.train$i
+	mkdir -p $out_dir
+	/store/USERS/haoliang.xue/development/KaMRaT/bin/kamrat rank -idx-path $out_dir/counts.train$i.idx -nf-path $out_dir/smp-nf.train$i.tsv -smp-info $smp_info_dir/sampleshuf.train$i.tsv -score-method score:decabs -top-num 5000 -out-path $out_dir/contig-counts.train$i.top5000.tsv <(sed 's/snr/score/g' $merged_res_dir/ranked-contig-counts.train$i.tsv)
+	/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/fitModel.R $out_dir/contig-counts.train$i.top5000.tsv $smp_info_dir/sampleshuf.train$i.tsv $out_dir lasso $merged_res_dir/smp-nf.train$i.tsv
+done
+

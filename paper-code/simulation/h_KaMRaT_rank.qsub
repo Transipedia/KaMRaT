@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#PBS -N KaMRaTrank
+#PBS -q common
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+set -e
+
+tab_dir="/data/work/I2BC/haoliang.xue/kamrat/paper/simulation/c_simulated_reads/d_witherr_50vs50"
+out_dir="/data/work/I2BC/haoliang.xue/kamrat/paper/simulation/h_kamrat_rank_res"
+
+simu_tab=$tab_dir"/countmat4simu.tsv"
+smp_info=$tab_dir"/sample-info.tsv"
+
+mkdir -p $out_dir
+for m in $(echo rsd ttest snr lrc nbc svm)
+do
+	if [ $m == "ttest" ]
+	then	
+		trans=" -ln "
+	elif [ $m == "svm" ]
+	then
+		trans=" -standardize "
+	else
+		trans=""
+	fi
+	/store/USERS/haoliang.xue/development/KaMRaT/bin/kamrat rank -idx-path $out_dir/rank.$m.idx -nf-path $out_dir/smp-nf.$m.tsv -smp-info $smp_info -score-method $m$trans -out-path $out_dir/ranked-counts.$m.tsv $simu_tab
+done

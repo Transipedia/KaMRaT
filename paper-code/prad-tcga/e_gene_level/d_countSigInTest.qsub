@@ -1,0 +1,9 @@
+#!/bin/bash
+
+#PBS -N countSigInTest
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc-paris-saclay.fr
+#PBS -W depend=afterok:826706:826707:826708:826709:826710
+
+/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/paper-code/prad-tcga/e_gene_level/d1_countSigInTest.R /data/work/I2BC/haoliang.xue/PRAD_TCGA/e_gene_level/b_rank_res/train /data/work/I2BC/haoliang.xue/PRAD_TCGA/e_gene_level/a_matrices/gene-counts.test
+

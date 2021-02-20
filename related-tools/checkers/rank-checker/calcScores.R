@@ -9,13 +9,13 @@ library(FSelectorRcpp) # Information Gain
 
 cmdArgs <- commandArgs(trailingOnly = T)
 count.path <- cmdArgs[1]
-# count.path <- "/home/haoliang.xue/development/kamrat-test/data/test-counts.tsv"
+count.path <- gzfile("/home/haoliang.xue/media/ssfa/antoine.laine/singularityDKPL/run/CRorPR_vs_PD_kmer_counts/merged-diff-counts.tsv.gz", "rt")
 smp.info.path <- cmdArgs[2]
-# smp.info.path <- "/home/haoliang.xue/development/kamrat-test/data/test-sample-conditions.tsv"
+smp.info.path <- "/home/haoliang.xue/media/data/Melanoma/kamrat-melanoma-raw-ttest50000/sample-info.tsv"
 out.dir <- cmdArgs[3]
 # out.dir <- ""
 no.norm <- cmdArgs[4] %>% as.logical()
-# no.norm <- FALSE
+no.norm <- TRUE
 
 calcRelatSD <- function(count_tab, smp_nf) {
     row.mean <- apply(count_tab[, names(smp_nf)], MARGIN = 1, function(r) mean(r * smp_nf))
@@ -36,6 +36,7 @@ calcTtestPvalue <- function(count_tab, smp_info, smp_nf) {
                                          y = log(r[cond2.cols] * smp_nf[cond2.cols] + 1),
                                          alternative = "two.sided")$p.value)
     pval.adj <- p.adjust(pval.raw, method = "BH")
+    # pval.adj <- pval.raw
     return(pval.adj)
 }
 
@@ -122,13 +123,17 @@ if (!no.norm) {
 }
 
 feature.score <- data.frame(row.names = rownames(count.tab), 
-                            "relat_sd" = calcRelatSD(count.tab, smp.nf),
-                            "ttest.padj" = calcTtestPvalue(count.tab, smp.info, smp.nf),
-                            "snr" = calcSNR(count.tab, smp.info, smp.nf),
-                            "lrc.f1" = calcLRCF1(count.tab, smp.info, smp.nf),
-                            "nbc.f1" = calcNBCF1(count.tab, smp.info, smp.nf),
-                            "svm.hingeloss" = calcSVMHingeLoss(count.tab, smp.info, smp.nf),
-                            "info.gain" = calcInfoGain(count.tab, smp.info, smp.nf))
+                            "rsd" = calcRelatSD(count.tab, smp.nf),
+                            "ttest.padj" = calcTtestPvalue(count.tab, smp.info, smp.nf))
+
+# feature.score <- data.frame(row.names = rownames(count.tab), 
+#                             "relat_sd" = calcRelatSD(count.tab, smp.nf),
+#                             "ttest.padj" = calcTtestPvalue(count.tab, smp.info, smp.nf),
+#                             "snr" = calcSNR(count.tab, smp.info, smp.nf),
+#                             "lrc.f1" = calcLRCF1(count.tab, smp.info, smp.nf),
+#                             "nbc.f1" = calcNBCF1(count.tab, smp.info, smp.nf),
+#                             "svm.hingeloss" = calcSVMHingeLoss(count.tab, smp.info, smp.nf),
+#                             "info.gain" = calcInfoGain(count.tab, smp.info, smp.nf))
 
 write.table(feature.score, file = paste0(out.dir, "/feature-scores.byR.", ifelse(no.norm, yes = "raw", no = "norm"), ".tsv"), 
             col.names = T, row.names = T, quote = F, sep = "\t")

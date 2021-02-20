@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#PBS -N rank-first_merge-first
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+set -e
+
+pj_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA"
+out_dir=$pj_dir/f_signature_cmp
+
+mkdir $out_dir
+
+for i in $(seq 0 4)
+do
+	/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/cmp_signatures.R $out_dir/mergefirst_rankfirst.train$i.tsv FALSE $pj_dir/d_signatures/d1_merge-first/model.train$i/signatures-lasso.fa $pj_dir/d_signatures/d2_rank-first/model.train$i/signatures-lasso.fa
+done

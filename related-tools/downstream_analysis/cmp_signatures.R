@@ -9,7 +9,7 @@ cmdArgs <- commandArgs(trailingOnly = T)
 out.path <- cmdArgs[1]
 # out.path <- "/home/haoliang.xue/media/data/kamrat/kamrat-urine/cv.results/b_deseq2_contigs/signature_among_train.tsv"
 is_stranded <- cmdArgs[2] %>% as.logical()
-# stranded <- TRUE
+# is_stranded <- TRUE
 sig.path.list <- NULL
 for (i in 3 : length(cmdArgs)) {
     sig.path.list <- c(sig.path.list, cmdArgs[i])
@@ -53,7 +53,7 @@ for (i in 1 : length(sig.path.list)) {
     sig.fa.list[[paste0("fa", i)]] <- sig.fa
 }
 kmer.contig.df <- lapply(sig.fa.list, 
-                         FUN = function(s) retrieveKMers(contig.list = s, k.len = 31, canonical = !stranded)) %>%
+                         FUN = function(s) retrieveKMers(contig.list = s, k.len = 31, canonical = !is_stranded)) %>%
     do.call(what = rbind)
 kmer.contig.df$fasta.file <- str_extract(row.names(kmer.contig.df), pattern = "fa[0-9]+")
 kmer.contig.df$contig_in_fasta <- paste0(kmer.contig.df$fasta.file, ":", kmer.contig.df$contig)
