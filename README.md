@@ -11,8 +11,8 @@ The name KaMRaT means k-mer Matrix Reduction Toolkit, or k-mer Matrix, Really Tr
 ## Typical Workflow built around KaMRaT
 
 KaMRaT *per se* is shown at the center of the workflow. It is a C++ program that takes as input a count matrix and produces another matrix as output.
-In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and producing a reduced matrix with features of interest with respect to condisitons in the input sample-info file. The resulting matrix is then used as input for building a predictor for thos conditions. 
-The present archive contains both Kamrat and the surrounding pipeline used for feeding the input matrix and model building/evaluation. Note that KaMRaT can also be used as a standalone application for treating any input matrix (*e.g.* a conventional gene expression matrix). 
+In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and producing a reduced matrix with features of interest with respect to conditions in the input sample-info file. The resulting matrix is then used as input for building a predictor for those conditions. 
+The present archive contains Kamrat and the surrounding pipeline used for feeding the input matrix and model building/evaluation. Note that KaMRaT can also be used as a standalone application for treating any input matrix (*e.g.* a conventional gene expression matrix). 
 
 ![image](docs/KaMRaT_workflow.png)
 
@@ -78,13 +78,15 @@ If you are using a cluster that does not support ```sudo```, you can build the i
 The sample-info file is indicated by the option `-smp-info`. This file aims to indicate which columns in the k-mer count matrix should be considered as sample columns. Please do not put any header line in the file, since the columns are already defined by convention as below.  
 
 + If the file contains only one column, it indicates sample names, and all samples are considered as the same condition
-+ If the file contains two columns, the first column corresponds to sample names, and the second corresponds to conditions
++ If the file contains two columns, the first column corresponds to sample names, and the second corresponds to conditions (*e.g.* tumor, normal)
 + If the file is not provided, all columns in the matrix apart from the first one are considered as samples
 
 ### Input Count Matrix for KaMRaT
 
-The input count matrix should be in .tsv or .tsv.gz format, in which fields are separated by tabulations.  
+ 
+The input count matrix should be in .tsv or .tsv.gz format, in which fields are separated by tabulations. 
 In the matrix, features are presented as rows, and samples as columns. The first column in matrix should always be the feature column (sequences or feature names).  
+"Features" can be any quantified feature such as genes, k-mers or contigs. k-mers or contigs are represented by their own sequence.
 KaMRaT accepts extra columns representing non-count values, e.g. feature's p-value, score, etc. In this case, a smp-info file is mandatory for indicating which columns are the count columns.
 
 ### Output Count Matrix by KaMRaT
@@ -142,10 +144,8 @@ singularity exec kamrat <CMD> -help
 
 ### KaMRaT Usage by Module
 
-
-
 <details>
-<summary>filter: Select expressed/silenced features* that filter through given criteria</summary>
+<summary>filter: Select expressed/silent features* that filter through given criteria</summary>
 
 ```text
 [USAGE]    singularity exec -B /bind_src:/bind_des kamrat filter -filter-info STR [-options] KMER_TAB_PATH
@@ -168,7 +168,7 @@ singularity exec kamrat <CMD> -help
 </details>
 
 <details>
-<summary>mask: Reserve or remove k-mers with a given list of sequences</summary>
+<summary>mask: Keep or remove k-mers matching a given list of sequences</summary>
 
 ```text
 [Usage]    singularity exec -B /bind_src:/bind_des kamrat mask -klen INT -fasta STR [-options] KMER_TAB_PATH
@@ -177,7 +177,7 @@ singularity exec kamrat <CMD> -help
             -klen INT        Length of k-mers, mandatory
             -fasta STR       Sequence fasta file as the mask, mandatory
             -unstrand        If k-mers are generated from unstranded RNA-seq data
-            -reverse-mask    Reverse mask, to select the k-mers in sequence fasta file
+            -reverse-mask    Reverse mask: keep the k-mers in fasta sequence file
             -out-path        Output table path [default: output to screen]
 ```
 
@@ -245,8 +245,6 @@ singularity exec kamrat <CMD> -help
 ```
 
 </details>
-
-\* The feature count matrix can be not only k-mer count matrix, but any kind of count matrix once the first column represents the feature (gene, transcript, etc.)
 
 ## Software/Library Citations
 
