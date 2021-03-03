@@ -1,6 +1,6 @@
 # KaMRaT
 
-k-mers are the substrings of a fixed length $k$ along biological sequences.
+k-mers are the substrings of a fixed length *k* along biological sequences.
 
 Transcriptomics analysis based on k-mer count possesses good potential for capturing signals at nucleotide resolution. But a current challenge is that number of k-mer is too many and length of k-mer is too short.
 
@@ -92,7 +92,8 @@ Note: if you use KaMRaT in command line, please remember to indicate the full pa
 We recommande using KaMRaT within ```singularity```:
 
 ``` bash
-singularity exec -B /bind_src:/bind_des kamrat <CMD> [options] input_table # <CMD> can be one of filter, mask, merge, rank
+singularity exec -B /bind_src:/bind_des kamrat <CMD> [options] input_table 
+# <CMD> can be one of filter, mask, merge, rank
 ```
 
 The ```-B``` option is for binding disk partitions to singularity image, please check ```singularity``` helper for details:
@@ -104,7 +105,8 @@ singularity exec -h
 It's also executable directly on command line:
 
 ```bash
-/path_to_KaMRaT_bin_dir/kamrat <CMD> [options] input_table # <CMD> can be one of filter, mask, merge, rank
+/path_to_KaMRaT_bin_dir/kamrat <CMD> [options] input_table 
+# <CMD> can be one of filter, mask, merge, rank
 ```
 
 In the following sections, we present under the situation of using KaMRaT in ```singularity```.  
