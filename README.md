@@ -1,14 +1,17 @@
 # KaMRaT
 
-k-mers are the substrings of a fixed length *k* along biological sequences.
+k-mers are substrings of a fixed length *k* extracted from biological sequences. 
 
-Transcriptomics analysis based on k-mer count possesses good potential for capturing signals at nucleotide resolution. But a current challenge is that number of k-mer is too many and length of k-mer is too short.
+Transcriptomics analysis based on k-mer counts allows to analyze RNA variation at nucleotide resolution, unlimited by a reference genome or transcriptome. Therefore, in principle, all changes in RNA sequences (splice variants, SNPs, novel transcripts) can be captured by k-mer analysis. However a challenge with k-mers is that there are too many of them. A typical bulk RNA-seq sample has in the order of 1e7 to 1e8 unique k-mers, producing a huge matrix when many samples are combined. 
 
 KaMRaT provides a set of tools for k-mer matrix reduction, for reducing k-mer number and extending k-mers to longer contigs.
 
 The name KaMRaT means k-mer Matrix Reduction Toolkit, or k-mer Matrix, Really Tremendous !.
 
-## Typical KaMRaT Workflow
+## Typical Workflow built around KaMRaT
+
+KaMRaT *per se* is shown at the center of the workflow. It is a C++ program that takes as input a count matrix and produces another matrix as output.
+In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and produce a reduced matrix containing features of interest with respect to a provided design file. 
 
 ![image](docs/KaMRaT_workflow.png)
 
