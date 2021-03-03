@@ -2,323 +2,239 @@
 
 k-mers are the substrings of a fixed length $k$ along biological sequences.
 
-Transcriptomics analysis based on k-mer count possesses good potential for capturing signals at nucleotide solution. But a current challenge is that the number of k-mer features are often too many to have an effective analysis.
+Transcriptomics analysis based on k-mer count possesses good potential for capturing signals at nucleotide resolution. But a current challenge is that number of k-mer is too many and length of k-mer is too short.
 
-KaMRaT provides a set of tools for k-mer analysis, for reducing number of k-mer features in consideration. The name KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really Tremendous !".
+KaMRaT provides a set of tools for k-mer matrix reduction, for reducing k-mer number and extending k-mers to longer contigs.
 
-## Before KaMRaT Installation
+The name KaMRaT means k-mer Matrix Reduction Toolkit, or k-mer Matrix, Really Tremendous !.
+
+## Typical KaMRaT Workflow
+
+![image](docs/KaMRaT_workflow.png)
+
+## Installation
+
+<details>
+<summary>Build from source</summary>
 
 ### Dependencies
 
-KaMRaT is dependent on the following software/libraires:
++ [MLPack 3.3.2](https://github.com/mlpack/mlpack/releases/tag/3.3.2)
++ [Boost-iostreams](https://www.boost.org/doc/libs/1_74_0/libs/iostreams/doc/index.html)
 
-- [Git](https://git-scm.com/)
-- If running KaMRaT in Singularity
-  - [Singularity](https://sylabs.io/docs/)
-- If running KaMRaT without container
-  - [MLPack 3.3.2](https://github.com/mlpack/mlpack/releases/tag/3.3.2)
-  - [Boost-iostreams](https://www.boost.org/doc/libs/1_74_0/libs/iostreams/doc/index.html)
+MLPack can be installed on [Linux/Mac](https://mlpack.org/doc/mlpack-3.3.2/doxygen/build.html), [Windows](https://mlpack.org/doc/mlpack-3.3.2/doxygen/build_windows.html), or via [conda](https://anaconda.org/conda-forge/mlpack) by following the corresponding links.  
+If you are installing MLPack with conda, please add the following line into your `.bashrc` file in the `home/` directory before compiling KaMRaT:
 
-The simplest way for KaMRaT installation is by using Singularity container which can be installed with [the guidance here](https://sylabs.io/guides/3.6/user-guide/quick_start.html#quick-installation-steps). In this case, you can jump to [KaMRaT Installation](##KaMRaT-Installation)
-
-If you prefer to run KaMRaT without any container, you can follow the guidance below.
-
-### MLPack Installation
-
-MLPack can be installed on [Linux/Mac](https://mlpack.org/doc/mlpack-3.3.2/doxygen/build.html), [Windows](https://mlpack.org/doc/mlpack-3.3.2/doxygen/build_windows.html), or via [conda](https://anaconda.org/conda-forge/mlpack) by following the corresponding links.
-
-If you are installing MLPack with conda, please add the following line into your ```.bashrc``` file in the ```home/``` directory before compiling KaMRaT:
-
-```bash
-export LD_LIBRARY_PATH="/path_to_conda_env/mlpack/lib:$LD_LIBRARY_PATH"
+``` bash
+export LD_LIBRARY_PATH=/path_to_conda_env/mlpack/lib:$LD_LIBRARY_PATH
 ```
 
-### Boost-iostreams Library Installation
+### Clone and Build
 
-Boost-iostreams library can be installed by the following command:
+Firstly, clone the repository:
 
-```bash
-apt-get install libboost-iostreams-dev
-```
-
-## KaMRaT Installation
-
-### Installation Option 1: inside singularity
-
-```bash
-git clone https://github.com/Transipedia/KaMRaT.git
-cd KaMRaT
-mkdir bin
-singularity build --fakeroot bin/kamrat.simg kamrat.simg.def
-```
-
-A sigularity image is created in the ```bin/``` directory.
-
-### Installation Option 2: compiling from source
-
-Compiling command:
-
-```bash
-git clone https://github.com/Transipedia/KaMRaT.git
+``` bash
+git clone --recursive https://github.com/Transipedia/KaMRaT.git
 cd KaMRaT
 ```
 
-Then, if you installed MLPack library with conda:
+If you installed MLPack library with conda:
 
-```bash
+``` bash
 bash compile.bash /path_to_MLPack_conda_environment
 ```
 
 Otherwise, if you installed MLPack without conda:
 
-```bash
+``` bash
 bash compile.bash
 ```
 
-An executable binary file is available in the ```bin/``` directory.
+Finally, an executable binary file is available as `bin/kamrat`.
 
-## Conventions Before KaMRaT Execution
+</details>
 
-### File of Sample Info
+<details>
+<summary>Use singularity</summary>
 
-The sample-info file is indicated by the option ```-smp-info```. This file aims to indicate which columns in the k-mer count matrix should be considered as sample columns. Please do not put any header line in the file, since the columns are already defined as below.
+Hello world !
 
-If provided, this file may contains one or two columns:
+</details>
 
-- If the file contains only one column, it indicates sample names, and all samples are considered as the same condition
-- If the file contains two columns, the first column corresponds to sample names, and the second conrresponds to conditions
+## General Information
 
-If not provided, all columns apart from the first one in the matrix are considered as samples.
+### Sample Information File
 
-### Metrics for naïve Bayes Evaluation in KaMRaT rank
+The sample-info file is indicated by the option `-smp-info`. This file aims to indicate which columns in the k-mer count matrix should be considered as sample columns. Please do not put any header line in the file, since the columns are already defined by convention as below.  
 
-KaMRaT supports ranking and reducing features by using naïve Bayes model with F1-score as metrics.
-
-- In binary condition evaluation, binary f1-score is applied. Since F1 score evaluates with regard to the positive categories, you may want to make the 'case' condition labeled as positive. For doing this, you could simply make in the -smp-info file with the 'control' condition appears in the first row, so that the control group will be labelled as 0, and the case group will be labeled as 1.
-- In multi-condition evaluation, micro f1-score is applied. In this case, all classes are evaluated equally (no preference of case over control). Furtherly, because each sample is supposed to have only one label, the micro f1-score here is actually equivalent to the accuracy. (cf. [here](https://towardsdatascience.com/multi-class-metrics-made-simple-part-ii-the-f1-score-ebe8b2c2ca1))
-
-For more information about binary/micro f1-score in MLPack, please find [here](https://mlpack.org/doc/mlpack-3.1.0/doxygen/classmlpack_1_1cv_1_1F1.html).
-
-For more information about category-specific metrics, please find [here](https://github.com/jmgirard/mReliability/wiki/Specific-agreement-coefficient).
++ If the file contains only one column, it indicates sample names, and all samples are considered as the same condition
++ If the file contains two columns, the first column corresponds to sample names, and the second conrresponds to conditions
++ If the file is not provided, all columns in the matrix apart from the first one are considered as samples
 
 ### Input Count Matrix for KaMRaT
 
-The input count matrix should be in .tsv format, where values are separated by tabulation character.
-
-In the matrix, features are presented as rows, and samples as columns. The first column in matrix should always be the feature column. 
-
-KaMRaT accepts extra columns representing non-count values (e.g. feature's p-value, score, etc.), in this case, please provide a smp-info file indicating which columns are the count columns if necessary (e.g. when merging with intervention, ranking, etc.).
+The input count matrix should be in .tsv or .tsv.gz format, in which the fields are separated by tabulation character.  
+In the matrix, features are presented as rows, and samples as columns. The first column in matrix should always be the feature column (sequences or feature names).  
+KaMRaT accepts extra columns representing non-count values, e.g. feature's p-value, score, etc. In this case, a smp-info file is mandatory for indicating which columns are the count columns.
 
 ### Output Count Matrix by KaMRaT
 
-The output count matrix is also in .tsv format, where values are separated by tabulation character.
+The output count matrix is also in .tsv format, where the fields are separated by tabulation character.  
+In the matrix, the reduced features are presented as rows, and the columns are in same order as the input.  
+KaMRaT guarantees the information of output matrix coherent with the input matrix. For KaMRaT-rank, though there are steps of count normalization, log transformation and standardization for score evaluation, the count values in output matrix are kept same as input (raw count).
 
-In the matrix, the reduced features are presented as rows, and the columns are in same order as the input.
+## Usage
 
-For KaMRaT rank, an extra column named 'score' is inserted as the second column.
+Note: if you use KaMRaT in command line, please remember to indicate the full path to KaMRaT binary file.
 
-## KaMRaT Execution
+### KaMRaT Execution
 
-You can run KaMRaT under the pattern:
+We recommande using KaMRaT within ```singularity```:
 
-```bash
-/..path_to_KaMRaT../bin/kamrat <CMD> [option] input_table > output_table # <CMD> can be one from filter, mask, merge, norm, rank
+``` bash
+singularity exec -B /bind_src:/bind_des kamrat <CMD> [options] input_table # <CMD> can be one of filter, mask, merge, rank
 ```
 
-If using Singularity, please add a preceding command ```singularity exec``` before the KaMRaT command line, and you can ignore the leading path to KaMRaT ```bin/``` folder, i.e.
+The ```-B``` option is for binding disk partitions to singularity image, please check ```singularity``` helper for details:
 
 ```bash
-singularity exec kamrat <CMD> [option] input_table > output_table # <CMD> can be one from filter, mask, merge, norm, rank
+singularity exec -h
 ```
 
-In order to avoid being wordy, the following guidance only shows KaMRaT execution without Singularity. In the case of using Singularity, please add the preceding command and ignore the leading path to kamrat executable file, as mentioned above.
+It's also executable directly on command line:
 
-### KaMRaT Modules
+```bash
+/path_to_KaMRaT_bin_dir/kamrat <CMD> [options] input_table # <CMD> can be one of filter, mask, merge, rank
+```
 
-KaMRaT contains 5 modules:
-
-- Filter takes a k-mer count matrix as input, then output the submatrix of k-mers that satisfy the given expressed/silent criteria
-- Mask takes a k-mer count matrix and a contig fasta file as input, then output the submatrix of k-mers that appear in contig sequences
-- Merge takes a k-mer count matrix as input, then output a contig count matrix by merging k-mers according to their overlap (with/without intervention by count vector)
-- Norm takes a feature* count matrix as input, then output the normalized feature count matrix
-- Rank takes a feature* count matrix as input, scores and ranks the features on their association with sample labels, and output scores with counts for all or top-N features
-
-\* The feature count matrix can be not only k-mer count matrix, but any kind of count matrix once the first column represents the feature (gene, transcript, etc.)
+In the following sections, we present under the situation of using KaMRaT in ```singularity```.  
+For running it directly on command line, please replace the leading ```singularity exec -B /bind_src:/bind_des``` by the path to KaMRaT binary file.
 
 ### KaMRaT Helper
 
 KaMRaT's top-level helper is accessible by typing one of these commands:
 
-```bash
-/..path_to_KaMRaT../bin/kamrat
-/..path_to_KaMRaT../bin/kamrat -h
-/..path_to_KaMRaT../bin/kamrat -help
+``` bash
+singularity exec kamrat
+singularity exec kamrat -h
+singularity exec kamrat -help
 ```
 
 Helpers of each KaMRaT modules are accessible via:
 
-```bash
-# <CMD> can be one from filter, mask, merge, norm, rank #
-/..path_to_KaMRaT../bin/kamrat <CMD> -h
-/..path_to_KaMRaT../bin/kamrat <CMD> -help
+``` bash
+# <CMD> can be one from filter, mask, merge, rank #
+singularity exec kamrat <CMD> -h
+singularity exec kamrat <CMD> -help
 ```
 
-### KaMRaT filter
+### KaMRaT Usage by Module
 
-Filter usage:
+</details>
+
+<details>
+<summary>filter: Select expressed/silenced features* that filter through given criteria</summary>
 
 ```text
-/..path_to_KaMRaT../bin/kamrat filter -express-name STR -silent-name STR -express-thres INT_REC:INT_ABD -silent-thres INT_REC:INT_ABD [-smp-info STR] KMER_COUNT_TAB_PATH > KMER_COUNT_SUB_TAB_PATH
+[USAGE]    singularity exec -B /bind_src:/bind_des kamrat filter -filter-info STR [-options] KMER_TAB_PATH
+
+[OPTION]   -h,-help               Print the helper
+           -filter-info STR       Filter-info path, should be a table of two columns WITHOUT header row, MANDATORY
+                                      the first column should be sample names
+                                      the second column should be either UP or DOWN (all capital letters)
+                                          samples with UP will be considered as up-regulated samples
+                                          samples with DOWN will be considered as down-regulated samples
+                                          samples not mentioned in the file will not taken into consideration (being neutral)
+                                          samples can also be all UP or all DOWN
+           -up-min INT1:INT2      Up feature lower bound, [by default 1:1 (no filter)]
+                                      print the feature if at least (>=) INT1 UP-samples have count >= INT2
+           -down-max INT1:INT2    Down feature upper bound [by default 1:inf (no filter)]
+                                      print the feature if at least (>=) INT1 DOWN-samples have count <= INT2
+           -out-path              Output table path [default: output to screen]
 ```
 
-Filter parameters:
+</details>
+
+<details>
+<summary>mask: Reserve or remove k-mers with a given list of sequences</summary>
 
 ```text
--h,-help                      Print the helper
--express-name STR             Expressed samples as filter [mandatory]
-                                  all         for considering all samples
-                                  rest        for considering samples not related with -silent-name
-                                  STR:cond    for considering samples in the condition indicated by STR
-                                  STR:smp     for considering the only sample indicated by STR
--silent-name STR              Silent samples as filter [mandatory]
-                                  all         for considering all samples
-                                  rest        for considering samples not related with -express-name
-                                  STR:cond    for considering samples in the condition indicated by STR
-                                  STR:smp     for considering the only sample indicated by STR
--express-thres INT_R:INT_A    Expressed filter threshold [mandatory]
-                                  keep features which have at least (>=) INT_R samples with count >= INT_A (only consider columns related with -express-name)
-                                  if -express-name indicates a sample name, INT_R must be 1
--silent-thres INT_R:INT_A     Silent filter threshold [mandatory]
-                                  keep features which have at least (>=) INT_R samples with count <= INT_A (only consider columns related with -silent-name)
-                                  if -silent-name indicates a sample name, INT_R must be 1
--smp-info STR                 Path to sample-condition file, without header line
-                                  if absent, all columns except the first are regarded as samples and labeled as \"all\"
+[Usage]    singularity exec -B /bind_src:/bind_des kamrat mask -klen INT -fasta STR [-options] KMER_TAB_PATH
+
+[Option]    -h,-help         Print the helper
+            -klen INT        Length of k-mers, mandatory
+            -fasta STR       Sequence fasta file as the mask, mandatory
+            -unstrand        If k-mers are generated from unstranded RNA-seq data
+            -reverse-mask    Reverse mask, to select the k-mers in sequence fasta file
+            -out-path        Output table path [default: output to screen]
 ```
 
-### KaMRaT mask
+</details>
 
-Mask usage:
+<details>
+<summary>merge: Extend k-mers into contigs according to their overlap</summary>
 
 ```text
-/..path_to_KaMRaT../bin/kamrat mask -klen INT -fasta STR [-unstrand] [-reverse-mask] KMER_COUNT_TAB_PATH > KMER_COUNT_SUB_TAB_PATH
+[Usage]    singularity exec -B /bind_src:/bind_des kamrat merge -klen INT -idx-path STR [-options] KMER_TAB_PATH
+
+[Option]    -h,-help              Print the helper
+            -klen INT             k-mer length (max_value: 32)
+            -idx-path STR         Temporary file path for saving count index, mandatory
+            -unstrand             If the k-mers are generated from non-stranded RNA-seq data
+            -min-overlap INT      Min assembly overlap (max_value: k) [floor(k/2)]
+            -smp-info STR         Sample-info path, either list or table with sample names as the first column
+                                      if absent, all columns except the first one in k-mer count table are taken as samples
+            -interv-method STR    Intervention method (none, pearson, spearman, mac) [none]
+                                      the threshold can be precised after a ':' symbol
+            -quant-mode STR       Quantification mode (rep, mean) [rep]
+            -rep-name STR         Representative value column name, k-mer input order as rep-val by default
+            -out-path STR         Output contig count table path [default: output to screen]
 ```
 
-Mask parameters:
+</details>
+
+<details>
+<summary>rank: Score and sort features* by count variability or association to sample conditions</summary>
 
 ```text
--h,-help         Print the helper
--klen INT        k-mer length [mandatory, default value: 31]
--fasta STR       Sequence fasta file as mask [mandatory]
--unstrand        If consider also the reverse complement of k-mers in sequence fasta
--reverse-mask    Reversely mask, i.e. to select (rather than to remove) the k-mers in the sequence fasta file
+[USAGE]   singularity exec -B /bind_src:/bind_des kamrat rank -idx-path STR -nf-path STR [-options] FEATURE_TAB_PATH
+
+[OPTION]        -h,-help             Print the helper 
+                -idx-path STR        Temporary file path for saving count index [MANDATORY]
+                -nf-path             Output path for nomalization factor [MANDATORY]
+                -smp-info STR        Path to sample-condition or sample file, without header line
+                                         if absent, all columns except the first in the count table are regarded as sample
+                -score-method STR    Evaluation method to use and its parameter, seperated by ':' (cf. [EVAL. METHOD])
+                -top-num INT         Number of top features to select
+                -ln                  Apply ln(x + 1) transformation for score estimation [false]
+                -standardize         Standarize count vector for score estimation [false]
+                -no-norm             Estimate scores with raw count, do NOT apply normalization
+                -out-path STR        Output table path [default: output to screen]
+                                         the output counts are same as the input counts,
+                                         normalization, log transformation, and standardization affect score evaluation, but not output counts
+
+[EVAL. METHOD]  rsd                  Relative standard deviation
+                ttest                T-test between conditions (ln transformation is required)
+                snr                  Signal-to-noise ratio between conditions
+                lrc:n_fold           F1-score with regression classification [default n_fold = 1]
+                                         if n_fold = 0, leave-one-out cross-validation is applied
+                                         if n_fold = 1, evaluation without cross-validation, training and testing on the whole datset
+                                         if n_fold >= 2, n-fold cross-validation is applied
+                nbc:n_fold           F1-score with naive Bayes classification [default n_fold = 1]
+                                         if n_fold = 0, leave-one-out cross-validation is applied
+                                         if n_fold = 1, evaluation without cross-validation, training and testing on the whole datset
+                                         if n_fold >= 2, n-fold cross-validation is applied
+                svm                  Hinge-loss function on SVM classification (standardization is required)
+                colname:sort_mode    User-defined method, where name indicates a column in the k-mer count table
+                                         sore_mode can be:    dec        Sorting by decreasing order
+                                                              dec_abs    Sorting by decreasing order but on the absolute value
+                                                              inc        Sorting by increasing order
+                                                              inc_abs    Sorting by increasing order but on the absolute value
 ```
 
-### KaMRaT merge
+</details>
 
-Merge usage:
-
-```text
-/..path_to_KaMRaT../bin/kamrat merge -klen INT [-min-overlap INT] [-unstrand] [-smp-info STR] [-interv-method STR] [-quant STR] [-rep-name STR] [-disk] [-idx-dir STR] KMER_COUNT_TAB_PATH > CONTIG_COUNT_TAB_PATH
-```
-
-Merge parameters:
-
-```text
--h,-help              Print the helper
--klen INT             k-mer length [mandatory, max value: 32]
--unstrand             If the k-mers are generated from non-stranded RNA-seq data
--min-overlap INT      Min assembly overlap [max value: k, default value: floor(k/2)]
--smp-info STR         Path to sample-condition file, without header line
-                          if absent, all columns except the first are regarded as samples
--interv-method STR    Intervention method [chosen from {none, pearson, spearman, mac}, default value: none]
-                          threshold can be precised after a ':' symbol [default: pearson:0.61, spearman:0.56, mac:0.25]
--quant STR            Quantification mode [value chosen from {rep, mean}, defalut value: rep]
--rep-name STR         Column name for representative value
-                          if absent, input order of k-mers are taken for choosing representative k-mer for each contig
--disk                 Query on disk [default value: false]
--idx-dir STR          Count index directory path [default value: ./]
-```
-
-Intervention method:
-
-```text
-none:        No intervention, merge the pre-contigs once they have unique overlap
-mac:         Mean absolute contrast between pre-contigs to merge, mac(c1, c2) = mean(abs(c1-c2)./(c1+c2)), where c1, c2 are count vectors of two pre-contigs and './' is division for each components.
-pearson:     Pearson correlation between pre-condtigs to merge
-spearman:    Spearman correlation between pre-contigs to merge
-```
-
-Count vector for output:
-
-```text
-rep:     representative* k-mer's sample count vector and other non-count values is output for each contig
-mean:    average sample count vector of all composite k-mers and other non-count values of the representative* k-mer is output for each contig
-
-* if no -rep-name is provided, the first input k-mer will be taken as the representative k-mer for each contig
-```
-
-### KaMRaT norm
-
-Norm usage:
-
-```text
-/..path_to_KaMRaT../bin/kamrat norm -base CHAR [-smp-info STR] [-ln] [-smp-sum STR] COUNT_TAB_PATH > NORM_COUNT_TAB_PATH
-```
-
-Norm parameters:
-
-```text
--h,-help         Print the helper
--base CHAR       Base for normalization [MANDATORY]
-                     B: count per billion
-                     M: count per million
-                     K: count per thousand
--smp-info STR    Path to sample-condition file, without header line
-                     if absent, all columns except the first are regarded as samples and will be normalized
--ln              If apply ln(x + 1) transformation after normalization
-                     hint: please remember to unlog for original counts after kamratReduce or other analysis
--smp-sum STR     Path for outputing sample sum [default value: ./sample_sum.tsv]
-```
-
-### KaMRaT rank
-
-Rank usage:
-
-```text
-/..path_to_KaMRaT../bin/kamrat rank [-smp-info STR] [-eval-method STR] [-sort-mode STR] [-top-num INT] [-ln] COUNT_TAB_PATH > COUNT_SUB_TAB_PATH
-```
-
-Rank parameters:
-
-```text
--h,-help             Print the helper
--smp-info STR        Path to sample-condition file, without header line
-                          if absent, all columns except the first are regarded as samples
--score-method STR    Evaluation method to use and its parameter, seperated by \':\' [default value: sd]
-                         sd            Standard deviation
-                         rsd           Relative standard deviation
-                         ttest         T-test adjusted p-value between conditions
-                         es            Effect size between conditions
-                         lfc:mean      Log2 fold change by group mean, 'mean' can be omitted by default
-                         lfc:median    Log2 fold change by group median
-                         nb:n_fold     Naive Bayes classification [default n_fold = 1 (no cross-validation)]
-                                           if n_fold = 0, leave-one-out cross-validation is applied
-                                           if n_fold = 1, no cross-validation is applied, features are evaluated by training and testing on the whole datset
-                                           if n_fold >= 2, n-fold cross-validation is applied
-                         rg:n_fold     Classification by regression (logistic regression for binary conditions, softmax regression for multiple conditions) [default n_fold = 1]
-                                           if n_fold = 0, leave-one-out cross-validation is applied
-                                           if n_fold = 1, no cross-validation is applied, features are evaluated by training and testing on the whole datset
-                                           if n_fold >= 2, n-fold cross-validation is applied
-                         user:NAME     User-defined method, NAME indicates the score column in the k-mer count table
--sort-mode STR       Mode for sorting features by score, default value depends on evaluation method
-                         dec        sort by decreasing order                              [as default value for sd, rsd, nb, rg, user:name]
-                         dec:abs    sort by decreasing order but on the absolute value    [as default value for es, lfc:mean, lfc:median]
-                         inc        sort by increasing order                              [as default value for ttest]
-                         inc:abs    sort by increasing order but on the absolute value
--top-num INT         Number of top features to output
--ln                  Apply ln(x + 1) transformation BEFORE score estimation [default value: false]
-                         note: this applies ONLY for score estimation, will NOT affect output counts
-```
+\* The feature count matrix can be not only k-mer count matrix, but any kind of count matrix once the first column represents the feature (gene, transcript, etc.)
 
 ## Software/Library Citations
 
