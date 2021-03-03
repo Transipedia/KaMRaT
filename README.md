@@ -11,7 +11,8 @@ The name KaMRaT means k-mer Matrix Reduction Toolkit, or k-mer Matrix, Really Tr
 ## Typical Workflow built around KaMRaT
 
 KaMRaT *per se* is shown at the center of the workflow. It is a C++ program that takes as input a count matrix and produces another matrix as output.
-In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and produce a reduced matrix containing features of interest with respect to a provided design file. 
+In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and producing a reduced matrix with features of interest with respect to a provided design file. The resulting matrix is then used as input for building a predictor. 
+The present archive contains both Kamrat and the surrounding pipeline used for feeding the input matrix and model building/evaluation. Note that KaMRaT can also be used as a standalone application for treating any input matrix (*e.g.* a conventional gene expression matrix). 
 
 ![image](docs/KaMRaT_workflow.png)
 
