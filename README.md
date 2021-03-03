@@ -142,7 +142,7 @@ singularity exec kamrat <CMD> -help
 
 ### KaMRaT Usage by Module
 
-</details>
+
 
 <details>
 <summary>filter: Select expressed/silenced features* that filter through given criteria</summary>
