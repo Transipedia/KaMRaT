@@ -10,4 +10,5 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     cd /usr && git clone --recursive https://github.com/Transipedia/KaMRaT.git && cd KaMRaT && bash compile.bash && \
     echo "Creation Complete !"
 
-CMD kamrat
+ENTRYPOINT ["kamrat"]
+

@@ -18,7 +18,7 @@ const void Welcome()
 const void PrintHelper()
 {
     std::cerr << "[Usage]" << std::endl 
-              << "    kamrat <command> [options] COUNT_TAB_PATH > OUTPUT_PATH" << std::endl
+              << "    kamrat <command> [options] COUNT_TAB_PATH" << std::endl
               << "[Command]" << std::endl
               << "    filter:    filter count table according to occurence among samples" << std::endl
               << "    mask:      mask/select count table according to given sequences" << std::endl
