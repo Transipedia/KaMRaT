@@ -11,7 +11,7 @@ The name KaMRaT means k-mer Matrix Reduction Toolkit, or k-mer Matrix, Really Tr
 ## Typical Workflow built around KaMRaT
 
 KaMRaT *per se* is shown at the center of the workflow. It is a C++ program that takes as input a count matrix and produces another matrix as output.
-In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and producing a reduced matrix with features of interest with respect to a provided design file. The resulting matrix is then used as input for building a predictor. 
+In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and producing a reduced matrix with features of interest with respect to condisitons in the input sample-info file. The resulting matrix is then used as input for building a predictor for thos conditions. 
 The present archive contains both Kamrat and the surrounding pipeline used for feeding the input matrix and model building/evaluation. Note that KaMRaT can also be used as a standalone application for treating any input matrix (*e.g.* a conventional gene expression matrix). 
 
 ![image](docs/KaMRaT_workflow.png)
@@ -78,20 +78,20 @@ If you are using a cluster that does not support ```sudo```, you can build the i
 The sample-info file is indicated by the option `-smp-info`. This file aims to indicate which columns in the k-mer count matrix should be considered as sample columns. Please do not put any header line in the file, since the columns are already defined by convention as below.  
 
 + If the file contains only one column, it indicates sample names, and all samples are considered as the same condition
-+ If the file contains two columns, the first column corresponds to sample names, and the second conrresponds to conditions
++ If the file contains two columns, the first column corresponds to sample names, and the second corresponds to conditions
 + If the file is not provided, all columns in the matrix apart from the first one are considered as samples
 
 ### Input Count Matrix for KaMRaT
 
-The input count matrix should be in .tsv or .tsv.gz format, in which the fields are separated by tabulation character.  
+The input count matrix should be in .tsv or .tsv.gz format, in which fields are separated by tabulations.  
 In the matrix, features are presented as rows, and samples as columns. The first column in matrix should always be the feature column (sequences or feature names).  
 KaMRaT accepts extra columns representing non-count values, e.g. feature's p-value, score, etc. In this case, a smp-info file is mandatory for indicating which columns are the count columns.
 
 ### Output Count Matrix by KaMRaT
 
-The output count matrix is also in .tsv format, where the fields are separated by tabulation character.  
-In the matrix, the reduced features are presented as rows, and the columns are in same order as the input.  
-KaMRaT guarantees the information of output matrix coherent with the input matrix. For KaMRaT-rank, though there are steps of count normalization, log transformation and standardization for score evaluation, the count values in output matrix are kept same as input (raw count).
+The output count matrix is also .tsv format table, where fields are separated by tabs.  
+In the matrix, the features are presented as rows, and the columns are in same order as the input.  
+KaMRaT guarantees the information of output matrix is coherent with that of the input matrix. For KaMRaT-rank, though there are steps of count normalization, log transformation and standardization for score evaluation, the count values in output matrix are kept same as input (raw count).
 
 ## Usage
 
