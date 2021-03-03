@@ -57,7 +57,13 @@ Finally, an executable binary file is available as `bin/kamrat`.
 <details>
 <summary>Use singularity</summary>
 
-Hello world !
+If using KaMRaT inside singularity, only by pulling from docker hub is enough:
+
+```bash
+sudo singularity build KaMRaT.img docker://xuehl/kamrat:latest
+```
+
+If you are using a cluster that does not support ```sudo```, you can build the image locally and copy the image to cluster for running.
 
 </details>
 
@@ -242,8 +248,8 @@ singularity exec kamrat <CMD> -help
 
 Armadillo:
 
-- Conrad Sanderson and Ryan Curtin. Armadillo: a template-based C++ library for linear algebra. Journal of Open Source Software, Vol. 1, pp. 26, 2016.
-- Conrad Sanderson and Ryan Curtin. A User-Friendly Hybrid Sparse Matrix Class in C++. Lecture Notes in Computer Science (LNCS), Vol. 10931, pp. 422-430, 2018.
++ Conrad Sanderson and Ryan Curtin. Armadillo: a template-based C++ library for linear algebra. Journal of Open Source Software, Vol. 1, pp. 26, 2016.
++ Conrad Sanderson and Ryan Curtin. A User-Friendly Hybrid Sparse Matrix Class in C++. Lecture Notes in Computer Science (LNCS), Vol. 10931, pp. 422-430, 2018.
 
 [Boost C++ Library](https://www.boost.org/)
 
