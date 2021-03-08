@@ -16,6 +16,15 @@ The present archive contains Kamrat and the surrounding pipeline used for feedin
 
 ![image](docs/KaMRaT_workflow.png)
 
+A set of auxiliary tools to be used for upstream and downstream of kamrat are also provided:
++ Upstream tools: 
+  + A matrix generating module controlled by Snakemake which applying jellyfish and DE-kupl joinCounts module
+  + A bash script for generating a submatrix by selecting from it a set of columns
++ Downstream tools:
+  + A feature selection model with an R script applying ridge/lasso regressions and random forest classifier
+  + A contig counting module implemented in C++ for estimating the counts of a list of contigs in an independent dataset; it also supports evaluation of sample count coherence among contig's compositional k-mers 
+  + A model evaluation module written in R taking a trained model and evaluating it with a feature count matrix and feature conditions
+
 ## Installation
 
 <details>
@@ -258,3 +267,7 @@ Armadillo:
 DE-kupl: Audoux, J., Philippe, N., Chikhi, R. et al. DE-kupl: exhaustive capture of biological variation in RNA-seq data through k-mer decomposition. Genome Biol 18, 243 (2017).
 
 MLPack: R.R. Curtin, M. Edel, M. Lozhnikov, Y. Mentekidis, S. Ghaisas, S. Zhang. mlpack 3: a fast, flexible machine learning library. Journal of Open Source Software 3:26, 2018.
+
+glmnet: Friedman, Jerome, Trevor Hastie, and Rob Tibshirani. "Regularization paths for generalized linear models via coordinate descent." Journal of statistical software 33.1 (2010): 1.
+
+randomForest: Liaw, Andy, and Matthew Wiener. "Classification and regression by randomForest." R news 2.3 (2002): 18-22. 
