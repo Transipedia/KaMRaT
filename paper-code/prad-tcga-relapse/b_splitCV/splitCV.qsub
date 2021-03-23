@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#PBS -N makeCV
+#PBS -q common
+#PBS -l nodes=1:ppn=1
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+set -e
+
+full_smp_condi_path="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/data/sample-condition.relapse.tsv"
+jellyfish_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/kamrat-paper/prad-tcga/a_gen_kmer_matrix/kmer_counts"
+out_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/kamrat-paper/prad-tcga-relapse/b_splitCV"
+
+nb_fold=5
+min_rec=3
+min_rec_abd=10
+
+mkdir -p $out_dir
+
+smp_condi_header=`head -n1 $full_smp_condi_path`
+/store/USERS/haoliang.xue/development/KaMRaT/related-tools/prepare_kmer_table/splitCV.bash -s <(sed '1d' $full_smp_condi_path) -n 5 -o $out_dir
+
+for f in $out_dir/sampleshuf.t*.tsv
+do
+	t="${f/sampleshuf/kmer-counts}.gz"
+	awk 'BEGIN{printf("tag")} {printf("\t%s", $1)} END{print ""}' $f | gzip -c >> $t 
+	path_list=`awk -v jd=$jellyfish_dir '{print jd"/"$1".txt.gz"}' $f`
+	/store/USERS/haoliang.xue/development/KaMRaT/related-tools/prepare_kmer_table/dekupl-joinCounts/joinCounts -r $min_rec -a $min_rec_abd ${path_list[@]} | gzip -c >> $t
+	sed -i "1i $smp_condi_header" $f # add header after retrieving sub-matrix
+done

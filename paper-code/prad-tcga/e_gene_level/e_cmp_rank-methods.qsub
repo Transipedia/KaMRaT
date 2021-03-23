@@ -4,7 +4,6 @@
 #PBS -q ssfa
 #PBS -m ea
 #PBS -M haoliang.xue@i2bc.paris-saclay.fr
-#PBS -W depend=afterok:826726
 
 set -e
 
@@ -12,7 +11,7 @@ proj_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA"
 mdl_dir=$proj_dir"/e_gene_level/b_rank_res"
 out_dir=$proj_dir"/e_gene_level/c_assess_res"
 
-#mkdir $out_dir
+mkdir $out_dir
 
 method_list=(ttest snr lrc nbc svm)
 for n in $(seq 0 4)

@@ -71,14 +71,11 @@ MAX_CPU_SORT = 10
 # LOAD SAMPLES FROM TSV FILE
 SAMPLES = []
 with open(SAMPLES_TSV) as f:
-    #sys.stderr.write("loading samples and conditions from " + SAMPLES_TSV + "\n")
     reader = csv.DictReader(f, delimiter='\t')
     if 'sample' not in reader.fieldnames:
         sys.exit("Missing column 'sample' in " + SAMPLES_TSV)
-    elif 'condition' not in reader.fieldnames:
-        sys.exit("Missing condition column '" + 'condition' + "' in " + SAMPLES_TSV)
     for row in reader:
-        SAMPLES.append({'sample': row['sample'], 'condition': row['condition']})
+        SAMPLES.append({'sample': row['sample']})
 
 SAMPLE_NAMES = [i['sample'] for i in SAMPLES]
 

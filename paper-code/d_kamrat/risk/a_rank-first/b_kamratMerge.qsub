@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#PBS -N rsk-merge-all
+#PBS -l nodes=1:ppn=1
+#PBS -q common
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+set -e
+
+tab_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/CVMatrices/risk-new"
+out_prefix="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/ranking-first/risk-new/train"
+
+nb_fold=5
+
+for i in $(seq 0 $((nb_fold - 1)))
+do
+	smp_condi=$tab_dir"/sampleshuf.train"$i".tsv"
+
+	method_list=(ttest snr lrc nbc svm)
+	method_suffix=(.padj "" .f1 .f1 .hingeloss)
+	method_sort=(min maxabs max max min)
+	for j in `seq 0 3` # to change when SVM finishes
+	do
+		m=${method_list[$j]}
+		out_dir=$out_prefix$i/$m
+		score_method=$m${method_suffix[$j]}:${method_sort[$j]}
+
+		head -n 100001 $out_dir/ranked-counts.tsv > $out_dir/top100000-counts.tsv
+		/store/USERS/haoliang.xue/development/KaMRaT/bin/kamrat merge -klen 31 -idx-path $out_dir/merge.idx -unstrand -smp-info <(sed '1d' $smp_condi) -interv-method mac:0.32 -quant-mode mean -rep-name $score_method -out-path $out_dir/contig-counts.tsv $out_dir/top100000-counts.tsv
+	        rm -f $out_dir/merge.idx
+		sed -i "s/$m${method_suffix[$j]}/score/g" $out_dir/contig-counts.tsv
+	done
+done

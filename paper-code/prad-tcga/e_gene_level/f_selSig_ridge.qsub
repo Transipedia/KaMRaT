@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#PBS -N selSignature
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+#PBS -q ssfa
+#PBS -l nodes=1:ppn=4
+
+set -e
+
+rk_tab_prefix="/data/work/I2BC/haoliang.xue/PRAD_TCGA/e_gene_level/b_rank_res"
+smp_info_prefix="/data/work/I2BC/haoliang.xue/PRAD_TCGA/b_splitCV/sampleshuf"
+
+for i in $(seq 0 4)
+do
+	rk_dir=$rk_tab_prefix/train$i-snr
+	/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/fitModel.R $rk_dir/top5000-gene-counts.tsv $smp_info_prefix.train$i.tsv $rk_dir ridge $rk_dir/smp-nf.tsv
+done
+

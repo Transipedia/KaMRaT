@@ -1,0 +1,39 @@
+#!/bin/bash
+
+#PBS -N rlps-pred
+#PBS -q common 
+#PBS -l nodes=1:ppn=1 
+#PBS -m ea 
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+set -e
+
+smp_bin_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/iMOKA/matrix/sample-bin"
+data_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/CVMatrices/relapse"
+mdl_prefix="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/iMOKA/relapse/train"
+out_prefix="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/iMOKA/relapse/test"
+
+export IMOKA_MAX_MEM_GB=50 
+export SINGULARITY_BINDPATH="/data,/store"
+
+for i in `seq 0 4`
+do
+	smp_info=$data_dir"/sampleshuf.test"$i".tsv"
+	count_tab=$data_dir"/kmer-counts.test"$i".tsv"
+	mdl=$mdl_prefix$i"/randomforest_models/0_RF.pickle"
+	mdl_ft=$mdl_prefix$i"/randomforest_models/0_RF.pickle.features"
+	out_dir=$out_prefix$i
+	
+	mkdir -p $out_dir
+
+	awk -v bindir=$smp_bin_dir '$1 != "sample" {print bindir"/"$1".txt\t"$1"\t"$2}' $smp_info > $out_dir/create_matrix.tsv
+	singularity exec -B /store:/store /home/haoliang.xue/tools/iMOKA_extended iMOKA_core create -i $out_dir/create_matrix.tsv -o $out_dir/matrix.json
+
+	aggregated_matrix=$mdl_prefix$i"/aggregated.kmers.matrix"  ## The final output of iMOKA computed from the training set
+	test_matrix=$out_dir"/matrix.json" ## the intial test matrix ( output of iMOKA_core create )
+
+	awk 'NR > 2 {print $1}' $aggregated_matrix > $out_dir"/kmers.ls"
+	singularity exec /home/haoliang.xue/tools/iMOKA_extended iMOKA_core extract -i $out_dir/kmers.ls -o $out_dir/test.matrix -s $test_matrix
+
+	singularity exec /home/haoliang.xue/tools/iMOKA_extended predict.py $out_dir/test.matrix $mdl $out_dir/prediction_test.txt
+done

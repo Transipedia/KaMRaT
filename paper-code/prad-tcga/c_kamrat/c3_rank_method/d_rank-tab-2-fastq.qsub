@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#PBS -N rk2fa
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+rk_dir_prefix="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/kamrat-paper/prad-tcga/c_kamratRes/c3_rank-methods/train"
+
+for i in $(seq 0 4)
+do
+	d=$rk_dir_prefix$i
+	for f in $d/ranked-contig*
+	do
+		awk 'NR > 1 {print ">ctg_"NR - 1":"$2"\n"$1}' $f > ${f/tsv/fa}
+	done
+done

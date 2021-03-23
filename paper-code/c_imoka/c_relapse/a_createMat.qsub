@@ -1,0 +1,22 @@
+#!/bin/bash
+
+#PBS -N rlps-createMat
+#PBS -q common
+#PBS -l nodes=1:ppn=1
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+smp_bin_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/iMOKA/matrix/sample-bin"
+smp_condi_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/CVMatrices/relapse"
+
+for i in $(seq 0 4)
+do
+	out_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/iMOKA/relapse/train"$i
+	mkdir -p $out_dir
+
+	smp_condi=$smp_condi_dir/sampleshuf.train$i.tsv
+	awk -v bindir=$smp_bin_dir '$1 != "sample" {print bindir"/"$1".txt\t"$1"\t"$2}' $smp_condi > $out_dir/create_matrix.tsv
+
+	export IMOKA_MAX_MEM_GB=50 
+	singularity exec -B /store:/store /home/haoliang.xue/tools/iMOKA_extended iMOKA_core create -i $out_dir/create_matrix.tsv -o $out_dir/matrix.json
+done
