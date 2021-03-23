@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#PBS -N make_submat
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+init_gene_tab="/store/EQUIPES/SSFA/MEMBERS/thi-ngoc-ha.nguyen/Prostate_TCGA_LRvsHR/DEkupl_LRvsHR_limma_Mask/Result_gene_counts/gene_counts.tsv.gz"
+smp_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/CVMatrices/risk"
+
+for i in $(seq 0 4)
+do
+	/store/USERS/haoliang.xue/development/KaMRaT/related-tools/prepare_kmer_table/selectSubmat.bash -m <(zcat $init_gene_tab) -l <(sed '1d' $smp_dir/sampleshuf.train$i.tsv) -o $smp_dir/gene-counts.train$i.tsv
+	/store/USERS/haoliang.xue/development/KaMRaT/related-tools/prepare_kmer_table/selectSubmat.bash -m <(zcat $init_gene_tab) -l <(sed '1d' $smp_dir/sampleshuf.test$i.tsv) -o $smp_dir/gene-counts.test$i.tsv
+done

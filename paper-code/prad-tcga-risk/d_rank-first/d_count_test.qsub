@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#PBS -N countSig
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+#PBS -q ssfa
+
+tab_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/kamrat-paper/prad-tcga/b_splitCV"
+out_prefix="/data/work/I2BC/haoliang.xue/PRAD_TCGA_risk/c_kamratRes/c2_rank-first/train"
+
+for i in $(seq 0 4)
+do
+	test_smp_info=$tab_dir/sampleshuf.test$i.tsv
+	test_tab=$tab_dir/kmer-counts.test$i.tsv.gz
+	method_list=(ttest snr lrc nbc)
+	for m in ${method_list[@]}
+	do
+		out_dir=$out_prefix$i/$m
+		/store/USERS/haoliang.xue/development/KaMRaT/bin/contigEvaluate -klen 31 -fasta $out_dir/signatures-lasso.fa -eval-method median -idx-path $out_dir/counts.idx -unstrand -smp-info <(sed '1d' $test_smp_info) -out-path $out_dir/contig-counts-lasso.test.tsv $test_tab
+		rm -f $out_dir/counts.idx
+		/store/USERS/haoliang.xue/development/KaMRaT/bin/contigEvaluate -klen 31 -fasta $out_dir/signatures-ridge.fa -eval-method median -idx-path $out_dir/counts.idx -unstrand -smp-info <(sed '1d' $test_smp_info) -out-path $out_dir/contig-counts-ridge.test.tsv $test_tab
+		rm -f $out_dir/counts.idx
+	done
+done
+

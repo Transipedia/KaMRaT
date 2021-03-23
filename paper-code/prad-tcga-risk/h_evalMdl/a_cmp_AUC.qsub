@@ -1,0 +1,58 @@
+#!/bin/bash
+
+#PBS -N models_assess
+#PBS -q ssfa
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+set -e
+
+proj_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/kamrat-paper/prad-tcga-risk"
+mdl_prefix="/data/work/I2BC/haoliang.xue/PRAD_TCGA_risk"
+
+mdl_dir=$mdl_prefix"/c_kamratRes/c1_merge-first"
+for p in `echo lasso ridge`
+do
+	for i in $(seq 0 4)
+	do
+		for m in `echo ttest snr lrc nbc svm`
+		do
+			trained_mdl_path=$mdl_dir/train$i/$m/fitted-model-$p.rds
+			test_count_path=$mdl_dir/train$i/$m/contig-counts-$p.test.tsv
+			smp_info_path=$proj_dir/b_splitCV/sampleshuf.test$i.tsv
+			/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/evaluateModel.R $trained_mdl_path $test_count_path $smp_info_path >> $mdl_prefix/assess_models.tsv
+		done
+	done
+done
+
+mdl_dir=$mdl_prefix"/c_kamratRes/c2_rank-first"
+for p in `echo lasso ridge`
+do
+	for i in $(seq 0 4)
+	do
+		for m in `echo ttest snr lrc nbc`
+		do
+			trained_mdl_path=$mdl_dir/train$i/$m/fitted-model-$p.rds
+			test_count_path=$mdl_dir/train$i/$m/contig-counts-$p.test.tsv
+			smp_info_path=$proj_dir/b_splitCV/sampleshuf.test$i.tsv
+			/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/evaluateModel.R $trained_mdl_path $test_count_path $smp_info_path >> $mdl_prefix/assess_models.tsv
+		done
+	done
+done
+
+mdl_dir=$mdl_prefix"/f_gene/b_rank_res"
+for p in `echo lasso ridge`
+do
+	for i in $(seq 0 4)
+	do
+		for m in `echo ttest snr lrc nbc svm`
+		do
+			trained_mdl_path=$mdl_dir/train$i/$m/fitted-model-$p.rds
+			test_count_path=$mdl_dir/train$i/$m/gene-counts-$p.test.tsv
+			smp_info_path=$proj_dir/b_splitCV/sampleshuf.test$i.tsv
+			/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/evaluateModel.R $trained_mdl_path $test_count_path $smp_info_path >> $mdl_prefix/assess_models.tsv
+		done
+	done
+done
+
+

@@ -1,0 +1,11 @@
+{
+  "jellyfish": "/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/jellyfish",
+  "pigz": "/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/pigz",
+  "fastq_dir": "/store/EQUIPES/SSFA/MEMBERS/thi-ngoc-ha.nguyen/Prostate_Singularity/data",
+  "kmer_length": 31,
+  "lib_type": "unstranded",
+  "output_dir": "/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/data/jellyfish_res",
+  "r1_suffix": "_1.fastq.gz",
+  "r2_suffix": "_2.fastq.gz",
+  "samples_tsv": "/store/USERS/haoliang.xue/development/KaMRaT/paper-code/a_jellyfish/sample-list.tsv"
+}

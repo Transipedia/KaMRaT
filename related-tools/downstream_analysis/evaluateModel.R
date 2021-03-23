@@ -9,11 +9,11 @@ library(ROCR)
 
 cmdArgs <- commandArgs(trailingOnly = T)
 trained.mdl.path <- cmdArgs[1]
-# trained.mdl.path <- "/home/haoliang.xue/media/data/PRAD_TCGA/e_gene_level/b_rank_res/train0-lrc/fitted-model-lasso.rds"
+trained.mdl.path <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/PRAD_TCGA/merging-first/relapse/train0/ttest/fitted-model-ridge.rds"
 sig.count.path <- cmdArgs[2]
-# sig.count.path <- "/home/haoliang.xue/media/data/PRAD_TCGA/e_gene_level/b_rank_res/train0-lrc/signatures-in-test.tsv"
+sig.count.path <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/PRAD_TCGA/merging-first/relapse/test0/contig-counts-ridge.ttest.tsv"
 smp.info.path <- cmdArgs[3]
-# smp.info.path <- "/home/haoliang.xue/media/data/PRAD_TCGA/b_splitCV/sampleshuf.test0.tsv"
+smp.info.path <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/PRAD_TCGA/CVMatrices/relapse/sampleshuf.test0.tsv"
 
 evalModel <- function(mdl.fit, test.x, test.y, mdl.name) {
     if (mdl.name == "lasso" || mdl.name == "elasticnet" || mdl.name == "ridge") {

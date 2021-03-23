@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#PBS -N prepare_tab
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+
+indir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/kamrat-paper/prad-tcga/c_kamratRes/c1_merge-first"
+outdir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/kamrat-paper/prad-tcga/h_mergef-deseq2"
+
+for i in $(seq 0 4)
+do
+	mkdir $outdir/train$i
+	awk 'NR == 1 {printf("%s", $1); for (i = 4; i <= NF; i++) printf("\t%s", $i); print ""} NR > 1 {printf("%s", $1); for (i = 4; i <= NF; i++) printf("\t%d", $i + 0.5); print ""}' $indir/contig-counts.train$i.tsv | sed 's/contig/tag/g' | gzip -c > $outdir/train$i/contig-counts.tsv.gz
+done
+

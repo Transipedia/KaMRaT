@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#PBS -N selSignature
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+#PBS -q ssfa
+#PBS -l nodes=1:ppn=4
+
+set -e
+
+smp_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/kamrat-paper/prad-tcga/b_splitCV"
+
+proj_dir="/data/work/I2BC/haoliang.xue/PRAD_TCGA_risk"
+dir_prefix=$proj_dir"/c_kamratRes/c2_rank-first/train"
+
+for i in $(seq 0 4)
+do
+	method_list=(ttest snr lrc nbc svm)
+	method_suffix=(.padj "" .f1 .f1 .hingeloss)
+	method_sort=(inc decabs dec dec inc)
+	for j in $(seq 0 3) 
+	do
+		m=${method_list[$j]}
+		out_dir=$dir_prefix$i/$m
+		score_method=score:${method_sort[$j]}
+
+		/store/USERS/haoliang.xue/development/KaMRaT/bin/kamrat rank -idx-path $out_dir/counts.idx -nf-path $out_dir/smp-nf2.tsv -smp-info <(sed '1d' $smp_dir/sampleshuf.train$i.tsv) -score-method $score_method -top-num 5000 -out-path $out_dir/top5000-contig-counts.tsv $out_dir/contig-counts.tsv
+		rm -f $out_dir/counts.idx
+
+		/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/fitModel.R $out_dir/top5000-contig-counts.tsv $smp_dir/sampleshuf.train$i.tsv $out_dir lasso $out_dir/smp-nf2.tsv
+		/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript /store/USERS/haoliang.xue/development/KaMRaT/related-tools/downstream_analysis/fitModel.R $out_dir/top5000-contig-counts.tsv $smp_dir/sampleshuf.train$i.tsv $out_dir ridge $out_dir/smp-nf2.tsv
+	done
+done
+

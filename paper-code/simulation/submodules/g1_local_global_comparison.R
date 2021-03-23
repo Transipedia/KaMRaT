@@ -10,9 +10,9 @@ kamrat.res.dir.prefix <- cmdArgs[1]
 spades.res.dir <- cmdArgs[2]
 out.dir <- cmdArgs[3]
 
-# kamrat.res.dir.prefix <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/f_kamrat_res/a_errfree_randsel/merged-contigs-align-100pct-1-1."
-# spades.res.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/d_SPAdes_res/a_errfree"
-# out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/g_KaMRaT_merge_eval"
+kamrat.res.dir.prefix <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/kamrat-paper/simulation/f_kamrat_res/a_randsel/errfree/merged-contigs-align-100pct-1-1."
+spades.res.dir <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/kamrat-paper/simulation/d_SPAdes_res/a_errfree"
+out.dir <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/kamrat-paper/simulation/g_KaMRaT_merge_eval"
 
 get_quantile <- function(val, val.quant.vect) {
     bin.left <- val.quant.vect[-length(val.quant.vect)]
@@ -59,7 +59,7 @@ p.bar <- ggplot(data = to_draw.sum) +
     scale_fill_manual(values = c("azure", "gray")) +
     scale_color_manual(values = c("azure4", "dimgray")) +
     ylab("count") +
-    theme(text = element_text(size = 26),
+    theme(text = element_text(size = 26, family = "Arial"),
           axis.text.x = element_blank(),
           axis.title.x = element_blank())
 
@@ -69,7 +69,7 @@ p.box.local <- ggplot(data = to_draw) +
     scale_fill_manual(values = c("azure", "gray")) +
     scale_color_manual(values = c("azure4", "dimgray")) +
     ylab("local identical ratio") +
-    theme(text = element_text(size = 26),
+    theme(text = element_text(size = 26, family = "Arial"),
           axis.text.x = element_blank(),
           axis.title.x = element_blank())
 
@@ -80,7 +80,7 @@ p.box.global <- ggplot(data = to_draw) +
     scale_color_manual(values = c("azure4", "dimgray")) +
     xlab("contig length range in group") +
     ylab("jaccard index") +
-    theme(text = element_text(size = 26))
+    theme(text = element_text(size = 26, family = "Arial"))
 
 p.bar + theme(legend.position = "top") + 
     p.box.local + theme(legend.position = "none") + 

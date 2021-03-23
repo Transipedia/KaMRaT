@@ -33,6 +33,12 @@ if (length(cmdArgs) == 5) {
     nf.vect.path <- NA
 }
 
+print(feature.mat.path)
+print(smp.info.path)
+print(out.dir)
+print(model.name)
+print(nf.vect.path)
+
 extractStableFeatures <- function(x, y, thres, num.runs, glmnet.alpha) {
     n <- nrow(x) 
     p <- ncol(x)

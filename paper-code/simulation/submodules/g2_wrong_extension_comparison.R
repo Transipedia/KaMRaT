@@ -10,10 +10,10 @@ raw.dir.prefix <- cmdArg[2]
 kamrat.dir.prefix <- cmdArg[3]
 out.dir <- cmdArg[4]
 
-spades.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/d_SPAdes_res/a_errfree"
-raw.dir.prefix <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/e_jellyfish_joinCount_res/a_errfree/31/raw-counts-"
-kamrat.dir.prefix <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/f_kamrat_res"
-out.dir <- "/home/haoliang.xue/media/data/kamrat/paper/simulation/g_KaMRaT_merge_eval"
+spades.dir <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/kamrat-paper/simulation/d_SPAdes_res/a_errfree"
+raw.dir.prefix <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/kamrat-paper/simulation/e_jellyfish_joinCount_res/a_errfree/31/raw-counts-"
+kamrat.dir.prefix <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/kamrat-paper/simulation/f_kamrat_res"
+out.dir <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/kamrat-paper/simulation/g_KaMRaT_merge_eval"
 
 set.seed(91400)
 
@@ -26,19 +26,19 @@ calc_wrong_ratio <- function(align.tsv.path, all.fa.path) {
     fa.all <- readDNAStringSet(all.fa.path)
     fa.all <- fa.all[width(fa.all) > 31]
     fa.wrong <- fa.all[!(names(fa.all) %in% aligntab$qseqid[aligntab$is.correct])]
-    return(length(fa.wrong) / length(fa.all))
+    return(list(length(fa.wrong) / length(fa.all), length(fa.all)))
 }
 
 ## First Comparison: SPAdes vs KaMRaT-merge ##
 spades.res.prefix <- paste0(spades.dir, "/all_samples")
 spades.res <- calc_wrong_ratio(paste0(spades.res.prefix, "/blastn.alignment.tsv"),
                                paste0(spades.res.prefix, "/transcripts.fasta"))
-kamrat.none.prefix <- paste0(kamrat.dir.prefix, "/a_errfree_randsel")
+kamrat.none.prefix <- paste0(kamrat.dir.prefix, "/a_randsel/errfree")
 kamrat.res <- calc_wrong_ratio(paste0(kamrat.none.prefix, "/merged-contigs-align-100pct-1-1.none.tsv"),
                                paste0(kamrat.none.prefix, "/merged-contigs-100pct-1-1.none.fa"))
 out.file <- file(paste0(out.dir, "/wrong_contig_ratio_KaMRaT_vs_SPAdes.txt"))
-writeLines(c(paste0("SPAdes wrong assembly ratio: ", round(spades.res, 5) * 100, "%"),
-             paste0("KaMRaT-none wrong extension ratio: ", round(kamrat.res, 5) * 100, "%")), out.file)
+writeLines(c(paste0("SPAdes wrong assembly ratio: ", round(spades.res[[1]], 5) * 100, "%"),
+             paste0("KaMRaT-none wrong extension ratio: ", round(kamrat.res[[1]], 5) * 100, "%")), out.file)
 close(out.file)
 
 ## Figure 1: Comparison with variant k ##
@@ -54,7 +54,7 @@ for (k in c(31, 25, 21, 19, 15)) {
                                  data.frame("k.len" = k,
                                             "min.overlap" = m,
                                             "method" = str_replace(x, pattern = "_", replacement = ":"),
-                                            "wrong.ratio" = calc_wrong_ratio(aligntab.path, fa.path)))
+                                            "wrong.ratio" = calc_wrong_ratio(aligntab.path, fa.path)[[1]]))
         }
     }
 }
@@ -66,7 +66,7 @@ ggplot(extens.qual) +
     scale_x_reverse() +
     xlab("min overlap length") +
     ylab("wrong extension ratio") +
-    theme(text = element_text(size = 26),
+    theme(text = element_text(size = 26, family = "Arial"),
 	  legend.position = "top") +
     ggsave(paste0(out.dir, "/wrong_extension_ratio_with_varklen.png"), width = 16, height = 10)
 
@@ -88,14 +88,31 @@ for (d in c("errfree", "witherr")) {
             }
             aligntab.path <- paste0(kamrat.dir, "/merged-contigs-align-", r, "pct-1-", a, ".", x, ".tsv")
             fa.path <- paste0(kamrat.dir, "/merged-contigs-", r, "pct-1-", a, ".", x, ".fa")
+            wr <- calc_wrong_ratio(aligntab.path, fa.path)
             extens.qual <- rbind(extens.qual,
                                  data.frame("kept.ratio" = raw.kmer.nb/nb.kmer.all, 
                                             "method" = str_replace(x, pattern = "_", replacement = ":"),
-                                            "wrong.ratio" = calc_wrong_ratio(aligntab.path, fa.path),
+                                            "wrong.ratio" = wr[[1]],
+                                            "total.num" = wr[[2]],
                                             "read.type" = d))
         }
     }
 }
+
+extens.qual <- extens.qual[extens.qual$read.type == "errfree", ]
+extens.qual <- extens.qual[extens.qual$kept.ratio >= 0.40, ]
+
+ggplot(extens.qual) +
+    geom_line(aes(x = kept.ratio, y = total.num, color = method), size = 1) +
+    geom_point(aes(x = kept.ratio, y = total.num, color = method), size = 3) +
+    scale_color_manual(values = c("azure4", "gold3", "royalblue", "brown")) +
+    scale_x_reverse(breaks = seq(0, 1, by = 0.1),
+                    labels = paste0(as.character(seq(0, 1, by = 0.1) * 100), "%")) +
+    # facet_grid(read.type ~ ., scales = "free") +
+    xlab("ratio of k-mers for extension") +
+    ylab("total number of extension") +
+    theme(text = element_text(size = 30, family = "Arial"), legend.position = "top") +
+    ggsave(paste0(out.dir, "/total_number_of_extension.png"), width = 12, height = 6)
 
 ggplot(extens.qual) +
     geom_line(aes(x = kept.ratio, y = wrong.ratio, color = method), size = 1) +
@@ -108,6 +125,6 @@ ggplot(extens.qual) +
     # facet_grid(read.type ~ ., scales = "free") +
     xlab("ratio of k-mers for extension") +
     ylab("ratio of mis-extension") +
-    theme(text = element_text(size = 30), legend.position = "top") +
+    theme(text = element_text(size = 30, family = "Arial"), legend.position = "top") +
     ggsave(paste0(out.dir, "/wrong_extension_ratio_with_kept_ratio.png"), width = 12, height = 6)
  

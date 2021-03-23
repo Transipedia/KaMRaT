@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#PBS -N rsk-countSig
+#PBS -m ea
+#PBS -M haoliang.xue@i2bc.paris-saclay.fr
+#PBS -q ssfa
+
+tab_dir="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/CVMatrices/risk-new"
+train_prefix="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/merging-first/risk-new/train"
+out_prefix="/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/PRAD_TCGA/merging-first/risk-new/test"
+
+for i in $(seq 0 4)
+do
+	test_smp_info=$tab_dir/sampleshuf.test$i.tsv
+	test_tab=$tab_dir/kmer-counts.test$i.tsv.gz
+	method_list=(ttest snr lrc nbc)
+	
+	out_dir=$out_prefix$i
+	mkdir -p $out_dir
+	
+	for m in ${method_list[@]}
+	do
+		in_dir=$train_prefix$i/$m
+		/store/USERS/haoliang.xue/development/KaMRaT/bin/contigEvaluate -klen 31 -fasta $in_dir/signatures-ridge.fa -eval-method median -idx-path $out_dir/counts.$m.idx -unstrand -smp-info <(sed '1d' $test_smp_info) -out-path $out_dir/contig-counts-ridge.$m.tsv $test_tab
+		rm -f $out_dir/counts.$m.idx
+	done
+done
+
