@@ -1,9 +1,12 @@
-targets : kamrat contigEvaluate clean
+targets : kamrat clean
 
 CPPFLAGS = -Wall -Werror -g -std=c++14
 
-kamrat : kamrat.cpp kamratMerge.o kamratRank.o kamratMask.o kamratFilter.o
+kamrat : kamrat.cpp kamratIndex.o
 	g++ -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams
+
+kamratIndex : kamratIndex.cpp
+	g++ -c kamratIndex.cpp -lboost_iostreams $(CPPFLAGS)
 
 kamratMerge.o : kamratMerge.cpp common/tab_header.cpp common/kmer_elem.cpp merge/contig_elem.cpp merge/merge_knot.cpp
 	g++ -c kamratMerge.cpp common/tab_header.cpp common/kmer_elem.cpp merge/contig_elem.cpp merge/merge_knot.cpp -lboost_iostreams $(CPPFLAGS)

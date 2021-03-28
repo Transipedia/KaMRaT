@@ -3,9 +3,8 @@
 
 const void IndexWelcome()
 {
-    std::cerr << "===========================================================" << std::endl
-              << "|-------- KaMRaT index: index count table on disk --------|" << std::endl
-              << "-----------------------------------------------------------" << std::endl;
+    std::cerr << "KaMRaT index: index count table on disk" << std::endl
+              << "----------------------------------------------------------" << std::endl;
 }
 
 const void PrintIndexHelper()
@@ -29,21 +28,26 @@ const void ParseOptions(int argc, char *argv[],
                         std::string &count_tab_path)
 {
     int i_opt(1);
+    if (argc == 1)
+    {
+        PrintIndexHelper();
+        exit(EXIT_SUCCESS);
+    }
     while (i_opt < argc && argv[i_opt][0] == '-')
     {
         std::string arg(argv[i_opt]);
         if (arg == "-help" || arg == "-h")
         {
-            PrintFilterHelper();
+            PrintIndexHelper();
             exit(EXIT_SUCCESS);
         }
         else if (arg == "-out-dir" && i_opt + 1 < argc)
         {
-            out_path = argv[++i_opt];
+            out_dir = argv[++i_opt];
         }
         else
         {
-            PrintFilterHelper();
+            PrintIndexHelper();
             throw std::invalid_argument("unknown option: " + arg);
         }
         ++i_opt;
@@ -56,7 +60,7 @@ const void ParseOptions(int argc, char *argv[],
     count_tab_path = argv[i_opt++];
     if (out_dir.empty())
     {
-        PrintFilterHelper();
+        PrintIndexHelper();
         throw std::domain_error("output directory for index is mandatory");
     }
 }
