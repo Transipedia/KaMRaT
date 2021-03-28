@@ -4,6 +4,7 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <map>
 
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
@@ -13,11 +14,11 @@
 
 /* -------------------------------------------------- *\ 
  * idx-info:                                          *
- *     header line indicating column names            *
- *     tab separated (feature, position)              *
- *     normalization factor (binarized double vector) *
+ *   - header line indicating column names            *
+ *   - {position, feature} pairs ordered by position  *
+ *   - normalization factor (binarized double vector) *
  * idx-mat:                                           *
- *     feature counts (binarized float vector)        *
+ *   - feature counts (binarized float vector)        *
 \* -------------------------------------------------- */
 
 void ScanIndexCountTab(std::ofstream &idx_info, std::ofstream &idx_mat, std::istream &kmer_count_instream)
@@ -25,44 +26,50 @@ void ScanIndexCountTab(std::ofstream &idx_info, std::ofstream &idx_mat, std::ist
     size_t nb_smp(0);
     std::string line, term;
     std::getline(kmer_count_instream, line);
-    idx_info << line << std::endl; // idx-info 1: the header line
+    idx_info << line << std::endl; // in idx_info: write the header line
     std::istringstream conv(line);
     for (conv >> term; conv >> term; ++nb_smp) // count sample number, skipping the first column of feature names
     {
     }
     conv.clear();
-    std::cerr << "Sample number: " << nb_smp << std::endl;
 
+    std::map<std::string, size_t> feature_pos_map;
     std::vector<float> count_vect;
     std::vector<double> nf_vect(nb_smp, 0);
     double all_sum(0);
     while (std::getline(kmer_count_instream, line))
     {
         conv.str(line);
-        idx_info << "\t" << term << "\t" << static_cast<size_t>(idx_mat.tellp()); // idx-info 2: feature and its position
-        for (conv >> term; conv >> term; count_vect.push_back(std::stof(term)))   // store sample count, skipping the first column of feature names
+        conv >> term;
+        feature_pos_map.insert({term, static_cast<size_t>(idx_mat.tellp())});
+        for (; conv >> term; count_vect.push_back(std::stof(term))) // parse sample count skipping the first column of feature names
         {
         }
+        idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // in idx_mat: write feature count vector
         conv.clear();
         if (count_vect.size() != nb_smp)
         {
             throw std::length_error("sample numbers are not consistent: " + std::to_string(nb_smp) + " vs " + std::to_string(count_vect.size()));
         }
-        for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
+        for (size_t i_smp(0); i_smp < nb_smp; ++i_smp) // add the counts for normalization factor evaluation
         {
             nf_vect[i_smp] += count_vect[i_smp];
             all_sum += count_vect[i_smp];
         }
-        idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // idx-nat: sample columns
         count_vect.clear();
     }
-    std::cerr << "All sample sums: " << all_sum << std::endl;
-
+    idx_mat << std::endl;
     for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
     {
         nf_vect[i_smp] = all_sum / nf_vect[i_smp];
     }
-    idx_info.write(reinterpret_cast<char *>(&nf_vect[0]), nf_vect.size() * sizeof(double)); // idx-info 3: samples' normalization factors
+    idx_info.write(reinterpret_cast<char *>(&nf_vect[0]), nf_vect.size() * sizeof(double)); // in idx_info: write normalization factors
+    idx_info << std::endl;
+    for (auto &elem : feature_pos_map) // in idx_info: write {position, feature} pairs
+    {
+        idx_info.write(reinterpret_cast<char *>(&(elem.second)), sizeof(size_t));
+        idx_info << elem.first << std::endl;
+    }
 }
 
 void ScanIndex(const std::string &out_dir, const std::string &count_tab_path)
