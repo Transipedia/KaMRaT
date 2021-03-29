@@ -61,7 +61,7 @@ void ScanIndexCountTab(std::ofstream &idx_info, std::ofstream &idx_mat, std::ist
     idx_mat << std::endl;
     for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
     {
-        nf_vect[i_smp] = all_sum / nf_vect[i_smp];
+        nf_vect[i_smp] = all_sum / nb_smp / nf_vect[i_smp]; // norm_count = raw_count * nf
     }
     idx_info.write(reinterpret_cast<char *>(&nf_vect[0]), nf_vect.size() * sizeof(double)); // in idx_info: write normalization factors
     idx_info << std::endl;
