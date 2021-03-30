@@ -12,20 +12,24 @@ const void PrintIndexHelper()
     std::cerr << "[USAGE]    kamrat index -out-dir STR INPUT_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]   -h, -help    Print the helper" << std::endl;
-    std::cerr << "           -out-dir     Output directory for storing index" << std::endl
+    std::cerr << "           -out-dir     Output directory for storing index" << std::endl;
+    std::cerr << "           -klen        k-mer length for checking" << std::endl
+              << "                            if absent, feature length will not be examined" << std::endl
               << std::endl;
 }
 
-const void PrintRunInfo(const std::string &out_dir, const std::string &count_tab_path)
+const void PrintRunInfo(const std::string &out_dir, const std::string &count_tab_path, const size_t k_len)
 {
     std::cerr << "Output directory for index:    " << std::endl;
     std::cerr << "Count table path:              " << count_tab_path << std::endl;
+    if (k_len != 0)
+    {
+        std::cerr << "k-mer length:                  " << k_len << std::endl;
+    }
     std::cerr << std::endl;
 }
 
-const void ParseOptions(int argc, char *argv[],
-                        std::string &out_dir,
-                        std::string &count_tab_path)
+const void ParseOptions(int argc, char *argv[], std::string &out_dir, std::string &count_tab_path, size_t &k_len)
 {
     int i_opt(1);
     if (argc == 1)
@@ -44,6 +48,10 @@ const void ParseOptions(int argc, char *argv[],
         else if (arg == "-out-dir" && i_opt + 1 < argc)
         {
             out_dir = argv[++i_opt];
+        }
+        else if (arg == "-klen" && i_opt + 1 < argc)
+        {
+            k_len = std::stoul(argv[++i_opt]);
         }
         else
         {

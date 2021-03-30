@@ -21,7 +21,7 @@
  *   - feature counts (binarized float vector)        *
 \* -------------------------------------------------- */
 
-void ScanIndexCountTab(std::ofstream &idx_info, std::ofstream &idx_mat, std::istream &kmer_count_instream)
+void ScanIndexCountTab(std::ofstream &idx_info, std::ofstream &idx_mat, std::istream &kmer_count_instream, const size_t k_len)
 {
     size_t nb_smp(0);
     std::string line, term;
@@ -41,6 +41,10 @@ void ScanIndexCountTab(std::ofstream &idx_info, std::ofstream &idx_mat, std::ist
     {
         conv.str(line);
         conv >> term;
+        if (k_len != 0 && k_len != term.size())
+        {
+            throw std::length_error("feature length checking failed: length of " + term + " not equal to " + std::to_string(k_len));
+        }
         feature_pos_map.insert({term, static_cast<size_t>(idx_mat.tellp())});
         for (; conv >> term; count_vect.push_back(std::stof(term))) // parse sample count skipping the first column of feature names
         {
@@ -72,7 +76,7 @@ void ScanIndexCountTab(std::ofstream &idx_info, std::ofstream &idx_mat, std::ist
     }
 }
 
-void ScanIndex(const std::string &out_dir, const std::string &count_tab_path)
+void ScanIndex(const std::string &out_dir, const std::string &count_tab_path, const size_t k_len)
 {
     std::ofstream idx_info(out_dir + "/kamrat-idx-info.bin"), idx_mat(out_dir + "/kamrat-idx-mat.bin");
     if (!idx_info.is_open() || !idx_mat.is_open())
@@ -95,7 +99,7 @@ void ScanIndex(const std::string &out_dir, const std::string &count_tab_path)
     inbuf.push(count_tab);
     std::istream kmer_count_instream(&inbuf);
 
-    ScanIndexCountTab(idx_info, idx_mat, kmer_count_instream);
+    ScanIndexCountTab(idx_info, idx_mat, kmer_count_instream, k_len);
 
     count_tab.close();
     idx_mat.close();
@@ -108,12 +112,13 @@ int IndexMain(int argc, char **argv)
 
     std::clock_t begin_time = clock();
     std::string out_dir, count_tab_path;
+    size_t k_len(0);
 
-    ParseOptions(argc, argv, out_dir, count_tab_path);
-    PrintRunInfo(out_dir, count_tab_path);
+    ParseOptions(argc, argv, out_dir, count_tab_path, k_len);
+    PrintRunInfo(out_dir, count_tab_path, k_len);
 
     std::vector<double> nf_vect;
-    ScanIndex(out_dir, count_tab_path);
+    ScanIndex(out_dir, count_tab_path, k_len);
 
     std::cerr << "Count table indexing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Total executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
