@@ -49,6 +49,7 @@ void ScanIndexCountTab(std::ofstream &idx_info, std::ofstream &idx_mat, std::ist
         for (; conv >> term; count_vect.push_back(std::stof(term))) // parse sample count skipping the first column of feature names
         {
         }
+        // std::cout << "\t" << idx_mat.tellp() << std::endl;
         idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // in idx_mat: write feature count vector
         conv.clear();
         if (count_vect.size() != nb_smp)
@@ -69,10 +70,9 @@ void ScanIndexCountTab(std::ofstream &idx_info, std::ofstream &idx_mat, std::ist
     }
     idx_info.write(reinterpret_cast<char *>(&nf_vect[0]), nf_vect.size() * sizeof(double)); // in idx_info: write normalization factors
     idx_info << std::endl;
-    for (auto &elem : feature_pos_map) // in idx_info: write {position, feature} pairs
+    for (const auto &elem : feature_pos_map) // in idx_info: write {position, feature} pairs
     {
-        idx_info.write(reinterpret_cast<char *>(&(elem.second)), sizeof(size_t));
-        idx_info << elem.first << std::endl;
+        idx_info << elem.first << "\t" << elem.second << std::endl;
     }
 }
 
