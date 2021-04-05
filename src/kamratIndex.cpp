@@ -18,17 +18,15 @@
  * idx-info:                                                         *
  *   - sample number, k length (0 if general feature), strandedness  * 
  *   - header row indicating column names                            *
- *   - normalization factor (binarized double vector)                *
+ *   - sample sum vector position                                    *
  *   - {feature string, position} ordered by feature                 *
  * idx-mat:                                                          *
  *   - feature counts (binarized float vector)                       *
+ *   - sample sum vector (binarized double vector)                   *
 \* ----------------------------------------------------------------- */
 
 using featureMat_t = std::map<uint64_t, std::pair<std::string, size_t>>;
-using nfVect_t = std::vector<double>;
-
-template <typename T>
-const double CalcVectMean(const std::vector<T> &x); // vect_opera.cpp
+using sumVect_t = std::vector<double>;
 
 const uint64_t Seq2Int(const std::string &seq, const size_t k_len, const bool stranded); // seq_coding.cpp
 
@@ -47,13 +45,13 @@ const size_t CountColumn(std::ofstream &idx_info, const std::string &line_str)
     return nb_smp;
 }
 
-const void IndexCount(std::ofstream &idx_mat, featureMat_t &feature_mat, nfVect_t &nf_vect,
+const void IndexCount(std::ofstream &idx_mat, featureMat_t &ft_mat, sumVect_t &sum_vect,
                       const std::string &line_str, const size_t k_len, const bool stranded, const size_t nb_smp)
 {
     static std::istringstream conv(line_str);
     static std::vector<float> count_vect;
     static std::string term;
-    static size_t feature_code(0);
+    static size_t ft_code(0);
 
     conv.str(line_str);
     conv >> term;                           // feature name string
@@ -61,23 +59,23 @@ const void IndexCount(std::ofstream &idx_mat, featureMat_t &feature_mat, nfVect_
     {
         throw std::length_error("feature length checking failed: length of " + term + " not equal to " + std::to_string(k_len));
     }
-    feature_code = (k_len == 0 ? feature_code + 1 : Seq2Int(term, k_len, stranded));                            // if not k-mer, feature code is serial number
-    if (!feature_mat.insert({feature_code, std::make_pair(term, static_cast<size_t>(idx_mat.tellp()))}).second) // check if key is unique
+    ft_code = (k_len == 0 ? ft_code + 1 : Seq2Int(term, k_len, stranded));                            // if not k-mer, feature code is serial number
+    if (!ft_mat.insert({ft_code, std::make_pair(term, static_cast<size_t>(idx_mat.tellp()))}).second) // check if key is unique
     {
         throw std::domain_error("insertion failed, an equivalent key already existed for feature: " + term);
     }
     for (; conv >> term; count_vect.push_back(std::stof(term))) // parse the following count vector
     {
     }
-    idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // [idx_mat] feature count vector
+    idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // [idx_mat 1] feature count vector
 
     if (count_vect.size() != nb_smp) // check if all rows have same number of columns as the header row
     {
         throw std::length_error("sample numbers are not consistent: " + std::to_string(nb_smp) + " vs " + std::to_string(count_vect.size()));
     }
-    for (size_t i_smp(0); i_smp < nb_smp; ++i_smp) // add count vectors together for evaluating normalization factor
+    for (size_t i_smp(0); i_smp < nb_smp; ++i_smp) // add count vectors together for eventual normalization
     {
-        nf_vect[i_smp] += count_vect[i_smp];
+        sum_vect[i_smp] += count_vect[i_smp];
     }
 
     term.clear();
@@ -92,29 +90,24 @@ void ScanIndex(std::ofstream &idx_info, std::ofstream &idx_mat, std::istream &km
     std::getline(kmer_count_instream, line); // read header row in table
     size_t nb_smp = CountColumn(idx_info, line);
 
-    idx_info << nb_smp << "\t" << k_len;
+    idx_info << nb_smp << "\t" << k_len; // [idx_info 1] sample number, k-mer length, and strandedness if applicable
     if (k_len != 0)
     {
-        idx_info << "\t" << (stranded ? 'T' : 'F'); // [idx_info 1] sample number, k-mer length, and strandedness
+        idx_info << "\t" << (stranded ? 'T' : 'F');
     }
     idx_info << std::endl;
 
     idx_info << line << std::endl; // [idx_info 2] the header row
 
-    featureMat_t feature_mat;
-    nfVect_t nf_vect(nb_smp, 0);
+    featureMat_t ft_mat;
+    sumVect_t sum_vect(nb_smp, 0);
     while (std::getline(kmer_count_instream, line))
     {
-        IndexCount(idx_mat, feature_mat, nf_vect, line, k_len, stranded, nb_smp); // [idx_mat] feature count vector (inside)
+        IndexCount(idx_mat, ft_mat, sum_vect, line, k_len, stranded, nb_smp); // [idx_mat 1] feature count vector (inside)
     }
-    double smp_mean = CalcVectMean(nf_vect);
-    for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
-    {
-        nf_vect[i_smp] = smp_mean / nf_vect[i_smp]; // norm_count will be raw_count * nf
-    }
-    idx_info.write(reinterpret_cast<char *>(&nf_vect[0]), nf_vect.size() * sizeof(double)); // [idx_info 3] normalization factors
-    idx_info << std::endl;
-    for (const auto &elem : feature_mat) // [idx_info 4] {feature, position} pairs
+    idx_info << static_cast<size_t>(idx_mat.tellp()) << std::endl;                           // [idx_info 3] sample sum vector position
+    idx_mat.write(reinterpret_cast<char *>(&sum_vect[0]), sum_vect.size() * sizeof(double)); // [idx_mat 2] sample sum vector
+    for (const auto &elem : ft_mat)                                                          // [idx_info 4] {feature, position} pairs
     {
         idx_info << elem.second.first << "\t" << elem.second.second << std::endl;
     }
