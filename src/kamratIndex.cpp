@@ -142,7 +142,7 @@ int IndexMain(int argc, char **argv)
     inbuf.push(count_tab);
     std::istream kmer_count_instream(&inbuf);
 
-    std::ofstream idx_meta(out_dir + "/idx-info.bin"), idx_pos(out_dir + "/idx-pos.bin"), idx_mat(out_dir + "/idx-mat.bin");
+    std::ofstream idx_meta(out_dir + "/idx-meta.bin"), idx_pos(out_dir + "/idx-pos.bin"), idx_mat(out_dir + "/idx-mat.bin");
     if (!idx_meta.is_open() || !idx_pos.is_open() || !idx_mat.is_open())
     {
         throw std::invalid_argument("output folder for index does not exist: " + out_dir);
