@@ -14,15 +14,15 @@
 #define RESET "\033[0m"
 #define BOLDYELLOW "\033[1m\033[33m"
 
-/* -------------------------------------------------- *\ 
- * idx-info:                                          *
- *   - k length (0 if general feature), strandedness  * 
- *   - header line indicating column names            *
- *   - normalization factor (binarized double vector) *
- *   - {feature string, position} ordered by feature  *
- * idx-mat:                                           *
- *   - feature counts (binarized float vector)        *
-\* -------------------------------------------------- */
+/* ----------------------------------------------------------------- *\ 
+ * idx-info:                                                         *
+ *   - sample number, k length (0 if general feature), strandedness  * 
+ *   - header row indicating column names                            *
+ *   - normalization factor (binarized double vector)                *
+ *   - {feature string, position} ordered by feature                 *
+ * idx-mat:                                                          *
+ *   - feature counts (binarized float vector)                       *
+\* ----------------------------------------------------------------- */
 
 using featureMat_t = std::map<uint64_t, std::pair<std::string, size_t>>;
 using nfVect_t = std::vector<double>;
@@ -32,12 +32,11 @@ const double CalcVectMean(const std::vector<T> &x); // vect_opera.cpp
 
 const uint64_t Seq2Int(const std::string &seq, const size_t k_len, const bool stranded); // seq_coding.cpp
 
-const size_t IndexHeader(std::ofstream &idx_info, const std::string &line_str)
+const size_t CountColumn(std::ofstream &idx_info, const std::string &line_str)
 {
     size_t nb_smp(0);
-    std::string term;
-    idx_info << line_str << std::endl; // [idx_info 2] the header line
     std::istringstream conv(line_str);
+    std::string term;
     for (conv >> term; conv >> term; ++nb_smp) // count sample number, skipping the first column
     {
     }
@@ -85,16 +84,18 @@ const void IndexCount(std::ofstream &idx_mat, featureMat_t &feature_mat, nfVect_
 void ScanIndex(std::ofstream &idx_info, std::ofstream &idx_mat, std::istream &kmer_count_instream,
                const size_t k_len, const bool stranded)
 {
-    idx_info << k_len;
+    std::string line;
+    std::getline(kmer_count_instream, line); // read header row in table
+    size_t nb_smp = CountColumn(idx_info, line);
+
+    idx_info << nb_smp << "\t" << k_len;
     if (k_len != 0)
     {
-        idx_info << "\t" << (stranded ? "true" : "false"); // [idx_info 1] k-mer length and strandedness
+        idx_info << "\t" << (stranded ? 'T' : 'F'); // [idx_info 1] sample number, k-mer length, and strandedness
     }
     idx_info << std::endl;
 
-    std::string line;
-    std::getline(kmer_count_instream, line);
-    size_t nb_smp = IndexHeader(idx_info, line); // [idx_info 2] the header line (inside)
+    idx_info << line << std::endl; // [idx_info 2] the header row
 
     featureMat_t feature_mat;
     nfVect_t nf_vect(nb_smp, 0);
