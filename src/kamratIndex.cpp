@@ -85,8 +85,12 @@ const void IndexCount(std::ofstream &idx_mat, featureMat_t &feature_mat, nfVect_
 void ScanIndex(std::ofstream &idx_info, std::ofstream &idx_mat, std::istream &kmer_count_instream,
                const size_t k_len, const bool stranded)
 {
-    idx_info << k_len << "\t"
-             << (k_len == 0 ? "invalid" : (stranded ? "true" : "false")) << std::endl; // [idx_info 1] k-mer length and strandedness
+    idx_info << k_len;
+    if (k_len != 0)
+    {
+        idx_info << "\t" << (stranded ? "true" : "false"); // [idx_info 1] k-mer length and strandedness
+    }
+    idx_info << std::endl;
 
     std::string line;
     std::getline(kmer_count_instream, line);
