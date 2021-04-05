@@ -11,6 +11,9 @@
 
 #include "index/index_runinfo.hpp"
 
+#define RESET "\033[0m"
+#define BOLDYELLOW "\033[1m\033[33m"
+
 /* -------------------------------------------------- *\ 
  * idx-info:                                          *
  *   - k length (0 if general feature), strandedness  * 
@@ -119,6 +122,12 @@ int IndexMain(int argc, char **argv)
 
     ParseOptions(argc, argv, count_tab_path, out_dir, kmer_mode, k_len, stranded);
     PrintRunInfo(count_tab_path, out_dir, kmer_mode, k_len, stranded);
+
+    if (!kmer_mode)
+    {
+        std::cerr << BOLDYELLOW << "[warning]" << RESET << " indexing in general: features are not considered as k-mers" << std::endl
+                  << std::endl;
+    }
 
     std::ifstream count_tab(count_tab_path);
     if (!count_tab.is_open())
