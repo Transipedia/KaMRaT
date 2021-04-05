@@ -40,6 +40,10 @@ const size_t CountColumn(std::ofstream &idx_info, const std::string &line_str)
     for (conv >> term; conv >> term; ++nb_smp) // count sample number, skipping the first column
     {
     }
+    if (nb_smp == 0)
+    {
+        throw std::domain_error("input table parsing failed: sample number equals to 0");
+    }
     return nb_smp;
 }
 
