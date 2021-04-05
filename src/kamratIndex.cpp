@@ -2,7 +2,7 @@
 #include <ctime>
 #include <string>
 #include <vector>
-#include <map>
+#include <set>
 #include <fstream>
 #include <sstream>
 
@@ -15,22 +15,19 @@
 #define BOLDYELLOW "\033[1m\033[33m"
 
 /* ----------------------------------------------------------------- *\ 
- * idx-info:                                                         *
+ * idx-meta:                                                         *
  *   - sample number, k length (0 if general feature), strandedness  * 
  *   - header row indicating column names                            *
- *   - sample sum vector position                                    *
+ *   - sample sum vector (binarized double vector)                   *
+ * idx-ftpos:                                                        *
  *   - {feature string, position} ordered by feature                 *
  * idx-mat:                                                          *
  *   - feature counts (binarized float vector)                       *
- *   - sample sum vector (binarized double vector)                   *
 \* ----------------------------------------------------------------- */
-
-using featureMat_t = std::map<uint64_t, std::pair<std::string, size_t>>;
-using sumVect_t = std::vector<double>;
 
 const uint64_t Seq2Int(const std::string &seq, const size_t k_len, const bool stranded); // seq_coding.cpp
 
-const size_t CountColumn(std::ofstream &idx_info, const std::string &line_str)
+const size_t CountColumn(std::ofstream &idx_meta, const std::string &line_str)
 {
     size_t nb_smp(0);
     std::istringstream conv(line_str);
@@ -45,29 +42,33 @@ const size_t CountColumn(std::ofstream &idx_info, const std::string &line_str)
     return nb_smp;
 }
 
-const void IndexCount(std::ofstream &idx_mat, featureMat_t &ft_mat, sumVect_t &sum_vect,
+const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vector<double> &sum_vect,
                       const std::string &line_str, const size_t k_len, const bool stranded, const size_t nb_smp)
 {
     static std::istringstream conv(line_str);
     static std::vector<float> count_vect;
     static std::string term;
-    static size_t ft_code(0);
+    static std::set<uint64_t> kmer_set;
 
     conv.str(line_str);
-    conv >> term;                           // feature name string
-    if (k_len != 0 && k_len != term.size()) // check k-mer length
+    conv >> term; // feature name string
+    if (k_len != 0)
     {
-        throw std::length_error("feature length checking failed: length of " + term + " not equal to " + std::to_string(k_len));
+        if (k_len != term.size()) // check k-mer length
+        {
+            throw std::length_error("feature length checking failed: length of " + term + " not equal to " + std::to_string(k_len));
+        }
+        if (!kmer_set.insert(Seq2Int(term, k_len, stranded)).second)
+        {
+            throw std::domain_error("insertion failed, an equivalent key already existed for feature: " + term);
+        }
     }
-    ft_code = (k_len == 0 ? ft_code + 1 : Seq2Int(term, k_len, stranded));                            // if not k-mer, feature code is serial number
-    if (!ft_mat.insert({ft_code, std::make_pair(term, static_cast<size_t>(idx_mat.tellp()))}).second) // check if key is unique
-    {
-        throw std::domain_error("insertion failed, an equivalent key already existed for feature: " + term);
-    }
+
+    idx_pos << term << "\t" << static_cast<size_t>(idx_mat.tellp()) << std::endl; // [idx_pos] feature position in indexed matrix
     for (; conv >> term; count_vect.push_back(std::stof(term))) // parse the following count vector
     {
     }
-    idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // [idx_mat 1] feature count vector
+    idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // [idx_mat] feature count vector
 
     if (count_vect.size() != nb_smp) // check if all rows have same number of columns as the header row
     {
@@ -83,34 +84,28 @@ const void IndexCount(std::ofstream &idx_mat, featureMat_t &ft_mat, sumVect_t &s
     conv.clear();
 }
 
-void ScanIndex(std::ofstream &idx_info, std::ofstream &idx_mat, std::istream &kmer_count_instream,
-               const size_t k_len, const bool stranded)
+void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &idx_mat,
+               std::istream &kmer_count_instream, const size_t k_len, const bool stranded)
 {
     std::string line;
     std::getline(kmer_count_instream, line); // read header row in table
-    size_t nb_smp = CountColumn(idx_info, line);
+    size_t nb_smp = CountColumn(idx_meta, line);
 
-    idx_info << nb_smp << "\t" << k_len; // [idx_info 1] sample number, k-mer length, and strandedness if applicable
+    idx_meta << nb_smp << "\t" << k_len; // [idx_meta 1] sample number, k-mer length, and strandedness if applicable
     if (k_len != 0)
     {
-        idx_info << "\t" << (stranded ? 'T' : 'F');
+        idx_meta << "\t" << (stranded ? 'T' : 'F');
     }
-    idx_info << std::endl;
+    idx_meta << std::endl;
 
-    idx_info << line << std::endl; // [idx_info 2] the header row
+    idx_meta << line << std::endl; // [idx_meta 2] the header row
 
-    featureMat_t ft_mat;
-    sumVect_t sum_vect(nb_smp, 0);
+    std::vector<double> sum_vect(nb_smp, 0);
     while (std::getline(kmer_count_instream, line))
     {
-        IndexCount(idx_mat, ft_mat, sum_vect, line, k_len, stranded, nb_smp); // [idx_mat 1] feature count vector (inside)
+        IndexCount(idx_pos, idx_mat, sum_vect, line, k_len, stranded, nb_smp); // [idx_pos, idx_mat] (inside)
     }
-    idx_info << static_cast<size_t>(idx_mat.tellp()) << std::endl;                           // [idx_info 3] sample sum vector position
-    idx_mat.write(reinterpret_cast<char *>(&sum_vect[0]), sum_vect.size() * sizeof(double)); // [idx_mat 2] sample sum vector
-    for (const auto &elem : ft_mat)                                                          // [idx_info 4] {feature, position} pairs
-    {
-        idx_info << elem.second.first << "\t" << elem.second.second << std::endl;
-    }
+    idx_meta.write(reinterpret_cast<char *>(&sum_vect[0]), sum_vect.size() * sizeof(double)); // [idx_meta 3] sample sum vector
 }
 
 int IndexMain(int argc, char **argv)
@@ -147,15 +142,16 @@ int IndexMain(int argc, char **argv)
     inbuf.push(count_tab);
     std::istream kmer_count_instream(&inbuf);
 
-    std::ofstream idx_info(out_dir + "/kamrat-idx-info.bin"), idx_mat(out_dir + "/kamrat-idx-mat.bin");
-    if (!idx_info.is_open() || !idx_mat.is_open())
+    std::ofstream idx_meta(out_dir + "/idx-info.bin"), idx_pos(out_dir + "/idx-pos.bin"), idx_mat(out_dir + "/idx-mat.bin");
+    if (!idx_meta.is_open() || !idx_pos.is_open() || !idx_mat.is_open())
     {
         throw std::invalid_argument("output folder for index does not exist: " + out_dir);
     }
-    ScanIndex(idx_info, idx_mat, kmer_count_instream, k_len, stranded);
+    ScanIndex(idx_meta, idx_pos, idx_mat, kmer_count_instream, k_len, stranded);
 
     idx_mat.close();
-    idx_info.close();
+    idx_pos.close();
+    idx_meta.close();
     count_tab.close();
 
     std::cerr << "Count table indexing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
