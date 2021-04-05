@@ -4,32 +4,42 @@
 const void IndexWelcome()
 {
     std::cerr << "KaMRaT index: index count table on disk" << std::endl
-              << "----------------------------------------------------------" << std::endl;
+              << "---------------------------------------------------------------------------------" << std::endl;
 }
 
 const void PrintIndexHelper()
 {
-    std::cerr << "[USAGE]    kamrat index -out-dir STR INPUT_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]    kamrat index -intab STR -outdir STR [-klen INT -unstrand]" << std::endl
               << std::endl;
-    std::cerr << "[OPTION]   -h, -help    Print the helper" << std::endl;
-    std::cerr << "           -out-dir     Output directory for storing index" << std::endl;
-    std::cerr << "           -klen        k-mer length for checking" << std::endl
-              << "                            if absent, feature length will not be examined" << std::endl
+    std::cerr << "[OPTION]   -h, -help      Print the helper" << std::endl;
+    std::cerr << "           -intab STR     Input table for index, mandatory" << std::endl;
+    std::cerr << "           -outdir STR    Output index directory, mandatory" << std::endl;
+    std::cerr << "           -klen          k-mer length, mandatory if features are k-mer" << std::endl
+              << "                              if present, indexation will be switched to k-mer mode" << std::endl;
+    std::cerr << "           -unstrand      unstranded mode, indexation with canonical k-mers" << std::endl
+              << "                              if present, indexation will be switched to k-mer mode" << std::endl
               << std::endl;
 }
 
-const void PrintRunInfo(const std::string &out_dir, const std::string &count_tab_path, const size_t k_len)
+const void PrintRunInfo(const std::string &count_tab_path, const std::string &out_dir,
+                        const bool kmer_mode, const size_t k_len, const bool stranded)
 {
-    std::cerr << "Output directory for index:    " << std::endl;
-    std::cerr << "Count table path:              " << count_tab_path << std::endl;
-    if (k_len != 0)
+    std::cerr << "Count table path:          " << count_tab_path << std::endl;
+    std::cerr << "Output index directory:    " << out_dir << std::endl;
+    if (kmer_mode)
     {
-        std::cerr << "k-mer length:                  " << k_len << std::endl;
+        std::cerr << "k-mer length:              " << k_len << std::endl;
+        std::cerr << "Stranded k-mers:           " << (stranded ? "TRUE" : "FALSE") << std::endl;
+    }
+    else
+    {
+        std::cerr << "Indexation with general feature" << std::endl;
     }
     std::cerr << std::endl;
 }
 
-const void ParseOptions(int argc, char *argv[], std::string &out_dir, std::string &count_tab_path, size_t &k_len)
+const void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::string &out_dir,
+                        bool &kmer_mode, size_t &k_len, bool &stranded)
 {
     int i_opt(1);
     if (argc == 1)
@@ -45,13 +55,23 @@ const void ParseOptions(int argc, char *argv[], std::string &out_dir, std::strin
             PrintIndexHelper();
             exit(EXIT_SUCCESS);
         }
-        else if (arg == "-out-dir" && i_opt + 1 < argc)
+        else if (arg == "-intab" && i_opt + 1 < argc)
+        {
+            count_tab_path = argv[++i_opt];
+        }
+        else if (arg == "-outdir" && i_opt + 1 < argc)
         {
             out_dir = argv[++i_opt];
         }
         else if (arg == "-klen" && i_opt + 1 < argc)
         {
             k_len = std::stoul(argv[++i_opt]);
+            kmer_mode = true;
+        }
+        else if (arg == "-unstrand")
+        {
+            stranded = false;
+            kmer_mode = true;
         }
         else
         {
@@ -60,16 +80,25 @@ const void ParseOptions(int argc, char *argv[], std::string &out_dir, std::strin
         }
         ++i_opt;
     }
-    if (i_opt == argc)
+    if (i_opt < argc)
     {
         PrintIndexHelper();
-        throw std::domain_error("k-mer count table path is mandatory");
+        throw std::invalid_argument("cannot parse arguments after " + std::string(argv[i_opt]));
     }
-    count_tab_path = argv[i_opt++];
+    if (count_tab_path.empty())
+    {
+        PrintIndexHelper();
+        throw std::invalid_argument("input table is mandatory");
+    }
     if (out_dir.empty())
     {
         PrintIndexHelper();
-        throw std::domain_error("output directory for index is mandatory");
+        throw std::invalid_argument("output directory for index is mandatory");
+    }
+    if (kmer_mode && 0 == k_len)
+    {
+        PrintIndexHelper();
+        throw std::invalid_argument("k-mer length in mandatory if indexing in k-mer mode");
     }
 }
 

@@ -2,14 +2,21 @@ targets : kamrat clean
 
 CPPFLAGS = -Wall -Werror -g -std=c++14
 
-kamrat : kamrat.cpp kamratIndex.o
+kamrat : kamrat.cpp kamratIndex kamratMerge
 	g++ -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams
 
-kamratIndex : kamratIndex.cpp
-	g++ -c kamratIndex.cpp -lboost_iostreams $(CPPFLAGS)
+kamratIndex : kamratIndex.cpp utils/vect_opera.cpp utils/seq_coding.cpp
+	g++ -c kamratIndex.cpp utils/vect_opera.cpp utils/seq_coding.cpp -lboost_iostreams $(CPPFLAGS)
 
-kamratMerge.o : kamratMerge.cpp common/tab_header.cpp common/kmer_elem.cpp merge/contig_elem.cpp merge/merge_knot.cpp
-	g++ -c kamratMerge.cpp common/tab_header.cpp common/kmer_elem.cpp merge/contig_elem.cpp merge/merge_knot.cpp -lboost_iostreams $(CPPFLAGS)
+kamratMerge : kamratMerge.cpp common/feature_count_tab.cpp merge/contig_elem.cpp
+	g++ -c kamratMerge.cpp common/feature_count_tab.cpp merge/contig_elem.cpp $(CPPFLAGS)
+
+vect_opera.o : utils/vect_opera.cpp
+	g++ -c utils/vect_opera.cpp $(CPPFLAGS)
+
+seq_coding.o : utils/seq_coding.cpp
+	g++ -c utils/seq_coding.cpp $(CPPFLAGS)
+
 
 kamratMask.o : kamratMask.cpp
 	g++ -c kamratMask.cpp -lboost_iostreams $(CPPFLAGS)
