@@ -65,7 +65,7 @@ const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vecto
     }
 
     idx_pos << term << "\t" << static_cast<size_t>(idx_mat.tellp()) << std::endl; // [idx_pos] feature position in indexed matrix
-    for (; conv >> term; count_vect.push_back(std::stof(term))) // parse the following count vector
+    for (; conv >> term; count_vect.push_back(std::stof(term)))                   // parse the following count vector
     {
     }
     idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // [idx_mat] feature count vector
@@ -105,7 +105,12 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
     {
         IndexCount(idx_pos, idx_mat, sum_vect, line, k_len, stranded, nb_smp); // [idx_pos, idx_mat] (inside)
     }
-    idx_meta.write(reinterpret_cast<char *>(&sum_vect[0]), sum_vect.size() * sizeof(double)); // [idx_meta 3] sample sum vector
+    idx_meta << sum_vect[0]; // [idx_meta 3] sample sum vector
+    for (size_t i(1); i < nb_smp; ++i)
+    {
+        idx_meta << "\t" << sum_vect[i];
+    }
+    idx_meta << std::endl;
 }
 
 int IndexMain(int argc, char **argv)
