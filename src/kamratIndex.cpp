@@ -2,7 +2,7 @@
 #include <ctime>
 #include <string>
 #include <vector>
-#include <set>
+#include <unordered_set>
 #include <fstream>
 #include <sstream>
 
@@ -48,7 +48,7 @@ const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vecto
     static std::istringstream conv(line_str);
     static std::vector<float> count_vect;
     static std::string term;
-    static std::set<uint64_t> kmer_set;
+    static std::unordered_set<uint64_t> kmer_set;
 
     conv.str(line_str);
     conv >> term; // feature name string
