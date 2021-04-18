@@ -47,28 +47,30 @@ const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vecto
 {
     static std::istringstream conv(line_str);
     static std::vector<float> count_vect;
-    static std::string term;
+    static std::string ft_name, term;
     static std::unordered_set<uint64_t> kmer_set;
+    static size_t ft_pos;
 
     conv.str(line_str);
-    conv >> term; // feature name string
+    conv >> ft_name; // feature name string
     if (k_len != 0)
     {
-        if (k_len != term.size()) // check k-mer length
+        if (k_len != ft_name.size()) // check k-mer length
         {
-            throw std::length_error("feature length checking failed: length of " + term + " not equal to " + std::to_string(k_len));
+            throw std::length_error("feature length checking failed: length of " + ft_name + " not equal to " + std::to_string(k_len));
         }
-        if (!kmer_set.insert(Seq2Int(term, k_len, stranded)).second)
+        if (!kmer_set.insert(Seq2Int(ft_name, k_len, stranded)).second)
         {
-            throw std::domain_error("insertion failed, an equivalent key already existed for feature: " + term);
+            throw std::domain_error("unicity checking failed, an equivalent key already existed for feature: " + ft_name);
         }
     }
-
-    idx_pos << term << "\t" << static_cast<size_t>(idx_mat.tellp()) << std::endl; // [idx_pos] feature position in indexed matrix
-    for (; conv >> term; count_vect.push_back(std::stof(term)))                   // parse the following count vector
+    ft_pos = static_cast<size_t>(idx_mat.tellp());
+    idx_pos.write(reinterpret_cast<char *>(&ft_pos), sizeof(size_t)); // [idx_pos] feature position in indexed matrix
+    for (; conv >> term; count_vect.push_back(std::stof(term)))       // parse the following count vector
     {
     }
     idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // [idx_mat] feature count vector
+    idx_mat << ft_name << std::endl;
 
     if (count_vect.size() != nb_smp) // check if all rows have same number of columns as the header row
     {
@@ -79,6 +81,7 @@ const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vecto
         sum_vect[i_smp] += count_vect[i_smp];
     }
 
+    ft_name.clear();
     term.clear();
     count_vect.clear();
     conv.clear();
@@ -111,6 +114,43 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
         idx_meta << "\t" << sum_vect[i];
     }
     idx_meta << std::endl;
+}
+
+void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
+                   std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
+                   const std::string &idx_meta_path); // in utils/index_loading.cpp
+const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
+                                       std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
+void TestIndex(const std::string &idx_meta_path, const std::string &idx_pos_path, const std::string &idx_mat_path)
+{
+    std::ifstream idx_pos(idx_pos_path), idx_mat(idx_mat_path);
+    std::string term;
+    size_t nb_smp_all, k_len;
+    bool stranded;
+    std::vector<std::string> colnames_vect;
+    std::vector<double> smp_sum_vect;
+    LoadIndexMeta(nb_smp_all, k_len, stranded, colnames_vect, smp_sum_vect, idx_meta_path);
+    std::cout << nb_smp_all << "\t" << k_len;
+    if (k_len > 0)
+    {
+        std::cout << "\t" << (stranded ? "T" : "F");
+    }
+    std::cout << std::endl;
+
+    size_t pos;
+    std::vector<float> count_vect;
+    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+    {
+        GetCountVect(count_vect, idx_mat, pos, nb_smp_all);
+        idx_mat >> term;
+        std::cout << term;
+        for (const auto x : count_vect)
+        {
+            std::cout << "\t" << x;
+        }
+        std::cout << std::endl;
+    }
+    idx_pos.close(), idx_mat.close();
 }
 
 int IndexMain(int argc, char **argv)
@@ -161,6 +201,8 @@ int IndexMain(int argc, char **argv)
 
     std::cerr << "Count table indexing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Total executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
+
+    TestIndex(out_dir + "/idx-meta.bin", out_dir + "/idx-pos.bin", out_dir + "/idx-mat.bin");
 
     return EXIT_SUCCESS;
 }
