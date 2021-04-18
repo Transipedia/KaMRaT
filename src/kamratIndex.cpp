@@ -118,12 +118,13 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
 
 void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
                    std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
-                   const std::string &idx_meta_path); // in utils/index_loading.cpp
+                   const std::string &idx_meta_path);                             // in utils/index_loading.cpp
+void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path); // in utils/index_loading.cpp
 const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
                                        std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 void TestIndex(const std::string &idx_meta_path, const std::string &idx_pos_path, const std::string &idx_mat_path)
 {
-    std::ifstream idx_pos(idx_pos_path), idx_mat(idx_mat_path);
+    std::ifstream idx_mat(idx_mat_path);
     std::string term;
     size_t nb_smp_all, k_len;
     bool stranded;
@@ -136,12 +137,24 @@ void TestIndex(const std::string &idx_meta_path, const std::string &idx_pos_path
         std::cout << "\t" << (stranded ? "T" : "F");
     }
     std::cout << std::endl;
-
-    size_t pos;
-    std::vector<float> count_vect;
-    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+    for (double s : smp_sum_vect)
     {
-        GetCountVect(count_vect, idx_mat, pos, nb_smp_all);
+        std::cout << s << "\t";
+    }
+    std::cout << std::endl;
+    for (auto const &term : colnames_vect)
+    {
+        std::cout << term << "\t";
+    }
+    std::cout << std::endl;
+
+    std::vector<size_t> pos_vect;
+    LoadPosVect(pos_vect, idx_pos_path);
+
+    std::vector<float> count_vect;
+    for (size_t p : pos_vect)
+    {
+        GetCountVect(count_vect, idx_mat, p, nb_smp_all);
         idx_mat >> term;
         std::cout << term;
         for (const auto x : count_vect)
@@ -150,7 +163,7 @@ void TestIndex(const std::string &idx_meta_path, const std::string &idx_pos_path
         }
         std::cout << std::endl;
     }
-    idx_pos.close(), idx_mat.close();
+    idx_mat.close();
 }
 
 int IndexMain(int argc, char **argv)
