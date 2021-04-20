@@ -2,7 +2,7 @@
 #include <ctime>
 #include <string>
 #include <vector>
-#include <unordered_set>
+#include <map>
 #include <fstream>
 #include <sstream>
 
@@ -42,36 +42,19 @@ const size_t CountColumn(std::ofstream &idx_meta, const std::string &line_str)
     return nb_smp;
 }
 
-const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vector<double> &sum_vect,
+const void IndexCount(std::ofstream &idx_mat, std::vector<double> &sum_vect, std::map<uint64_t, size_t> &code_pos_map,
                       const std::string &line_str, const size_t k_len, const bool stranded, const size_t nb_smp)
 {
     static std::istringstream conv(line_str);
     static std::vector<float> count_vect;
     static std::string ft_name, term;
-    static std::unordered_set<uint64_t> kmer_set;
-    static size_t ft_pos;
+    static size_t ft_code(0), ft_pos;
 
     conv.str(line_str);
-    conv >> ft_name; // feature name string
-    if (k_len != 0)
-    {
-        if (k_len != ft_name.size()) // check k-mer length
-        {
-            throw std::length_error("feature length checking failed: length of " + ft_name + " not equal to " + std::to_string(k_len));
-        }
-        if (!kmer_set.insert(Seq2Int(ft_name, k_len, stranded)).second)
-        {
-            throw std::domain_error("unicity checking failed, an equivalent key already existed for feature: " + ft_name);
-        }
-    }
     ft_pos = static_cast<size_t>(idx_mat.tellp());
-    idx_pos.write(reinterpret_cast<char *>(&ft_pos), sizeof(size_t)); // [idx_pos] feature position in indexed matrix
-    for (; conv >> term; count_vect.push_back(std::stof(term)))       // parse the following count vector
+    for (conv >> ft_name; conv >> term; count_vect.push_back(std::stof(term))) // parse feature name and following count columns
     {
     }
-    idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // [idx_mat] feature count vector
-    idx_mat << ft_name << std::endl;
-
     if (count_vect.size() != nb_smp) // check if all rows have same number of columns as the header row
     {
         throw std::length_error("sample numbers are not consistent: " + std::to_string(nb_smp) + " vs " + std::to_string(count_vect.size()));
@@ -80,11 +63,43 @@ const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vecto
     {
         sum_vect[i_smp] += count_vect[i_smp];
     }
+    if (k_len != 0) // if index in k-mer mode => ft_code calculated by Seq2Int
+    {
+        if (k_len != ft_name.size()) // check k-mer length
+        {
+            throw std::length_error("feature length checking failed: length of " + ft_name + " not equal to " + std::to_string(k_len));
+        }
+        ft_code = Seq2Int(ft_name, k_len, stranded);
+    }
+    else // if index in general mode => ft_code is serial number
+    {
+        ft_code++;
+    }
+    if (!code_pos_map.insert({ft_code, ft_pos}).second)
+    {
+        throw std::domain_error("unicity checking failed, an equivalent key already existed for feature: " + ft_name);
+    }
+
+    idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // [idx_mat] feature count vector
+    idx_mat << ft_name << std::endl;
 
     ft_name.clear();
     term.clear();
     count_vect.clear();
     conv.clear();
+}
+
+void IndexPos(std::ofstream &idx_pos, const std::map<uint64_t, size_t> &code_pos_map)
+{
+    uint64_t code;
+    size_t pos;
+    for (const auto &elem : code_pos_map) // [idx_pos] feature code and feature position, ordered by code
+    {
+        code = elem.first;
+        pos = elem.second;
+        idx_pos.write(reinterpret_cast<char *>(&code), sizeof(uint64_t));
+        idx_pos.write(reinterpret_cast<char *>(&pos), sizeof(size_t));
+    }
 }
 
 void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &idx_mat,
@@ -104,9 +119,10 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
     idx_meta << line << std::endl; // [idx_meta 2] the header row
 
     std::vector<double> sum_vect(nb_smp, 0);
+    std::map<uint64_t, size_t> code_pos_map;
     while (std::getline(kmer_count_instream, line))
     {
-        IndexCount(idx_pos, idx_mat, sum_vect, line, k_len, stranded, nb_smp); // [idx_pos, idx_mat] (inside)
+        IndexCount(idx_mat, sum_vect, code_pos_map, line, k_len, stranded, nb_smp); // [idx_pos, idx_mat] (inside)
     }
     idx_meta << sum_vect[0]; // [idx_meta 3] sample sum vector
     for (size_t i(1); i < nb_smp; ++i)
@@ -114,12 +130,13 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
         idx_meta << "\t" << sum_vect[i];
     }
     idx_meta << std::endl;
+    IndexPos(idx_pos, code_pos_map);
 }
 
 void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
                    std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
                    const std::string &idx_meta_path);                             // in utils/index_loading.cpp
-void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path); // in utils/index_loading.cpp
+void LoadPosVect(std::map<uint64_t, size_t> &code_pos_map, const std::string &idx_pos_path); // in utils/index_loading.cpp
 const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
                                        std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 void TestIndex(const std::string &idx_meta_path, const std::string &idx_pos_path, const std::string &idx_mat_path)
@@ -148,13 +165,13 @@ void TestIndex(const std::string &idx_meta_path, const std::string &idx_pos_path
     }
     std::cout << std::endl;
 
-    std::vector<size_t> pos_vect;
-    LoadPosVect(pos_vect, idx_pos_path);
+    std::map<uint64_t, size_t> code_pos_map;
+    LoadPosVect(code_pos_map, idx_pos_path);
 
     std::vector<float> count_vect;
-    for (size_t p : pos_vect)
+    for (const auto &elem : code_pos_map)
     {
-        GetCountVect(count_vect, idx_mat, p, nb_smp_all);
+        GetCountVect(count_vect, idx_mat, elem.second, nb_smp_all);
         idx_mat >> term;
         std::cout << term;
         for (const auto x : count_vect)
