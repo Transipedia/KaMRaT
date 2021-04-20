@@ -1,142 +1,144 @@
 #include <iostream>
-#include <iomanip> // std::setprecision
-#include <string>
-#include <vector>
-#include <fstream>
-#include <sstream>
 #include <ctime>
-#include <stdexcept>
+#include <fstream>
+#include <map>
+#include <unordered_map>
+#include <cmath>
+#include <algorithm> // std::remove_if
 
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-
-#include "common/seq_coding.hpp"
-#include "common/tab_header.hpp"
-#include "common/kmer_elem.hpp"
-#include "common/vec_operation.hpp"
-#include "merge/contig_elem.hpp"
-#include "merge/merge_knot.hpp"
 #include "merge/merge_runinfo.hpp"
+#include "data_struct/contig_elem.hpp"
+#include "data_struct/merge_knot.hpp"
 
-const RepModeCode ParseRepModeCode(std::string &rep_colname)
+using code2pos_t = std::map<uint64_t, size_t>;
+using contigVect_t = std::vector<std::unique_ptr<ContigElem>>;
+
+uint64_t Seq2Int(const std::string &seq, const size_t k_length, const bool stranded); // in utils/seq_coding.cpp
+uint64_t GetRC(const uint64_t code, size_t k_length);                                 // in utils/seq_coding.cpp
+
+const double CalcPearsonDist(const std::vector<float> &x, const std::vector<float> &y);  // in utils/vect_opera.cpp
+const double CalcSpearmanDist(const std::vector<float> &x, const std::vector<float> &y); // in utils/vect_opera.cpp
+const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &y);      // in utils/vect_opera.cpp
+
+void LoadIndexMeta(size_t &nb_smp, size_t &k_len, bool &stranded,
+                   std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
+                   const std::string &idx_meta_path);                             // in utils/index_loading.cpp
+void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path); // in utils/index_loading.cpp
+const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
+                                       std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
+
+// ----- when the -select argument is provided: merging on subset of index ----- //
+void LoadSelect(std::unordered_map<uint64_t, float> &sel_kmer_map, const std::string &sel_path, const std::string &rep_mode,
+                const size_t k_len, const bool stranded)
 {
-    if (rep_colname.empty())
+    std::ifstream sel_file(sel_path);
+    if (!sel_file.is_open())
     {
-        return RepModeCode::kInputOrder;
+        throw std::invalid_argument("path for input sequences not accessable: " + sel_path);
     }
-    const size_t split_pos = rep_colname.find(":");
-    if (split_pos == std::string::npos)
+    std::string line;
+    size_t split_pos;
+    float rep_val(0);
+    while (std::getline(sel_file, line))
     {
-        return RepModeCode::kMin;
-    }
-    else
-    {
-        std::string &&rep_mode_str = rep_colname.substr(split_pos + 1);
-        rep_colname = rep_colname.substr(0, split_pos);
-        if (rep_mode_str == "min")
+        split_pos = line.find_first_of("\t ");
+        if (split_pos != std::string::npos)
         {
-            return RepModeCode::kMin;
+            rep_val = std::stof(line.substr(split_pos + 1));
+            line = line.substr(0, split_pos);
+            if (rep_mode == "minabs")
+            {
+                rep_val = fabs(rep_val);
+            }
+            else if (rep_mode == "max")
+            {
+                rep_val = -rep_val;
+            }
+            else if (rep_mode == "maxabs")
+            {
+                rep_val = -fabs(rep_val);
+            }
         }
-        else if (rep_mode_str == "minabs")
+        if (!sel_kmer_map.insert({Seq2Int(line, k_len, stranded), rep_val}).second) // check unicity of given k-mers
         {
-            return RepModeCode::kMinAbs;
-        }
-        else if (rep_mode_str == "max")
-        {
-            return RepModeCode::kMax;
-        }
-        else if (rep_mode_str == "maxabs")
-        {
-            return RepModeCode::kMaxAbs;
-        }
-        else
-        {
-            throw std::domain_error("unknown representative mode: " + rep_mode_str);
+            throw std::domain_error("checking unicity failed: k-mer not unique in the given sequence list: " + line);
         }
     }
+    sel_file.close();
 }
 
-void ScanCountTable(kMerTab_t &kmer_count_tab, TabHeader &tab_header,
-                    contigvect_t &contig_vect,
-                    const size_t k_len, const bool stranded,
-                    const std::string &kmer_count_path,
-                    const std::string &rep_colname, const RepModeCode rep_mode_code,
-                    const std::string &idx_path)
+void LoadKMerPos(std::map<uint64_t, size_t> &)
+
+void InitializeContigList(contigVect_t &ctg_vect, std::ifstream &idx_mat, const std::string &idx_pos_path,
+                          const std::string &sel_path, const std::string &rep_mode, const size_t k_len, const bool stranded)
 {
-    std::ifstream kmer_count_file(kmer_count_path);
-    if (!kmer_count_file.is_open())
+    std::unordered_map<uint64_t, float> sel_kmer_map;
+    LoadSelect(sel_kmer_map, sel_path, rep_mode, k_len, stranded);
+    size_t pos;
+    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
     {
-        throw std::domain_error("k-mer count file " + kmer_count_path + " was not found");
+        pos_vect.emplace_back(pos);
     }
-    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+    std::string term;
+    for (size_t p : pos_vect) // erase while loading
     {
-        size_t pos = kmer_count_path.find_last_of(".");
-        if (pos != std::string::npos && kmer_count_path.substr(pos + 1) == "gz")
-        {
-            inbuf.push(boost::iostreams::gzip_decompressor());
-        }
+        idx_mat.ignore(nb_smp * sizeof(float)); // skip the indexed count vector
+        idx_mat >> term;
+        ctg_vect.emplace_back(std::make_unique<ContigElem>(term, p, 0));
     }
-    inbuf.push(kmer_count_file);
-    std::istream kmer_count_instream(&inbuf);
+    idx_pos.close();
+}
 
-    std::string line, seq;
-    std::getline(kmer_count_instream, line);
-    std::istringstream conv(line);
-    tab_header.MakeColumns(conv, rep_colname);
-    conv.clear();
-
-    std::unordered_set<uint64_t> kmer_code;
-    std::ofstream idx_file;
-    if (!idx_path.empty())
+// ----- load all k-mers in index in the order of uint64 code ----- //
+void MakeKMerMap(code2pos_t &code_pos_map, std::ifstream &idx_pos, std::ifstream &idx_mat,
+                 const size_t k_len, const bool stranded, const size_t nb_smp)
+{
+    std::string kmer;
+    size_t pos;
+    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
     {
-        idx_file.open(idx_path);
-        if (!idx_file.is_open()) // to ensure the file is opened
+        idx_mat.seekg(pos + sizeof(float) * nb_smp);
+        idx_mat >> kmer;
+        if (!code_pos_map.insert({Seq2Int(kmer, k_len, stranded), pos}).second)
         {
-            throw std::domain_error("error open file: " + idx_path);
+            throw std::domain_error("checking unicity failed: " + kmer + " is not unique in the given sequence list");
         }
     }
     std::vector<float> count_vect;
-    std::string value_str;
-    float rep_value;
-    count_vect.reserve(tab_header.GetNbCount());
-    for (size_t iline(0); std::getline(kmer_count_instream, line); ++iline)
+    for (const auto &elem : code_pos_map)
     {
-        conv.str(line);
-        rep_value = tab_header.ParseRowStr(count_vect, value_str, conv);
-        kmer_count_tab.emplace_back(rep_value, count_vect, value_str, idx_file, rep_mode_code);
-        seq = std::move(line.substr(0, line.find_first_of(" \t"))); // first column as feature (string)
-        if (seq.size() != k_len)
+        std::cout << elem.first;
+        for (const float x : GetCountVect(count_vect, idx_mat, elem.second, nb_smp))
         {
-            throw std::domain_error("the given k-len parameter not coherent with input k-mer: " + seq);
+            std::cout << "\t" << x;
         }
-        uint64_t kmer_uniqcode = Seq2Int(seq, seq.size(), stranded);
-        if (!kmer_code.insert(kmer_uniqcode).second)
-        {
-            throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list)");
-        }
-        contig_vect.emplace_back(std::move(seq), iline);
-        conv.clear();
+        std::cout << std::endl;
     }
-    if (idx_file.is_open())
-    {
-        idx_file.close();
-    }
-    kmer_count_tab.shrink_to_fit();
-    contig_vect.shrink_to_fit();
-    kmer_count_file.close();
 }
 
-void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list, const contigvect_t &contig_vect, const bool stranded, const size_t n_overlap)
+
+// ----- when the -inseq argument is not provided: merging on all index ----- //
+void MakeContigFromIndex(contigVect_t &ctg_vect, std::ifstream &idx_mat, const std::vector<size_t> &pos_vect, size_t nb_smp)
 {
-    for (size_t contig_serial(0); contig_serial < contig_vect.size(); ++contig_serial)
+    std::string term;
+    for (size_t p : pos_vect) // erase while loading
     {
-        const std::string &seq = contig_vect[contig_serial].GetSeq();
-        uint64_t prefix = Seq2Int(seq, n_overlap, true), suffix = Seq2Int(seq.substr(seq.size() - n_overlap), n_overlap, true);
+        idx_mat.ignore(nb_smp * sizeof(float)); // skip the indexed count vector
+        idx_mat >> term;
+        ctg_vect.emplace_back(std::make_unique<ContigElem>(term, p, 0));
+    }
+}
+
+void MakeOverlapKnots(fix2knot_t &hashed_merge_knots, const contigVect_t &ctg_vect, const bool stranded, const size_t i_ovlp)
+{
+    for (size_t i_ctg(0); i_ctg < ctg_vect.size(); ++i_ctg)
+    {
+        const std::string &seq = ctg_vect[i_ctg]->GetSeq();
+        uint64_t prefix = Seq2Int(seq, i_ovlp, true), suffix = Seq2Int(seq.substr(seq.size() - i_ovlp), i_ovlp, true);
         bool is_prefix_rc(false), is_suffix_rc(false);
         if (!stranded)
         {
-            uint64_t prefix_rc = GetRC(prefix, n_overlap), suffix_rc = GetRC(suffix, n_overlap);
+            uint64_t prefix_rc = GetRC(prefix, i_ovlp), suffix_rc = GetRC(suffix, i_ovlp);
             if (prefix_rc < prefix)
             {
                 prefix = prefix_rc;
@@ -148,260 +150,194 @@ void MakeOverlapKnotDict(fix2knot_t &hashed_mergeknot_list, const contigvect_t &
                 is_suffix_rc = true;
             }
         }
-        hashed_mergeknot_list.insert({prefix, MergeKnot()}).first->second.AddContig(contig_serial, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
-        hashed_mergeknot_list.insert({suffix, MergeKnot()}).first->second.AddContig(contig_serial, is_suffix_rc, (is_suffix_rc ? "succ" : "pred"));
+        hashed_merge_knots.insert({prefix, MergeKnot()}).first->second.AddContig(i_ctg, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
+        hashed_merge_knots.insert({suffix, MergeKnot()}).first->second.AddContig(i_ctg, is_suffix_rc, (is_suffix_rc ? "succ" : "pred"));
     }
 }
 
-const bool DoExtension(contigvect_t &contig_vect, const fix2knot_t &hashed_mergeknot_list,
-                       kMerTab_t &kmer_count_tab, const size_t n_overlap,
+const bool DoExtension(contigVect_t &ctg_vect, fix2knot_t &hashed_mergeknot_list, const size_t i_ovlp,
                        const std::string &interv_method, const float interv_thres,
-                       std::ifstream &idx_file, const size_t nb_counts)
+                       std::ifstream &idx_mat, const size_t nb_smp)
 {
-    static std::vector<float> pred_count_vect, succ_count_vect;
+    static std::vector<float> pred_counts, succ_counts;
     bool has_new_extensions(false);
-    for (const auto &mk : hashed_mergeknot_list)
+    for (auto it = hashed_mergeknot_list.cbegin(); it != hashed_mergeknot_list.cend(); ++it)
     {
-        if (!mk.second.IsMergeable())
+        if (!it->second.IsMergeable())
         {
             continue;
         }
-        ContigElem &pred_contig = contig_vect[mk.second.GetSerial("pred")],
-                   &succ_contig = contig_vect[mk.second.GetSerial("succ")];
-        if (pred_contig.IsUsed() || succ_contig.IsUsed())
+        if (ctg_vect[it->second.GetSerial("pred")] == nullptr || ctg_vect[it->second.GetSerial("succ")] == nullptr)
         {
             continue;
         }
-        bool is_pred_rc = mk.second.IsRC("pred"), is_succ_rc = mk.second.IsRC("succ");
+        bool pred_rc = it->second.IsRC("pred"), succ_rc = it->second.IsRC("succ");
         if (interv_method == "pearson" &&
-            CalcPearsonDist(kmer_count_tab[pred_contig.GetRearKMerSerial(is_pred_rc)].GetCountVect(pred_count_vect, idx_file, nb_counts),
-                            kmer_count_tab[succ_contig.GetHeadKMerSerial(is_succ_rc)].GetCountVect(succ_count_vect, idx_file, nb_counts)) >= interv_thres)
+            CalcPearsonDist(GetCountVect(pred_counts, idx_mat, ctg_vect[it->second.GetSerial("pred")]->GetRearPos(pred_rc), nb_smp),
+                            GetCountVect(succ_counts, idx_mat, ctg_vect[it->second.GetSerial("succ")]->GetHeadPos(succ_rc), nb_smp)) >= interv_thres)
         {
             continue;
         }
         else if (interv_method == "spearman" &&
-                 CalcSpearmanDist(kmer_count_tab[pred_contig.GetRearKMerSerial(is_pred_rc)].GetCountVect(pred_count_vect, idx_file, nb_counts),
-                                  kmer_count_tab[succ_contig.GetHeadKMerSerial(is_succ_rc)].GetCountVect(succ_count_vect, idx_file, nb_counts)) >= interv_thres)
+                 CalcSpearmanDist(GetCountVect(pred_counts, idx_mat, ctg_vect[it->second.GetSerial("pred")]->GetRearPos(pred_rc), nb_smp),
+                                  GetCountVect(succ_counts, idx_mat, ctg_vect[it->second.GetSerial("succ")]->GetHeadPos(succ_rc), nb_smp)) >= interv_thres)
         {
             continue;
         }
         else if (interv_method == "mac" &&
-                 CalcMACDist(kmer_count_tab[pred_contig.GetRearKMerSerial(is_pred_rc)].GetCountVect(pred_count_vect, idx_file, nb_counts),
-                             kmer_count_tab[succ_contig.GetHeadKMerSerial(is_succ_rc)].GetCountVect(succ_count_vect, idx_file, nb_counts)) >= interv_thres)
+                 CalcMACDist(GetCountVect(pred_counts, idx_mat, ctg_vect[it->second.GetSerial("pred")]->GetRearPos(pred_rc), nb_smp),
+                             GetCountVect(succ_counts, idx_mat, ctg_vect[it->second.GetSerial("succ")]->GetHeadPos(succ_rc), nb_smp)) >= interv_thres)
         {
             continue;
         }
-        // the base contig should have minimum p-value or input order //
-        if (kmer_count_tab[pred_contig.GetRepKMerSerial()].GetRepValue() <= kmer_count_tab[succ_contig.GetRepKMerSerial()].GetRepValue()) // merge right to left
+        if (pred_rc && succ_rc)
         {
-            if (is_pred_rc) // prevent base contig from reverse-complement transformation, for being coherent with merging knot
-            {
-                pred_contig.LeftExtend(succ_contig, !is_succ_rc, n_overlap); // reverse this and extend to right <=> reverse right and extend to left
-            }
-            else
-            {
-                pred_contig.RightExtend(succ_contig, is_succ_rc, n_overlap);
-            }
+            ctg_vect[it->second.GetSerial("succ")]->RightExtend(std::move(ctg_vect[it->second.GetSerial("pred")]), false, i_ovlp);
         }
-        else // merge left to right
+        else if (pred_rc)
         {
-            if (is_succ_rc) // prevent base contig from reverse-complement transformation, for being coherent with merging knot
-            {
-                succ_contig.RightExtend(pred_contig, !is_pred_rc, n_overlap); // reverse this and extend to left <=> reverse left and extend to right
-            }
-            else
-            {
-                succ_contig.LeftExtend(pred_contig, is_pred_rc, n_overlap);
-            }
+            ctg_vect[it->second.GetSerial("succ")]->LeftExtend(std::move(ctg_vect[it->second.GetSerial("pred")]), true, i_ovlp);
         }
+        else
+        {
+            ctg_vect[it->second.GetSerial("pred")]->RightExtend(std::move(ctg_vect[it->second.GetSerial("succ")]), succ_rc, i_ovlp);
+        }
+        // it = hashed_mergeknot_list.erase(it);
         has_new_extensions = true;
     }
     return has_new_extensions;
 }
 
-void PrintHeader(std::ostream &out_s, const TabHeader &tab_header)
+void Int2Seq(std::string &seq, const uint64_t code, const size_t k_length);
+void PrintMergeKnots(const fix2knot_t &hashed_merge_knots, const contigVect_t &ctg_vect, const size_t k_len)
 {
-    out_s << "contig\tnb_merged_kmers";
-    std::string value_str;
-    for (size_t i(0); i < tab_header.GetNbCol(); ++i)
+    for (const auto &elem : hashed_merge_knots)
     {
-        if (!tab_header.IsColCount(i)) // first output non-sample values
+        if (elem.second.IsMergeable())
         {
-            out_s << "\t" << tab_header.GetColNameAt(i);
+            std::string fix,
+                contig_pred = ctg_vect[elem.second.GetSerial("pred")]->GetSeq(),
+                contig_succ = ctg_vect[elem.second.GetSerial("succ")]->GetSeq();
+            Int2Seq(fix, elem.first, k_len);
+            std::cout << fix << ": " << contig_pred << " ======= " << contig_succ << std::endl;
         }
-        else
-        {
-            value_str += ("\t" + tab_header.GetColNameAt(i));
-        }
-    }
-    out_s << value_str << std::endl; // then output sample counts
-}
-
-void PrintCountByRep(std::ostream &out_s, const KMerElem &rep_elem, std::ifstream &idx_file, const size_t nb_count)
-{
-    static std::vector<float> count_vect;
-    for (float c : rep_elem.GetCountVect(count_vect, idx_file, nb_count))
-    {
-        out_s << "\t" << c;
     }
 }
 
-void PrintCountByMean(std::ostream &out_s, const kMerTab_t &kmer_count_tab, const std::vector<size_t> &mem_serial,
-                      std::ifstream &idx_file, const size_t nb_count)
+void PrintContigVect(const contigVect_t &ctg_vect, std::ifstream &idx_mat, const size_t nb_smp)
 {
-    static std::vector<float> count_vect, count_vect_x;
-    size_t nb_kmer = mem_serial.size();
-    kmer_count_tab[mem_serial[0]].GetCountVect(count_vect, idx_file, nb_count);
-    for (size_t i(1); i < nb_kmer; ++i)
+    std::vector<float> count_vect;
+    for (const auto &elem : ctg_vect)
     {
-        kmer_count_tab[mem_serial[i]].GetCountVect(count_vect_x, idx_file, nb_count);
-        for (size_t j(0); j < nb_count; ++j)
+        std::cout << elem->GetSeq();
+        for (const float x : GetCountVect(count_vect, idx_mat, elem->GetHeadPos(false), nb_smp))
         {
-            count_vect[j] += count_vect_x[j];
-        }
-    }
-    for (size_t j(0); j < nb_count; ++j)
-    {
-        out_s << "\t" << count_vect[j] / nb_kmer;
-    }
-}
-
-void PrintCountByMedian(std::ostream &out_s, const kMerTab_t &kmer_count_tab, const std::vector<size_t> &mem_serial,
-                        std::ifstream &idx_file, const size_t nb_count)
-{
-    static std::vector<float> mem_kmer_count;
-    size_t nb_kmer = mem_serial.size();
-    mem_kmer_count.resize(nb_kmer);
-    for (size_t i_smp(0); i_smp < nb_count; ++i_smp)
-    {
-        for (size_t i_kmer(0); i_kmer < nb_kmer; ++i_kmer)
-        {
-            mem_kmer_count[i_kmer] = kmer_count_tab[mem_serial[i_kmer]].GetCountAt(idx_file, i_smp);
-        }
-        out_s << "\t" << CalcVectMedian(mem_kmer_count);
-    }
-}
-
-void PrintContigList(const contigvect_t &contig_vect,
-                     const TabHeader &tab_header, const kMerTab_t &kmer_count_tab,
-                     const size_t k_len, const std::string &quant_mode,
-                     std::ifstream &idx_file, const std::string &out_path)
-{
-    std::ofstream out_file;
-    if (!out_path.empty())
-    {
-        out_file.open(out_path);
-        if (!out_file.is_open())
-        {
-            throw std::domain_error("cannot open file: " + out_path);
-        }
-    }
-    auto backup_buf = std::cout.rdbuf();
-    if (!out_path.empty()) // output to file if a path is given, to screen if not
-    {
-        std::cout.rdbuf(out_file.rdbuf());
-    }
-
-    PrintHeader(std::cout, tab_header);
-
-    size_t nb_count = tab_header.GetNbCount();
-    for (const auto &elem : contig_vect)
-    {
-        size_t rep_serial = elem.GetRepKMerSerial();
-        std::cout << elem.GetSeq() << "\t" << elem.GetNbKMer() << "\t" << kmer_count_tab[rep_serial].GetValueStr(idx_file, nb_count);
-        if (quant_mode == "rep")
-        {
-            PrintCountByRep(std::cout, kmer_count_tab[rep_serial], idx_file, nb_count);
-        }
-        else if (quant_mode == "mean")
-        {
-            PrintCountByMean(std::cout, kmer_count_tab, elem.GetMemKMerSerialVect(), idx_file, nb_count);
-        }
-        else if (quant_mode == "median")
-        {
-            PrintCountByMedian(std::cout, kmer_count_tab, elem.GetMemKMerSerialVect(), idx_file, nb_count);
+            std::cout << "\t" << x;
         }
         std::cout << std::endl;
-    }
-    std::cout.rdbuf(backup_buf);
-    if (out_file.is_open())
-    {
-        out_file.close();
+        // std::cout << elem->GetSeq();
+        // for (const float x : GetCountVect(count_vect, idx_mat, elem->GetRearPos(false), nb_smp))
+        // {
+        //     std::cout << "\t" << x;
+        // }
+        // std::cout << std::endl;
     }
 }
 
 int MergeMain(int argc, char **argv)
 {
+    MergeWelcome();
+
     std::clock_t begin_time = clock(), inter_time;
-    std::string kmer_count_path, smp_info_path, interv_method("none"), quant_mode("rep"), idx_path, out_path, rep_colname;
-    float interv_thres(1);
-    size_t k_len(0);
-    bool stranded(true);
-    size_t min_overlap(0);
+    std::string idx_dir, sel_path, rep_mode("min"), design_path, itv_mthd("none"), out_path;
+    float itv_thres(0.5);
+    size_t max_ovlp(0), min_ovlp(0);
 
-    ParseOptions(argc, argv, k_len, idx_path, stranded, min_overlap, smp_info_path,
-                 interv_method, interv_thres, quant_mode, rep_colname, out_path, kmer_count_path);
-    PrintRunInfo(k_len, idx_path, stranded, min_overlap, smp_info_path,
-                 interv_method, interv_thres, quant_mode, rep_colname, out_path, kmer_count_path);
+    ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, sel_path, rep_mode, itv_mthd, itv_thres, out_path);
 
-    std::cerr << "Option dealing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
-    inter_time = clock();
-
-    RepModeCode rep_mode_code = ParseRepModeCode(rep_colname);
-
-    contigvect_t contig_vect;            // list of contigs for extension
-    TabHeader tab_header(smp_info_path); // the header of feature table
-    kMerTab_t kmer_count_tab;            // feature count table
-
-    ScanCountTable(kmer_count_tab, tab_header, contig_vect, k_len, stranded, kmer_count_path, rep_colname, rep_mode_code, idx_path);
-
-    std::cerr << "Count table scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
-    inter_time = clock();
-
-    std::ifstream idx_file;
-    if (!idx_path.empty())
+    size_t nb_smp, k_len;
+    bool stranded;
+    std::vector<std::string> colname_vect;
     {
-        idx_file.open(idx_path);
-        if (!idx_file.is_open())
+        std::vector<double> smp_sum_vect; // smp_sum_vect not needed in KaMRaT-merge
+        LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, smp_sum_vect, idx_dir + "/idx-meta.bin");
+        if (k_len == 0)
         {
-            throw std::domain_error("k-mer count index file " + idx_path + " was not found");
+            throw std::domain_error("KaMRaT-merge relies on the index in k-mer mode, please rerun KaMRaT-index with -klen option");
         }
+        if (k_len <= max_ovlp)
+        {
+            throw std::invalid_argument("max overlap (" + std::to_string(max_ovlp) + ") should not exceed k-mer length (" + std::to_string(k_len) + ")");
+        }
+        PrintRunInfo(idx_dir, k_len, max_ovlp, min_ovlp, stranded, sel_path, rep_mode, itv_mthd, itv_thres, out_path);
     }
-    for (size_t n_overlap = k_len - 1; n_overlap >= min_overlap; --n_overlap)
+    std::vector<size_t> pos_vect;
+    LoadPosVect(pos_vect, idx_dir + "/idx-pos.bin");
+    // std::cout << nb_smp << std::endl;
+    // std::vector<bool> is_smp_col(nb_smp, true);
+    // if (!design_path.empty())
+    // {
+    //     LoadDesign(is_smp_col, design_path, colname_vect);
+    // }
+    // for (bool x : is_smp_col)
+    // {
+    //     std::cout << (x ? "T" : "F") << "\t";
+    // }
+    // std::cout << std::endl;
+
+    // code2kmer_t code_kmer_map;
+    // MakeKMerMap(code_kmer_map, idx_dir + "/idx-pos.bin", k_len, stranded);
+
+    std::cerr << "Option parsing and index loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
+    inter_time = clock();
+
+    std::ifstream idx_pos(idx_dir + "/idx-pos.bin"), idx_mat(idx_dir + "/idx-mat.bin");
+    if (!idx_pos.is_open())
     {
-        std::cerr << "Merging contigs with overlap " << n_overlap << std::endl;
+        throw std::invalid_argument("loading idx-pos failed, KaMRaT index folder not found or may be corrupted");
+    }
+    if (!idx_mat.is_open())
+    {
+        throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
+    }
+
+    code2pos_t code_pos_map;
+    MakeKMerMap(code_pos_map, idx_pos, idx_mat, k_len, stranded, nb_smp);
+    if (!sel_path.empty())
+    {
+        // LoadSelectList();
+    }
+
+    contigVect_t ctg_vect;
+    if (sel_path.empty())
+    {
+        MakeContigFromIndex(ctg_vect, idx_mat, pos_vect, nb_smp);
+    }
+    else
+    {
+        // MakeContigFromList(ctg_vect, sel_path, code_kmer_map, k_len, stranded);
+        // code_kmer_map.clear();
+    }
+
+    fix2knot_t hashed_merge_knots;
+    for (size_t i_ovlp(max_ovlp); i_ovlp >= min_ovlp; --i_ovlp)
+    {
+        std::cerr << "Merging contigs with overlap " << i_ovlp << std::endl;
         bool has_new_extensions(true);
         while (has_new_extensions)
         {
-            std::cerr << "\tcontig list size: " << contig_vect.size() << std::endl;
-            fix2knot_t hashed_mergeknot_list;
-            MakeOverlapKnotDict(hashed_mergeknot_list, contig_vect, stranded, n_overlap);
-            // for (const auto &elem : hashed_mergeknot_list)
-            // {
-            //     if (elem.second.IsMergeable())
-            //     {
-            //         std::string fix, contig_pred = contig_vect[elem.second.GetSerial("pred")].GetSeq(), contig_succ = contig_vect[elem.second.GetSerial("succ")].GetSeq();
-            //         Int2Seq(fix, elem.first, k_len);
-            //         std::cout << fix << ": " << contig_pred << " ======= " << contig_succ << std::endl;
-            //     }
-            // }
-            has_new_extensions = DoExtension(contig_vect, hashed_mergeknot_list, kmer_count_tab, n_overlap, interv_method, interv_thres, idx_file, tab_header.GetNbCount());
-            contig_vect.erase(std::remove_if(contig_vect.begin(), contig_vect.end(),
-                                             [](const ContigElem &elem) { return elem.IsUsed(); }),
-                              contig_vect.end());
-            contig_vect.shrink_to_fit();
-            // PrintContigList(contig_vect, kmer_count_tab, k_len, stranded, min_overlap, interv_method, interv_thres, quant_mode, idx_file);
+            std::cerr << "\tcontig list size: " << ctg_vect.size() << std::endl;
+            MakeOverlapKnots(hashed_merge_knots, ctg_vect, stranded, i_ovlp);
+            // PrintMergeKnots(hashed_merge_knots, ctg_vect, k_len);
+            has_new_extensions = DoExtension(ctg_vect, hashed_merge_knots, i_ovlp, itv_mthd, itv_thres, idx_mat, nb_smp);
+            // PrintContigList(ctg_vect, kmer_count_tab, k_len, stranded, min_ovl, interv_method, interv_thres, quant_mode, idx_mat);
+            ctg_vect.erase(std::remove_if(ctg_vect.begin(), ctg_vect.end(), [](const auto &elem) { return elem == nullptr; }),
+                           ctg_vect.end());
+            hashed_merge_knots.clear();
         }
     }
-
-    std::cerr << "Contig extension finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
-    inter_time = clock();
-
-    PrintContigList(contig_vect, tab_header, kmer_count_tab, k_len, quant_mode, idx_file, out_path);
-    if (idx_file.is_open())
-    {
-        idx_file.close();
-    }
+    PrintContigVect(ctg_vect, idx_mat, nb_smp);
+    idx_mat.close();
 
     std::cerr << "Contig print finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Total executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;

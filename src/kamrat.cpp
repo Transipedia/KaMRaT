@@ -3,12 +3,11 @@
 
 #define RESET "\033[0m"
 #define BOLDRED "\033[1m\033[31m"
-#define BOLDYELLOW "\033[1m\033[33m"
 
 int IndexMain(int argc, char *argv[]);
+int MergeMain(int argc, char *argv[]);
 // int FilterMain(int argc, char *argv[]);
 // int MaskMain(int argc, char *argv[]);
-// int MergeMain(int argc, char *argv[]);
 // int RankMain(int argc, char *argv[]);
 // int EstimateMain(int argc, char *argv[]);
 
@@ -35,9 +34,9 @@ const void PrintHelper()
               << "    kamrat <command> [options]" << std::endl
               << "[Command]" << std::endl
               << "    index:       index the given matrix, get ready for other modules" << std::endl
+              << "    merge:       merge k-mer count table into contig count table" << std::endl
               << "    filter:      filter count table according to occurence among samples" << std::endl
               << "    mask:        mask/select count table according to given sequences" << std::endl
-              << "    merge:       merge k-mer count table into contig count table" << std::endl
               << "    rank:        rank count table features according to association to sample condition" << std::endl
               << "    estimate:    estimate count for each given sequence" << std::endl
               << std::endl;
@@ -56,6 +55,10 @@ int main(int argc, char *argv[])
         {
             IndexMain(argc - 1, &(argv[1]));
         }
+        else if (strcmp(argv[1], "merge") == 0)
+        {
+            MergeMain(argc - 1, &(argv[1]));
+        }
         // else if (strcmp(argv[1], "filter") == 0)
         // {
         //     FilterMain(argc - 1, &(argv[1]));
@@ -63,10 +66,6 @@ int main(int argc, char *argv[])
         // else if (strcmp(argv[1], "mask") == 0)
         // {
         //     MaskMain(argc - 1, &(argv[1]));
-        // }
-        // else if (strcmp(argv[1], "merge") == 0)
-        // {
-        //     MergeMain(argc - 1, &(argv[1]));
         // }
         // else if (strcmp(argv[1], "rank") == 0)
         // {
