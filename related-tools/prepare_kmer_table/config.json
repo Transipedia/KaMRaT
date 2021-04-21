@@ -7,5 +7,7 @@
   "r2_suffix": "_2.fastq.gz",
   "min_recurrence": 2,
   "min_recurrence_abundance": 5,
+  "jellyfish": "path_to_jellyfish",
+  "pigz": "path_to_pigz",
   "samples_tsv": "samples.tsv"
 }
