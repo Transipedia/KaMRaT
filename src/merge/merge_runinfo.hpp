@@ -22,16 +22,15 @@ const void PrintMergeHelper()
     std::cerr << "            -idxdir STR            Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -overlap MAX-MIN       Overlap range for extension, mandatory" << std::endl
               << "                                       MIN and MAX are integers, MIN <= MAX <= k-mer length" << std::endl;
-    std::cerr << "            -selfile STR           File indicating k-mers to be extended" << std::endl
+    std::cerr << "            -selfile STR1:STR2     File indicating k-mers to be extended (STR1) and representativeness mode (STR2)" << std::endl
               << "                                       if absent, all indexed k-mers are used for extension" << std::endl
-              << "                                       a second column with k-mer representativeness value can be provided" << std::endl;
-    std::cerr << "            -repmode STR           Mode for selecting representative k-mers with value" << std::endl
-              << "                                       can be one of: min, minabs, max, maxabs" << std::endl;
-    std::cerr << "            -interv STR[:FLOAT]    Intervention method for extension [none]" << std::endl
-              << "                                       could be one of (none, pearson, spearman, mac)" << std::endl
+              << "                                       STR2 can be one of: min, minabs, max, maxabs [min]" << std::endl;
+    std::cerr << "            -interv STR[:FLOAT]    Intervention method for extension [spearman:0.25]" << std::endl
+              << "                                       can be one of (none, pearson, spearman, mac)" << std::endl
               << "                                       the threshold may follow a ':' symbol" << std::endl;
     std::cerr << "            -outpath STR           Path of extension result list" << std::endl
-              << "                                       if absent, output to screen" << std::endl
+              << "                                       if absent, output to screen" << std::endl;
+    std::cerr << "            -with-counts STR       Output sample count vectors, STR can be one of (rep, mean, median)" << std::endl
               << std::endl;
 }
 
@@ -41,7 +40,8 @@ const void PrintRunInfo(const std::string &idx_dir,
                         const bool stranded,
                         const std::string &sel_path, const std::string &rep_mode,
                         const std::string &itv_mthd, const float itv_thres,
-                        const std::string &out_path)
+                        const std::string &out_path,
+                        const std::string &count_type)
 {
     std::cerr << std::endl;
     std::cerr << "KaMRaT index:             " << idx_dir << std::endl;
@@ -55,6 +55,7 @@ const void PrintRunInfo(const std::string &idx_dir,
         std::cerr << "\tthreshold = " << itv_thres << std::endl;
     }
     std::cerr << "Output:                 " << (out_path.empty() ? "to screen" : out_path) << std::endl;
+    std::cerr << "Output with counts: " << (count_type.empty() ? "no counts" : count_type) << std::endl;
 }
 
 const void ParseOptions(int argc, char *argv[],
@@ -62,7 +63,8 @@ const void ParseOptions(int argc, char *argv[],
                         size_t &max_ovlp, size_t &min_ovlp,
                         std::string &sel_path, std::string &rep_mode,
                         std::string &itv_mthd, float &itv_thres,
-                        std::string &out_path)
+                        std::string &out_path,
+                        std::string &count_type)
 {
     int i_opt(1);
     if (argc == 1)
@@ -108,15 +110,17 @@ const void ParseOptions(int argc, char *argv[],
         }
         else if (arg == "-selfile" && i_opt + 1 < argc)
         {
-            sel_path = argv[++i_opt];
-        }
-        else if (arg == "-repmode" && i_opt + 1 < argc)
-        {
-            rep_mode = argv[++i_opt];
-            if (kSelectMode.find(rep_mode) == kSelectMode.cend())
+            arg = argv[++i_opt];
+            split_pos = arg.find(":");
+            if (split_pos != std::string::npos)
             {
-                throw std::invalid_argument("select mode should be one of: min, minabs, max, maxabs");
+                rep_mode = arg.substr(split_pos + 1);
+                if (kSelectMode.find(rep_mode) == kSelectMode.cend())
+                {
+                    throw std::invalid_argument("select mode should be one of: min, minabs, max, maxabs");
+                }
             }
+            sel_path = arg.substr(0, split_pos);
         }
         else if (arg == "-interv" && i_opt + 1 < argc)
         {
@@ -131,6 +135,10 @@ const void ParseOptions(int argc, char *argv[],
         else if (arg == "-outpath" && i_opt + 1 < argc)
         {
             out_path = argv[++i_opt];
+        }
+        else if (arg == "-with-counts" && i_opt + 1 < argc)
+        {
+            count_type = argv[++i_opt];
         }
         else
         {

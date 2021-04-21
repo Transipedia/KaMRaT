@@ -9,6 +9,7 @@
 class ContigElem
 {
 public:
+    ContigElem(const std::string &seq, size_t pos);
     ContigElem(const std::string &seq, size_t pos, float val);
 
     const std::string &GetSeq() const;

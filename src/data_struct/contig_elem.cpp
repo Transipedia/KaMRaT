@@ -28,6 +28,11 @@ static inline const void ReverseComplementSeq(std::string &seq)
     ToComplement(seq);
 }
 
+ContigElem::ContigElem(const std::string &seq, const size_t pos)
+    : seq_(seq), rep_pos_(pos), rep_val_(0), head_pos_(pos), rear_pos_(pos)
+{
+}
+
 ContigElem::ContigElem(const std::string &seq, const size_t pos, const float val)
     : seq_(seq), rep_pos_(pos), rep_val_(val), head_pos_(pos), rear_pos_(pos)
 {
