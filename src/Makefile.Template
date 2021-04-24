@@ -6,14 +6,15 @@ kamrat : kamrat.cpp kamratIndex kamratMerge
 	g++ -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams
 
 kamratIndex : kamratIndex.cpp utils
-	g++ -c kamratIndex.cpp utils/vect_opera.cpp utils/seq_coding.cpp -lboost_iostreams $(CPPFLAGS)
+	g++ -c kamratIndex.cpp utils/index_loading.cpp utils/seq_coding.cpp -lboost_iostreams $(CPPFLAGS)
 
 kamratMerge : kamratMerge.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp utils
-	g++ -c kamratMerge.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp utils/seq_coding.cpp utils/index_loading.cpp
+	g++ -c kamratMerge.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp utils/seq_coding.cpp utils/index_loading.cpp utils/vect_opera.cpp
 
 utils : utils/seq_coding.cpp utils/index_loading.cpp
 	g++ -c utils/seq_coding.cpp $(CPPFLAGS)
 	g++ -c utils/index_loading.cpp $(CPPFLAGS)
+	g++ -c utils/vect_opera.cpp $(CPPFLAGS)
 
 
 

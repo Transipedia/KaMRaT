@@ -11,23 +11,6 @@ const double CalcVectMean(const std::vector<T> &x)
 template const double CalcVectMean(const std::vector<double> &x);
 template const double CalcVectMean(const std::vector<float> &x);
 
-const double CalcVectMedian(const std::vector<float> &x)
-{
-    static std::vector<float> x_tmp;
-    x_tmp = x;
-    size_t n_elem = x_tmp.size();
-    auto mid_elem = x_tmp.begin() + n_elem / 2;
-    std::nth_element(x_tmp.begin(), mid_elem, x_tmp.end());
-    if (n_elem % 2 != 0)
-    {
-        return *mid_elem;
-    }
-    else
-    {
-        return 0.5 * (*mid_elem + *(std::max_element(x_tmp.begin(), mid_elem)));
-    }
-}
-
 void CalcVectRank(std::vector<float> &x_rk, const std::vector<float> &x)
 {
     static std::vector<size_t> r, s; // r for rank number, s for same number

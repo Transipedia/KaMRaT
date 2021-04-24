@@ -6,12 +6,13 @@
 #include <unordered_set>
 
 const std::unordered_set<std::string> kIntervMethodUniv{"none", "pearson", "spearman", "mac"};
-const std::unordered_set<std::string> kSelectMode{"min", "minabs", "max", "maxabs"};
+const std::unordered_set<std::string> kRepMode{"min", "minabs", "max", "maxabs"};
+const std::unordered_set<std::string> kOutMode{"rep", "mean", "median"};
 
 const void MergeWelcome()
 {
     std::cerr << "KaMRaT merge: sequence extension" << std::endl
-              << "----------------------------------------------------------------------------------------------------------" << std::endl;
+              << "------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 const void PrintMergeHelper()
@@ -22,15 +23,17 @@ const void PrintMergeHelper()
     std::cerr << "            -idxdir STR            Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -overlap MAX-MIN       Overlap range for extension, mandatory" << std::endl
               << "                                       MIN and MAX are integers, MIN <= MAX <= k-mer length" << std::endl;
-    std::cerr << "            -selfile STR1:STR2     File indicating k-mers to be extended (STR1) and representativeness mode (STR2)" << std::endl
+    std::cerr << "            -subset STR1[:STR2]    File indicating k-mers to be extended (STR1) and rep-mode (STR2)" << std::endl
               << "                                       if absent, all indexed k-mers are used for extension" << std::endl
-              << "                                       STR2 can be one of: min, minabs, max, maxabs [min]" << std::endl;
+              << "                                       in the file STR1, a supplementary column of rep-value can be provided" << std::endl
+              << "                                       STR2 can be one of {min, minabs, max, maxabs} [min]" << std::endl;
     std::cerr << "            -interv STR[:FLOAT]    Intervention method for extension [spearman:0.25]" << std::endl
-              << "                                       can be one of (none, pearson, spearman, mac)" << std::endl
+              << "                                       can be one of {none, pearson, spearman, mac}" << std::endl
               << "                                       the threshold may follow a ':' symbol" << std::endl;
     std::cerr << "            -outpath STR           Path of extension result list" << std::endl
               << "                                       if absent, output to screen" << std::endl;
-    std::cerr << "            -with-counts STR       Output sample count vectors, STR can be one of (rep, mean, median)" << std::endl
+    std::cerr << "            -with-counts STR       Output sample count vectors, STR can be one of [rep, mean, median]" << std::endl
+              << "                                       if absent, output without count vector" << std::endl
               << std::endl;
 }
 
@@ -41,7 +44,7 @@ const void PrintRunInfo(const std::string &idx_dir,
                         const std::string &sel_path, const std::string &rep_mode,
                         const std::string &itv_mthd, const float itv_thres,
                         const std::string &out_path,
-                        const std::string &count_type)
+                        const std::string &out_mode)
 {
     std::cerr << std::endl;
     std::cerr << "KaMRaT index:             " << idx_dir << std::endl;
@@ -49,13 +52,15 @@ const void PrintRunInfo(const std::string &idx_dir,
     std::cerr << "Overlap range:            from " << max_ovlp << " to " << min_ovlp << std::endl;
     std::cerr << "Stranded extension:       " << (stranded ? "On" : "Off") << std::endl;
     std::cerr << "Select k-mers in file:    " << (sel_path.empty() ? "k-mers in index" : sel_path) << std::endl;
+    std::cerr << "Representative mode:      " << rep_mode << std::endl;
     std::cerr << "Intervention method:      " << itv_mthd << std::endl;
     if (itv_mthd != "none")
     {
         std::cerr << "\tthreshold = " << itv_thres << std::endl;
     }
     std::cerr << "Output:                 " << (out_path.empty() ? "to screen" : out_path) << std::endl;
-    std::cerr << "Output with counts: " << (count_type.empty() ? "no counts" : count_type) << std::endl;
+    std::cerr << "\t" << (out_mode.empty() ? "without" : out_mode) + " count vectors" << std::endl
+              << std::endl;
 }
 
 const void ParseOptions(int argc, char *argv[],
@@ -64,7 +69,7 @@ const void ParseOptions(int argc, char *argv[],
                         std::string &sel_path, std::string &rep_mode,
                         std::string &itv_mthd, float &itv_thres,
                         std::string &out_path,
-                        std::string &count_type)
+                        std::string &out_mode)
 {
     int i_opt(1);
     if (argc == 1)
@@ -108,17 +113,13 @@ const void ParseOptions(int argc, char *argv[],
                 throw std::invalid_argument("overlap range should not exceed 31");
             }
         }
-        else if (arg == "-selfile" && i_opt + 1 < argc)
+        else if (arg == "-subset" && i_opt + 1 < argc)
         {
             arg = argv[++i_opt];
             split_pos = arg.find(":");
             if (split_pos != std::string::npos)
             {
                 rep_mode = arg.substr(split_pos + 1);
-                if (kSelectMode.find(rep_mode) == kSelectMode.cend())
-                {
-                    throw std::invalid_argument("select mode should be one of: min, minabs, max, maxabs");
-                }
             }
             sel_path = arg.substr(0, split_pos);
         }
@@ -138,7 +139,7 @@ const void ParseOptions(int argc, char *argv[],
         }
         else if (arg == "-with-counts" && i_opt + 1 < argc)
         {
-            count_type = argv[++i_opt];
+            out_mode = argv[++i_opt];
         }
         else
         {
@@ -166,6 +167,16 @@ const void ParseOptions(int argc, char *argv[],
     {
         PrintMergeHelper();
         throw std::invalid_argument("unknown intervention method: " + itv_mthd);
+    }
+    if (kRepMode.find(rep_mode) == kRepMode.cend())
+    {
+        PrintMergeHelper();
+        throw std::invalid_argument("unknown representative mode: " + rep_mode);
+    }
+    if (!out_mode.empty() && kOutMode.find(out_mode) == kOutMode.cend())
+    {
+        PrintMergeHelper();
+        throw std::invalid_argument("unknown output mode: " + out_mode);
     }
 }
 

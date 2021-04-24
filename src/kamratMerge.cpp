@@ -10,6 +10,9 @@
 #include "data_struct/contig_elem.hpp"
 #include "data_struct/merge_knot.hpp"
 
+#define RESET "\033[0m"
+#define BOLDYELLOW "\033[1m\033[33m"
+
 using contigVect_t = std::vector<std::unique_ptr<ContigElem>>;
 
 uint64_t Seq2Int(const std::string &seq, const size_t k_length, const bool stranded); // in utils/seq_coding.cpp
@@ -21,10 +24,19 @@ const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &
 
 void LoadIndexMeta(size_t &nb_smp, size_t &k_len, bool &stranded,
                    std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
-                   const std::string &idx_meta_path);                             // in utils/index_loading.cpp
-void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path); // in utils/index_loading.cpp
+                   const std::string &idx_meta_path); // in utils/index_loading.cpp
+void LoadCodePosValMap(std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
+                       std::unordered_map<uint64_t, float> &sel_code_val_map,
+                       const std::string &idx_pos_path);                                                              // in utils/index_loading.cpp
+const std::string &GetTagSeq(std::string &tag_str, std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
-                                       std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
+                                       std::ifstream &idx_mat, size_t pos, size_t nb_smp); // in utils/index_loading.cpp
+const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
+                                           const std::string &seq, const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
+                                           const size_t k_len, const bool stranded);
+const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
+                                             const std::string &seq, const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
+                                             const size_t k_len, const bool stranded);
 
 // ----- when the -select argument is provided: merging on subset of index ----- //
 const bool LoadSelect(std::unordered_map<uint64_t, float> &sel_kmer_map, const std::string &sel_path, const std::string &rep_mode,
@@ -47,7 +59,6 @@ const bool LoadSelect(std::unordered_map<uint64_t, float> &sel_kmer_map, const s
             has_value = true;
             rep_val = std::stof(line.substr(split_pos + 1));
             line = line.substr(0, split_pos);
-            std::cout << line << "\t" << rep_val << std::endl;
         }
         if (!sel_kmer_map.insert({Seq2Int(line, k_len, stranded), rep_val}).second) // check unicity of given k-mers
         {
@@ -55,44 +66,23 @@ const bool LoadSelect(std::unordered_map<uint64_t, float> &sel_kmer_map, const s
         }
     }
     sel_file.close();
+    // for (const auto &elem : sel_kmer_map)
+    // {
+    //     std::cout << elem.first << "\t" << elem.second << std::endl;
+    // }
     return has_value;
 }
 
-void InitializeContigList(contigVect_t &ctg_vect, std::unordered_map<uint64_t, float> &sel_kmer_map, std::ifstream &idx_mat,
-                          const std::string &idx_pos_path, const size_t nb_smp)
+void InitializeContigList(contigVect_t &ctg_vect, std::ifstream &idx_mat, const size_t nb_smp,
+                          const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map)
 {
-    std::ifstream idx_pos(idx_pos_path);
-    if (!idx_pos.is_open())
-    {
-        throw std::invalid_argument("loading index-pos failed, KaMRaT index folder not found or may be corrupted");
-    }
-    uint64_t code;
-    size_t pos;
     std::string seq;
-    const bool merge_on_all = sel_kmer_map.empty(); // if merge on all k-mers in index
-    while (idx_pos.read(reinterpret_cast<char *>(&code), sizeof(uint64_t)) && idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+    for (const auto &elem : code_posval_map)
     {
-        idx_mat.seekg(pos + nb_smp * sizeof(float)); // skip the indexed count vector
+        idx_mat.seekg(elem.second.first + nb_smp * sizeof(float)); // skip the indexed count vector
         idx_mat >> seq;
-        if (merge_on_all)
-        {
-            ctg_vect.emplace_back(std::make_unique<ContigElem>(seq, pos)); // the values are initialized as 0
-        }
-        else
-        {
-            const auto it = sel_kmer_map.find(code);
-            if (it != sel_kmer_map.cend())
-            {
-                ctg_vect.emplace_back(std::make_unique<ContigElem>(seq, pos, it->second));
-                sel_kmer_map.erase(it);
-            }
-        }
+        ctg_vect.emplace_back(std::make_unique<ContigElem>(seq, elem.second.first, elem.second.second));
     }
-    if (!sel_kmer_map.empty())
-    {
-        throw std::domain_error(std::to_string(sel_kmer_map.size()) + " k-mer(s) in the selection file do not exist in index");
-    }
-    idx_pos.close();
 }
 
 void MakeOverlapKnots(fix2knot_t &hashed_merge_knots, const contigVect_t &ctg_vect, const bool stranded, const size_t i_ovlp)
@@ -121,7 +111,7 @@ void MakeOverlapKnots(fix2knot_t &hashed_merge_knots, const contigVect_t &ctg_ve
     }
 }
 
-const bool FirstContigRep(const float ctg_val1, const float ctg_val2, const std::string &rep_mode)
+const bool IsFirstContigRep(const float ctg_val1, const float ctg_val2, const std::string &rep_mode)
 {
     if (rep_mode == "min")
     {
@@ -178,7 +168,7 @@ const bool DoExtension(contigVect_t &ctg_vect, const fix2knot_t &hashed_mergekno
             continue;
         }
         // the base contig should have minimum p-value or input order //
-        if (FirstContigRep(pred_ctg->GetRepVal(), succ_ctg->GetRepVal(), rep_mode)) // merge right to left
+        if (IsFirstContigRep(pred_ctg->GetRepVal(), succ_ctg->GetRepVal(), rep_mode)) // merge right to left
         {
             if (pred_rc) // prevent base contig from reverse-complement transformation, for being coherent with merging knot
             {
@@ -222,9 +212,11 @@ void PrintMergeKnots(const fix2knot_t &hashed_merge_knots, const contigVect_t &c
 }
 
 void PrintResults(const std::vector<std::string> &colname_vect, const contigVect_t &ctg_vect,
-                  std::ifstream &idx_mat, const size_t nb_smp, const bool has_value, const bool final_out)
+                  const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
+                  std::ifstream &idx_mat, const size_t nb_smp, const bool has_value, const std::string &out_mode,
+                  const size_t k_len, const bool stranded)
 {
-    if (final_out)
+    if (!out_mode.empty())
     {
         std::cout << "contig";
         if (has_value)
@@ -238,23 +230,36 @@ void PrintResults(const std::vector<std::string> &colname_vect, const contigVect
         std::cout << std::endl;
     }
     std::vector<float> count_vect;
-    std::string tag_seq;
+    std::string rep_seq;
     for (const auto &elem : ctg_vect)
     {
         std::cout << elem->GetSeq();
-        GetCountVect(count_vect, idx_mat, elem->GetHeadPos(false), nb_smp);
-        idx_mat >> tag_seq;
+
         if (has_value)
         {
             std::cout << "\t" << elem->GetRepVal();
         }
-        std::cout << "\t" << tag_seq;
-        if (final_out)
+        std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, elem->GetRepPos(), nb_smp);
+
+        if (!out_mode.empty())
         {
+            if (out_mode == "rep")
+            {
+                GetCountVect(count_vect, idx_mat, elem->GetRepPos(), nb_smp); // output sample count vector of representative k-mer
+            }
+            else if (out_mode == "mean")
+            {
+                GetMeanCountVect(count_vect, idx_mat, nb_smp, elem->GetSeq(), code_posval_map, k_len, stranded); // output mean sample count vector
+            }
+            else
+            {
+                GetMedianCountVect(count_vect, idx_mat, nb_smp, elem->GetSeq(), code_posval_map, k_len, stranded); // output median sample count vector
+            }
             for (const float x : count_vect)
             {
                 std::cout << "\t" << x;
             }
+            count_vect.clear();
         }
         std::cout << std::endl;
     }
@@ -265,15 +270,13 @@ int MergeMain(int argc, char **argv)
     MergeWelcome();
 
     std::clock_t begin_time = clock(), inter_time;
-    std::string idx_dir, sel_path, rep_mode("min"), design_path, itv_mthd("spearman"), out_path;
+    std::string idx_dir, sel_path, rep_mode("min"), itv_mthd("spearman"), out_path, out_mode;
     float itv_thres(0.25);
     size_t max_ovlp(0), min_ovlp(0), nb_smp, k_len;
-    bool final_out(false), stranded(false), has_value(false);
+    bool stranded(false), has_value(false);
     std::vector<std::string> colname_vect;
-    std::vector<double> _smp_sum_vect; // smp_sum_vect not needed in KaMRaT-merge
-    std::unordered_map<uint64_t, float> sel_code_val_map;
-
-    ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, sel_path, rep_mode, itv_mthd, itv_thres, out_path, final_out);
+    ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, sel_path, rep_mode, itv_mthd, itv_thres, out_path, out_mode);
+    std::vector<double> _smp_sum_vect; // _smp_sum_vect not needed in KaMRaT-merge
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, _smp_sum_vect, idx_dir + "/idx-meta.bin");
     if (k_len == 0)
     {
@@ -283,11 +286,25 @@ int MergeMain(int argc, char **argv)
     {
         throw std::invalid_argument("max overlap (" + std::to_string(max_ovlp) + ") should not exceed k-mer length (" + std::to_string(k_len) + ")");
     }
-    PrintRunInfo(idx_dir, k_len, max_ovlp, min_ovlp, stranded, sel_path, rep_mode, itv_mthd, itv_thres, out_path, final_out);
+    PrintRunInfo(idx_dir, k_len, max_ovlp, min_ovlp, stranded, sel_path, rep_mode, itv_mthd, itv_thres, out_path, out_mode);
+    if (out_mode == "mean")
+    {
+        std::cerr << BOLDYELLOW << "[warning]" << RESET << " estimate mean counts of contigs may introduce bias" << std::endl
+                  << std::endl;
+    }
+
+    std::unordered_map<uint64_t, float> sel_code_val_map;         // k-mer code and value from given list
+    std::map<uint64_t, std::pair<size_t, float>> code_posval_map; // k-mer code and position from index
     if (!sel_path.empty())
     {
         has_value = LoadSelect(sel_code_val_map, sel_path, rep_mode, k_len, stranded);
     }
+    LoadCodePosValMap(code_posval_map, sel_code_val_map, idx_dir + "/idx-pos.bin");
+    // for (const auto &elem : code_posval_map)
+    // {
+    //     std::cout << elem.first << "\t" << elem.second.first << "\t" << elem.second.second << std::endl;
+    // }
+
     std::ofstream out_file;
     if (!out_path.empty())
     {
@@ -309,7 +326,7 @@ int MergeMain(int argc, char **argv)
     {
         throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
     }
-    InitializeContigList(ctg_vect, sel_code_val_map, idx_mat, idx_dir + "/idx-pos.bin", nb_smp);
+    InitializeContigList(ctg_vect, idx_mat, nb_smp, code_posval_map);
 
     std::cerr << "Option parsing and index loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
@@ -331,7 +348,7 @@ int MergeMain(int argc, char **argv)
             hashed_merge_knots.clear();
         }
     }
-    PrintResults(colname_vect, ctg_vect, idx_mat, nb_smp, has_value, final_out);
+    PrintResults(colname_vect, ctg_vect, code_posval_map, idx_mat, nb_smp, has_value, out_mode, k_len, stranded);
     idx_mat.close();
 
     std::cout.rdbuf(backup_buf);
