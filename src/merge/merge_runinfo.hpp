@@ -30,6 +30,7 @@ const void PrintMergeHelper()
     std::cerr << "            -interv STR[:FLOAT]    Intervention method for extension [spearman:0.25]" << std::endl
               << "                                       can be one of {none, pearson, spearman, mac}" << std::endl
               << "                                       the threshold may follow a ':' symbol" << std::endl;
+    std::cerr << "            -out-minlen INT        Minimal length of extended contigs [0]" << std::endl;
     std::cerr << "            -outpath STR           Path of extension result list" << std::endl
               << "                                       if absent, output to screen" << std::endl;
     std::cerr << "            -with-counts STR       Output sample count vectors, STR can be one of [rep, mean, median]" << std::endl
@@ -43,6 +44,7 @@ const void PrintRunInfo(const std::string &idx_dir,
                         const bool stranded,
                         const std::string &sel_path, const std::string &rep_mode,
                         const std::string &itv_mthd, const float itv_thres,
+                        const size_t out_minlen,
                         const std::string &out_path,
                         const std::string &out_mode)
 {
@@ -58,7 +60,8 @@ const void PrintRunInfo(const std::string &idx_dir,
     {
         std::cerr << "\tthreshold = " << itv_thres << std::endl;
     }
-    std::cerr << "Output:                 " << (out_path.empty() ? "to screen" : out_path) << std::endl;
+    std::cout << "Minimal output length:    " + std::to_string(out_minlen) << std::endl;
+    std::cerr << "Output:                   " << (out_path.empty() ? "to screen" : out_path) << std::endl;
     std::cerr << "\t" << (out_mode.empty() ? "without" : out_mode) + " count vectors" << std::endl
               << std::endl;
 }
@@ -68,6 +71,7 @@ const void ParseOptions(int argc, char *argv[],
                         size_t &max_ovlp, size_t &min_ovlp,
                         std::string &sel_path, std::string &rep_mode,
                         std::string &itv_mthd, float &itv_thres,
+                        size_t &out_minlen,
                         std::string &out_path,
                         std::string &out_mode)
 {
@@ -132,6 +136,10 @@ const void ParseOptions(int argc, char *argv[],
                 itv_thres = std::stof(arg.substr(split_pos + 1));
             }
             itv_mthd = arg.substr(0, split_pos);
+        }
+        else if (arg == "-out-minlen" && i_opt + 1 < argc)
+        {
+            out_minlen = std::stoul(argv[++i_opt]);
         }
         else if (arg == "-outpath" && i_opt + 1 < argc)
         {
