@@ -7,10 +7,6 @@
 // using code2kmer_t = std::map<uint64_t, std::pair<std::string, size_t>>;
 using ftVect_t = std::vector<std::pair<std::string, size_t>>;
 
-uint64_t Seq2Int(const std::string &seq, size_t k_length, bool stranded); // in utils/seq_coding.cpp
-uint64_t GetRC(const uint64_t code, size_t k_length);                     // in utils/seq_coding.cpp
-uint64_t NextCode(uint64_t code, size_t k_length, char new_nuc);          // in utils/seq_coding.cpp
-
 const double CalcVectMedian(const std::vector<float> &x)
 {
     static std::vector<float> x_tmp;
@@ -137,78 +133,43 @@ const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
 }
 
 const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                           const std::string &seq, const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
-                                           const size_t k_len, const bool stranded)
+                                           const std::vector<size_t> mem_pos_vect, const size_t k_len, const bool stranded)
 {
     static std::vector<float> count_vect_x;
-
-    size_t seq_len = seq.size(), nb_mem_kmer(0);
-    uint64_t kmer_code = Seq2Int(seq.substr(0, k_len), k_len, true);
-    std::map<uint64_t, std::pair<size_t, float>>::const_iterator it;
+    size_t nb_mem_kmer = mem_pos_vect.size();
     count_vect.assign(nb_smp, 0);
-    for (size_t start_pos(0); start_pos < seq_len - k_len + 1; ++start_pos)
+    for (const size_t p : mem_pos_vect)
     {
-        it = code_posval_map.find(kmer_code);
-        if (it == code_posval_map.cend() && !stranded)
+        GetCountVect(count_vect_x, idx_mat, p, nb_smp);
+        for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
         {
-            it = code_posval_map.find(GetRC(kmer_code, k_len));
-        }
-        if (it != code_posval_map.cend())
-        {
-            GetCountVect(count_vect_x, idx_mat, it->second.first, nb_smp);
-            for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
-            {
-                count_vect[i_smp] += count_vect_x[i_smp];
-            }
-            nb_mem_kmer++;
-        }
-        if (start_pos + k_len < seq_len)
-        {
-            kmer_code = NextCode(kmer_code, k_len, seq[start_pos + k_len]);
+            count_vect[i_smp] += count_vect_x[i_smp];
         }
     }
     for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
     {
         count_vect[i_smp] /= nb_mem_kmer;
     }
-
     return count_vect;
 }
 
 const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                             const std::string &seq, const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
-                                             const size_t k_len, const bool stranded)
+                                             const std::vector<size_t> mem_pos_vect, const size_t k_len, const bool stranded)
 {
     static std::vector<std::vector<float>> mem_kmer_counts(nb_smp);
     static std::vector<float> count_vect_x;
 
-    size_t seq_len = seq.size();
-    uint64_t kmer_code = Seq2Int(seq.substr(0, k_len), k_len, true);
-    std::map<uint64_t, std::pair<size_t, float>>::const_iterator it;
-    for (size_t start_pos(0); start_pos < seq_len - k_len + 1; ++start_pos)
+    for (const size_t p : mem_pos_vect)
     {
-        it = code_posval_map.find(kmer_code);
-        if (it == code_posval_map.cend() && !stranded)
+        GetCountVect(count_vect_x, idx_mat, p, nb_smp);
+        for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
         {
-            it = code_posval_map.find(GetRC(kmer_code, k_len));
-        }
-        if (it != code_posval_map.cend())
-        {
-            GetCountVect(count_vect_x, idx_mat, it->second.first, nb_smp);
-            for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
-            {
-                mem_kmer_counts[i_smp].emplace_back(count_vect_x[i_smp]);
-            }
-        }
-        if (start_pos + k_len < seq_len)
-        {
-            kmer_code = NextCode(kmer_code, k_len, seq[start_pos + k_len]);
+            mem_kmer_counts[i_smp].emplace_back(count_vect_x[i_smp]);
         }
     }
     for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
     {
         count_vect.push_back(CalcVectMedian(mem_kmer_counts[i_smp]));
     }
-
     return count_vect;
 }

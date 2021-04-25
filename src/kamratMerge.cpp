@@ -32,11 +32,9 @@ const std::string &GetTagSeq(std::string &tag_str, std::ifstream &idx_mat, const
 const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
                                        std::ifstream &idx_mat, size_t pos, size_t nb_smp); // in utils/index_loading.cpp
 const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                           const std::string &seq, const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
-                                           const size_t k_len, const bool stranded);
+                                           const std::vector<size_t> mem_pos_vect, const size_t k_len, const bool stranded);
 const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                             const std::string &seq, const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
-                                             const size_t k_len, const bool stranded);
+                                             const std::vector<size_t> mem_pos_vect, const size_t k_len, const bool stranded);
 
 // ----- when the -select argument is provided: merging on subset of index ----- //
 const bool LoadSelect(std::unordered_map<uint64_t, float> &sel_kmer_map, const std::string &sel_path, const std::string &rep_mode,
@@ -74,14 +72,14 @@ const bool LoadSelect(std::unordered_map<uint64_t, float> &sel_kmer_map, const s
 }
 
 void InitializeContigList(contigVect_t &ctg_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                          const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map)
+                          std::map<uint64_t, std::pair<size_t, float>> &code_posval_map)
 {
     std::string seq;
-    for (const auto &elem : code_posval_map)
+    for (auto it = code_posval_map.cbegin(); it != code_posval_map.cend(); it = code_posval_map.erase(it))
     {
-        idx_mat.seekg(elem.second.first + nb_smp * sizeof(float)); // skip the indexed count vector
+        idx_mat.seekg(it->second.first + nb_smp * sizeof(float)); // skip the indexed count vector
         idx_mat >> seq;
-        ctg_vect.emplace_back(std::make_unique<ContigElem>(seq, elem.second.first, elem.second.second));
+        ctg_vect.emplace_back(std::make_unique<ContigElem>(seq, it->second.first, it->second.second));
     }
 }
 
@@ -211,9 +209,9 @@ void PrintMergeKnots(const fix2knot_t &hashed_merge_knots, const contigVect_t &c
     }
 }
 
-void PrintHeaderRow(const bool has_value, const std::vector<std::string> &colname_vect)
+void PrintHeader(const bool has_value, const std::vector<std::string> &colname_vect)
 {
-    std::cout << "contig";
+    std::cout << "contig\tnb-merged-kmer";
     if (has_value)
     {
         std::cout << "\trep-value";
@@ -225,17 +223,11 @@ void PrintHeaderRow(const bool has_value, const std::vector<std::string> &colnam
     std::cout << std::endl;
 }
 
-void PrintResults(const std::vector<std::string> &colname_vect, const contigVect_t &ctg_vect,
-                  const std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
-                  std::ifstream &idx_mat, const size_t nb_smp, const bool has_value, const std::string &out_mode,
-                  const size_t k_len, const bool stranded, const size_t out_minlen)
+void PrintWithCounts(const bool has_value, const contigVect_t &ctg_vect, std::ifstream &idx_mat, const std::string &out_mode,
+                     const size_t nb_smp, const size_t out_minlen, const size_t k_len, const bool stranded)
 {
-    if (!out_mode.empty())
-    {
-        PrintHeaderRow(has_value, colname_vect);
-    }
-    std::vector<float> count_vect;
     std::string rep_seq;
+    std::vector<float> count_vect;
     for (const auto &elem : ctg_vect)
     {
         if (elem->GetSeq().size() < out_minlen)
@@ -243,30 +235,48 @@ void PrintResults(const std::vector<std::string> &colname_vect, const contigVect
             continue;
         }
         std::cout << elem->GetSeq();
+        std::cout << "\t" << elem->GetNbMemKmer();
         if (has_value)
         {
             std::cout << "\t" << elem->GetRepVal();
         }
         std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, elem->GetRepPos(), nb_smp);
-        if (!out_mode.empty())
+        if (out_mode == "rep")
         {
-            if (out_mode == "rep")
-            {
-                GetCountVect(count_vect, idx_mat, elem->GetRepPos(), nb_smp); // output sample count vector of representative k-mer
-            }
-            else if (out_mode == "mean")
-            {
-                GetMeanCountVect(count_vect, idx_mat, nb_smp, elem->GetSeq(), code_posval_map, k_len, stranded); // output mean sample count vector
-            }
-            else
-            {
-                GetMedianCountVect(count_vect, idx_mat, nb_smp, elem->GetSeq(), code_posval_map, k_len, stranded); // output median sample count vector
-            }
-            for (const float x : count_vect)
-            {
-                std::cout << "\t" << x;
-            }
-            count_vect.clear();
+            GetCountVect(count_vect, idx_mat, elem->GetRepPos(), nb_smp); // output sample count vector of representative k-mer
+        }
+        else if (out_mode == "mean")
+        {
+            GetMeanCountVect(count_vect, idx_mat, nb_smp, elem->GetMemPosVect(), k_len, stranded); // output mean sample count vector
+        }
+        else // out_mode == "median"
+        {
+            GetMedianCountVect(count_vect, idx_mat, nb_smp, elem->GetMemPosVect(), k_len, stranded); // output median sample count vector
+        }
+        for (const float x : count_vect)
+        {
+            std::cout << "\t" << x;
+        }
+        std::cout << std::endl;
+        count_vect.clear();
+    }
+}
+
+void PrintAsIntermediate(const contigVect_t &ctg_vect, const size_t out_minlen)
+{
+    size_t rep_pos;
+    for (const auto &elem : ctg_vect)
+    {
+        if (elem->GetSeq().size() < out_minlen)
+        {
+            continue;
+        }
+        std::cout << elem->GetSeq() << "\t" << elem->GetNbMemKmer() << "\t";
+        rep_pos = elem->GetRepPos();
+        std::cout.write(reinterpret_cast<char *>(&rep_pos), sizeof(size_t));
+        for (size_t p : elem->GetMemPosVect())
+        {
+            std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
         }
         std::cout << std::endl;
     }
@@ -355,7 +365,19 @@ int MergeMain(int argc, char **argv)
             hashed_merge_knots.clear();
         }
     }
-    PrintResults(colname_vect, ctg_vect, code_posval_map, idx_mat, nb_smp, has_value, out_mode, k_len, stranded, out_minlen);
+    if (has_value && out_mode.empty())
+    {
+        throw std::invalid_argument("output as intermediate after rank-merge is not possible");
+    }
+    if (!out_mode.empty())
+    {
+        PrintHeader(has_value, colname_vect);
+        PrintWithCounts(has_value, ctg_vect, idx_mat, out_mode, nb_smp, out_minlen, k_len, stranded);
+    }
+    else
+    {
+        PrintAsIntermediate(ctg_vect, out_minlen);
+    }
     idx_mat.close();
 
     std::cout.rdbuf(backup_buf);
@@ -366,6 +388,5 @@ int MergeMain(int argc, char **argv)
 
     std::cerr << "Contig print finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Total executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
-
     return EXIT_SUCCESS;
 }
