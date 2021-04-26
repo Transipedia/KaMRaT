@@ -32,9 +32,9 @@ const std::string &GetTagSeq(std::string &tag_str, std::ifstream &idx_mat, const
 const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
                                        std::ifstream &idx_mat, size_t pos, size_t nb_smp); // in utils/index_loading.cpp
 const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                           const std::vector<size_t> mem_pos_vect, const size_t k_len, const bool stranded);
+                                           const std::vector<size_t> mem_pos_vect);
 const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                             const std::vector<size_t> mem_pos_vect, const size_t k_len, const bool stranded);
+                                             const std::vector<size_t> mem_pos_vect);
 
 // ----- when the -select argument is provided: merging on subset of index ----- //
 const bool LoadSelect(std::unordered_map<uint64_t, float> &sel_kmer_map, const std::string &sel_path, const std::string &rep_mode,
@@ -247,11 +247,11 @@ void PrintWithCounts(const bool has_value, const contigVect_t &ctg_vect, std::if
         }
         else if (out_mode == "mean")
         {
-            GetMeanCountVect(count_vect, idx_mat, nb_smp, elem->GetMemPosVect(), k_len, stranded); // output mean sample count vector
+            GetMeanCountVect(count_vect, idx_mat, nb_smp, elem->GetMemPosVect()); // output mean sample count vector
         }
         else // out_mode == "median"
         {
-            GetMedianCountVect(count_vect, idx_mat, nb_smp, elem->GetMemPosVect(), k_len, stranded); // output median sample count vector
+            GetMedianCountVect(count_vect, idx_mat, nb_smp, elem->GetMemPosVect()); // output median sample count vector
         }
         for (const float x : count_vect)
         {
