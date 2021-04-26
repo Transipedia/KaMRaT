@@ -11,7 +11,7 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-#include "common/tab_header.hpp"
+// #include "common/tab_header.hpp"
 #include "rank/rank_runinfo.hpp" // including scorer, scorer includes feature_elem
 
 #define RESET "\033[0m"

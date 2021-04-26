@@ -5,6 +5,8 @@
 #include <string>
 #include <memory>
 
+#include "scorer.hpp"
+
 const void ParseScorer(std::unique_ptr<Scorer> &scorer, std::string &score_method, const bool to_ln, const bool to_standardize)
 {
     std::string score_cmd;
@@ -91,107 +93,65 @@ const void ParseScorer(std::unique_ptr<Scorer> &scorer, std::string &score_metho
         {
             throw std::invalid_argument("unknown sorting mode: " + score_cmd);
         }
+        
     }
 }
 
-void RankWelcome()
+inline void PrintRankHelper()
 {
-    std::cerr << "KaMRaT rank: univariate feature ranking" << std::endl
-              << "-------------------------------------------------------------------------------------------------------------------" << std::endl;
-}
-
-void PrintRankHelper()
-{
-    std::cerr << "[USAGE]    kamrat rank -idx-dir STR -count-mode STR -rank-by STR [-options] FEATURE_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]   kamrat rank -idx-path STR -nf-path STR [-options] FEATURE_TAB_PATH" << std::endl
               << std::endl;
-    std::cerr << "[OPTION]    -h,-help             Print the helper " << std::endl;
-    std::cerr << "            -idxdir STR              Indexing folder by KaMRaT index, mandatory" << std::endl;
-    std::cerr << "            -rankby STR          Ranking method, mandatory, can be one of: " << std::endl
-              << "                                     sd     standard deviation" << std::endl
-              << "                                     rsd    relative standard deviation" << std::endl
-              << "                                     ttest  adjusted p-value of t-test between conditions (require -ln)" << std::endl
-              << "                                     snr    signal-to-noise ratio between conditions" << std::endl
-              << "                                     lrc:nfold    accuracy by logistic regression classifier" << std::endl
-              << "                                     nbc:nfold    accuracy by naive Bayes classifier" << std::endl
-              << "                                     svm:nfold    accuracy on SVM classifier" << std::endl;
-    std::cerr << "            -out-nf              If present, output nomalization factor to given file" << std::endl;
-    std::cerr << "            -with STR1[:STR2]    File indicating features to rank (STR1) and counting mode (STR2)" << std::endl
-              << "                                     if not provided, all indexed features are used for ranking" << std::endl
-              << "                                     STR2 can be one of [rep, mean, median]" << std::endl;
-    std::cerr << "            -design STR          File indicating sample-condition design, without header line" << std::endl
-              << "                                     if not provided, all samples are assigned by the same condition" << std::endl
-              << "                                     if provided, each row can be either: " << std::endl
-              << "                                         sample name, sample condition" << std::endl
-              << "                                         sample name, sample condition, sample batch (only for lrc, nbc, and svm)" << std::endl;
-    std::cerr << "            -ln                  Apply ln(x + 1) transformation for score estimation [false]" << std::endl;
-    std::cerr << "            -standardize         Standarize count vector for score estimation [false]" << std::endl;
-    std::cerr << "            -rankonraw           Estimate scores and rank on raw count, without normalization" << std::endl;
-    std::cerr << "            -seltop NUM          If NUM > 1, it indicates top number of features to output (treated as integer)" << std::endl
-              << "                                 If NUM <= 1, it indicates the ratio of features to output" << std::endl;
-    std::cerr << "            -outpath STR         Path of ranking result" << std::endl
-              << "                                     if not provided, output to screen" << std::endl;
-    std::cerr << "            -withcounts          Output sample count vectors [false]" << std::endl
+    std::cerr << "[OPTION]        -h,-help             Print the helper " << std::endl;
+    std::cerr << "                -idx-path STR        Temporary file path for saving count index [MANDATORY]" << std::endl;
+    std::cerr << "                -nf-path             Output path for nomalization factor [MANDATORY]" << std::endl;
+    std::cerr << "                -smp-info STR        Path to sample-condition or sample file, without header line" << std::endl
+              << "                                         if absent, all columns except the first in the count table are regarded as sample" << std::endl;
+    std::cerr << "                -score-method STR    Evaluation method to use and its parameter, seperated by \':\' (cf. [EVAL. METHOD])" << std::endl;
+    std::cerr << "                -top-num INT         Number of top features to select" << std::endl;
+    std::cerr << "                -ln                  Apply ln(x + 1) transformation for score estimation [false]" << std::endl;
+    std::cerr << "                -standardize         Standarize count vector for score estimation [false]" << std::endl;
+    std::cerr << "                -no-norm             Estimate scores with raw count, do NOT apply normalization" << std::endl;
+    std::cerr << "                -out-path STR        Output table path [default: output to screen]" << std::endl
+              << "                                         the output counts are same as the input counts," << std::endl
+              << "                                         normalization, log transformation, and standardization affect score evaluation, but not output counts" << std::endl
               << std::endl;
-    std::cerr << "[NOTE]      For ranking methods lrc, nbc, and svm, there can be a second univariant cross-validaton option (nfold)" << std::endl
-              << "                if nfold = 0, leave-one-out cross-validation" << std::endl
-              << "                if nfold = 1, without cross-validation, training and testing on the whole datset" << std::endl
-              << "                if nfold >=2, n-fold cross-validation" << std::endl
+    std::cerr << "[EVAL. METHOD]  rsd                  Relative standard deviation" << std::endl;
+    std::cerr << "                ttest                T-test between conditions (ln transformation is required)" << std::endl;
+    std::cerr << "                snr                  Signal-to-noise ratio between conditions" << std::endl;
+    std::cerr << "                lrc:n_fold           F1-score with regression classification [default n_fold = 1]" << std::endl
+              << "                                         if n_fold = 0, leave-one-out cross-validation is applied" << std::endl
+              << "                                         if n_fold = 1, evaluation without cross-validation, training and testing on the whole datset" << std::endl
+              << "                                         if n_fold >= 2, n-fold cross-validation is applied" << std::endl;
+    std::cerr << "                nbc:n_fold           F1-score with naive Bayes classification [default n_fold = 1]" << std::endl
+              << "                                         if n_fold = 0, leave-one-out cross-validation is applied" << std::endl
+              << "                                         if n_fold = 1, evaluation without cross-validation, training and testing on the whole datset" << std::endl
+              << "                                         if n_fold >= 2, n-fold cross-validation is applied" << std::endl;
+    std::cerr << "                svm                  Hinge-loss function on SVM classification (standardization is required)" << std::endl;
+    std::cerr << "                colname:sort_mode    User-defined method, where name indicates a column in the k-mer count table" << std::endl
+              << "                                         sore_mode can be:    dec       Sorting by decreasing order" << std::endl
+              << "                                                              decabs    Sorting by decreasing order but on the absolute value" << std::endl
+              << "                                                              inc       Sorting by increasing order" << std::endl
+              << "                                                              incabs    Sorting by increasing order but on the absolute value" << std::endl
               << std::endl;
 }
 
-void PrintRunInfo(const std::string &idx_dir,
-                  const std::string &rk_mthd, const size_t nfold,
-                  const std::string &out_nf,
-                  const std::string &with_path, const std::string &count_mode,
-                  const std::string &dsgn_path,
-                  const bool ln_transf,
-                  const bool standardize,
-                  const bool no_norm,
-                  const float sel_top,
-                  const std::string &out_path,
-                  const bool with_counts)
+inline void PrintRunInfo(const std::string &kmer_count_path,
+                         const std::string &idx_path,
+                         const std::string &nf_path,
+                         const std::string &smp_info_path,
+                         const std::unique_ptr<Scorer> &scorer,
+                         const size_t nb_sel,
+                         const bool ln_transf,
+                         const bool standardize,
+                         const bool no_norm,
+                         const std::string &out_path)
 {
-    std::cerr << std::endl;
-    std::cerr << "KaMRaT index:             " << idx_dir << std::endl;
-    std::cerr << "Ranking method:           " << rk_mthd << std::endl;
-    if (rk_mthd == "nbc" || score_method_code == ScoreMethodCode::kLogitReg)
-    {
-        size_t nb_fold = scorer->GetNbFold();
-        if (nb_fold == 0)
-        {
-            std::cerr << "    Leave-one-out cross-validation";
-        }
-        else if (nb_fold == 1)
-        {
-            std::cerr << "    No cross-validation, train and test on the whole dataset";
-        }
-        else
-        {
-            std::cerr << "    Cross-validation with fold number = " << nb_fold;
-        }
-        std::cerr << std::endl;
-    }
-
-
-
-    std::cerr << "Select k-mers in file:    " << (sel_path.empty() ? "k-mers in index" : sel_path) << std::endl;
-    std::cerr << "Representative mode:      " << rep_mode << std::endl;
-    std::cerr << "Intervention method:      " << itv_mthd << std::endl;
-    if (itv_mthd != "none")
-    {
-        std::cerr << "\tthreshold = " << itv_thres << std::endl;
-    }
-    std::cout << "Minimal output length:    " + std::to_string(min_nb_kmer) << std::endl;
-    std::cerr << "Output:                   " << (out_path.empty() ? "to screen" : out_path) << std::endl;
-    std::cerr << "\t" << (out_mode.empty() ? "without" : out_mode) + " count vectors" << std::endl
-              << std::endl;
-
     std::cerr << "k-mer count path:                             " << kmer_count_path << std::endl;
-    std::cerr << "k-mer count index path:                       " << idx_dir << std::endl;
-    std::cerr << "Nomalization factor to path:                  " << out_nf << std::endl;
-    if (!dsgn_path.empty())
+    std::cerr << "k-mer count index path:                       " << idx_path << std::endl;
+    std::cerr << "Nomalization factor to path:                  " << nf_path << std::endl;
+    if (!smp_info_path.empty())
     {
-        std::cerr << "Sample info path:                             " << dsgn_path << std::endl;
+        std::cerr << "Sample info path:                             " << smp_info_path << std::endl;
     }
     const ScoreMethodCode score_method_code = scorer->GetScoreMethodCode();
     std::cerr << "Evaluation method:                            " << kScoreMethodName[score_method_code] << std::endl;
@@ -217,7 +177,7 @@ void PrintRunInfo(const std::string &idx_dir,
         std::cerr << "    Score column name = " << scorer->GetRepColname() << std::endl;
     }
     std::cerr << "Sorting mode:                                 " << kSortModeName[scorer->GetSortModeCode()] << std::endl;
-    std::cerr << "Number of feature to output (0 for all):      " << sel_top << std::endl;
+    std::cerr << "Number of feature to output (0 for all):      " << nb_sel << std::endl;
     std::cerr << "Ln(x + 1) for score estiamtion:               " << (ln_transf ? "On" : "Off") << std::endl;
     std::cerr << "Standardize for score estimation:             " << (standardize ? "On" : "Off") << std::endl;
     std::cerr << "Feature evaluation:                           on " << (no_norm ? "raw" : "normalized") << " counts" << std::endl;
@@ -234,11 +194,11 @@ void PrintRunInfo(const std::string &idx_dir,
 
 inline void ParseOptions(int argc,
                          char *argv[],
-                         std::string &idx_dir,
-                         std::string &out_nf,
-                         std::string &dsgn_path,
+                         std::string &idx_path,
+                         std::string &nf_path,
+                         std::string &smp_info_path,
                          std::unique_ptr<Scorer> &scorer,
-                         size_t &sel_top,
+                         size_t &nb_sel,
                          bool &to_ln,
                          bool &to_standardize,
                          bool &no_norm,
@@ -257,15 +217,15 @@ inline void ParseOptions(int argc,
         }
         else if (arg == "-idx-path" && i_opt + 1 < argc)
         {
-            idx_dir = argv[++i_opt];
+            idx_path = argv[++i_opt];
         }
         else if (arg == "-nf-path" && i_opt + 1 < argc)
         {
-            out_nf = argv[++i_opt];
+            nf_path = argv[++i_opt];
         }
         else if (arg == "-smp-info" && i_opt + 1 < argc)
         {
-            dsgn_path = argv[++i_opt];
+            smp_info_path = argv[++i_opt];
         }
         else if (arg == "-score-method" && i_opt + 1 < argc)
         {
@@ -273,7 +233,7 @@ inline void ParseOptions(int argc,
         }
         else if (arg == "-top-num" && i_opt + 1 < argc)
         {
-            sel_top = atoi(argv[++i_opt]);
+            nb_sel = atoi(argv[++i_opt]);
         }
         else if (arg == "-ln")
         {
@@ -304,18 +264,18 @@ inline void ParseOptions(int argc,
         throw std::invalid_argument("k-mer count table path is mandatory");
     }
     kmer_count_path = argv[i_opt++];
-
-    if (idx_dir.empty())
+    
+    if (idx_path.empty())
     {
         PrintRankHelper();
         throw std::invalid_argument("temporary index file path is mandatory");
     }
-    if (out_nf.empty() && !no_norm)
+    if (nf_path.empty() && !no_norm)
     {
         PrintRankHelper();
         throw std::invalid_argument("path for normalization factor is mandatory unless with -no-norm");
     }
-    else if (!out_nf.empty() && no_norm)
+    else if (!nf_path.empty() && no_norm)
     {
         PrintRankHelper();
         throw std::invalid_argument("no need for giving normalization factor path with -no-norm");
