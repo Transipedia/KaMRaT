@@ -224,13 +224,13 @@ void PrintHeader(const bool has_value, const std::vector<std::string> &colname_v
 }
 
 void PrintWithCounts(const bool has_value, const contigVect_t &ctg_vect, std::ifstream &idx_mat, const std::string &out_mode,
-                     const size_t nb_smp, const size_t out_minlen, const size_t k_len, const bool stranded)
+                     const size_t nb_smp, const size_t min_nbkmer, const size_t k_len, const bool stranded)
 {
     std::string rep_seq;
     std::vector<float> count_vect;
     for (const auto &elem : ctg_vect)
     {
-        if (elem->GetSeq().size() < out_minlen)
+        if (elem->GetNbMemKmer() < min_nbkmer)
         {
             continue;
         }
@@ -262,12 +262,12 @@ void PrintWithCounts(const bool has_value, const contigVect_t &ctg_vect, std::if
     }
 }
 
-void PrintAsIntermediate(const contigVect_t &ctg_vect, const size_t out_minlen)
+void PrintAsIntermediate(const contigVect_t &ctg_vect, const size_t min_nbkmer)
 {
     size_t rep_pos;
     for (const auto &elem : ctg_vect)
     {
-        if (elem->GetSeq().size() < out_minlen)
+        if (elem->GetNbMemKmer() < min_nbkmer)
         {
             continue;
         }
@@ -289,10 +289,10 @@ int MergeMain(int argc, char **argv)
     std::clock_t begin_time = clock(), inter_time;
     std::string idx_dir, sel_path, rep_mode("min"), itv_mthd("spearman"), out_path, out_mode;
     float itv_thres(0.25);
-    size_t max_ovlp(0), min_ovlp(0), nb_smp(0), k_len(0), out_minlen(0);
+    size_t max_ovlp(0), min_ovlp(0), nb_smp(0), k_len(0), min_nbkmer(0);
     bool stranded(false), has_value(false);
     std::vector<std::string> colname_vect;
-    ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, sel_path, rep_mode, itv_mthd, itv_thres, out_minlen, out_path, out_mode);
+    ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, sel_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_mode);
     std::vector<double> _smp_sum_vect; // _smp_sum_vect not needed in KaMRaT-merge
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, _smp_sum_vect, idx_dir + "/idx-meta.bin");
     if (k_len == 0)
@@ -303,7 +303,7 @@ int MergeMain(int argc, char **argv)
     {
         throw std::invalid_argument("max overlap (" + std::to_string(max_ovlp) + ") should not exceed k-mer length (" + std::to_string(k_len) + ")");
     }
-    PrintRunInfo(idx_dir, k_len, max_ovlp, min_ovlp, stranded, sel_path, rep_mode, itv_mthd, itv_thres, out_minlen, out_path, out_mode);
+    PrintRunInfo(idx_dir, k_len, max_ovlp, min_ovlp, stranded, sel_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_mode);
     if (out_mode == "mean")
     {
         std::cerr << BOLDYELLOW << "[warning]" << RESET << " estimate mean counts of contigs may introduce bias" << std::endl
@@ -372,11 +372,11 @@ int MergeMain(int argc, char **argv)
     if (!out_mode.empty())
     {
         PrintHeader(has_value, colname_vect);
-        PrintWithCounts(has_value, ctg_vect, idx_mat, out_mode, nb_smp, out_minlen, k_len, stranded);
+        PrintWithCounts(has_value, ctg_vect, idx_mat, out_mode, nb_smp, min_nbkmer, k_len, stranded);
     }
     else
     {
-        PrintAsIntermediate(ctg_vect, out_minlen);
+        PrintAsIntermediate(ctg_vect, min_nbkmer);
     }
     idx_mat.close();
 
