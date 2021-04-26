@@ -3,6 +3,7 @@
 #include <map>
 #include <unordered_map>
 #include <algorithm>
+#include <armadillo>
 
 // using code2kmer_t = std::map<uint64_t, std::pair<std::string, size_t>>;
 using ftVect_t = std::vector<std::pair<std::string, size_t>>;
@@ -156,20 +157,18 @@ const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::
 const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
                                              const std::vector<size_t> mem_pos_vect)
 {
-    static std::vector<std::vector<float>> mem_kmer_counts(nb_smp);
+    static arma::Mat<float> mem_kmer_counts(mem_pos_vect.size(), nb_smp);
     static std::vector<float> count_vect_x;
 
-    for (const size_t p : mem_pos_vect)
+    for (size_t i_pos(0); i_pos < mem_pos_vect.size(); ++i_pos)
     {
-        GetCountVect(count_vect_x, idx_mat, p, nb_smp);
+        GetCountVect(count_vect_x, idx_mat, mem_pos_vect[i_pos], nb_smp);
         for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
         {
-            mem_kmer_counts[i_smp].emplace_back(count_vect_x[i_smp]);
+            mem_kmer_counts(i_pos, i_smp) = count_vect_x[i_smp];
         }
     }
-    for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
-    {
-        count_vect.push_back(CalcVectMedian(mem_kmer_counts[i_smp]));
-    }
+    arma::median(mem_kmer_counts, 0).print();
+    count_vect = arma::conv_to<std::vector<float>>::from(arma::median(mem_kmer_counts, 0));
     return count_vect;
 }
