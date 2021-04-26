@@ -9,13 +9,13 @@ const std::unordered_set<std::string> kIntervMethodUniv{"none", "pearson", "spea
 const std::unordered_set<std::string> kRepMode{"min", "minabs", "max", "maxabs"};
 const std::unordered_set<std::string> kOutMode{"rep", "mean", "median"};
 
-const void MergeWelcome()
+void MergeWelcome()
 {
     std::cerr << "KaMRaT merge: sequence extension" << std::endl
               << "------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
-const void PrintMergeHelper()
+void PrintMergeHelper()
 {
     std::cerr << "[Usage]    kamrat merge -overlap MAX-MIN -idx-dir STR [-options] KMER_TAB_PATH" << std::endl
               << std::endl;
@@ -38,15 +38,15 @@ const void PrintMergeHelper()
               << std::endl;
 }
 
-const void PrintRunInfo(const std::string &idx_dir,
-                        const size_t k_len,
-                        const size_t max_ovlp, const size_t min_ovlp,
-                        const bool stranded,
-                        const std::string &sel_path, const std::string &rep_mode,
-                        const std::string &itv_mthd, const float itv_thres,
-                        const size_t min_nb_kmer,
-                        const std::string &out_path,
-                        const std::string &out_mode)
+void PrintRunInfo(const std::string &idx_dir,
+                  const size_t k_len,
+                  const size_t max_ovlp, const size_t min_ovlp,
+                  const bool stranded,
+                  const std::string &sel_path, const std::string &rep_mode,
+                  const std::string &itv_mthd, const float itv_thres,
+                  const size_t min_nb_kmer,
+                  const std::string &out_path,
+                  const std::string &out_mode)
 {
     std::cerr << std::endl;
     std::cerr << "KaMRaT index:             " << idx_dir << std::endl;
@@ -66,14 +66,14 @@ const void PrintRunInfo(const std::string &idx_dir,
               << std::endl;
 }
 
-const void ParseOptions(int argc, char *argv[],
-                        std::string &idx_dir,
-                        size_t &max_ovlp, size_t &min_ovlp,
-                        std::string &sel_path, std::string &rep_mode,
-                        std::string &itv_mthd, float &itv_thres,
-                        size_t &min_nb_kmer,
-                        std::string &out_path,
-                        std::string &out_mode)
+void ParseOptions(int argc, char *argv[],
+                  std::string &idx_dir,
+                  size_t &max_ovlp, size_t &min_ovlp,
+                  std::string &sel_path, std::string &rep_mode,
+                  std::string &itv_mthd, float &itv_thres,
+                  size_t &min_nb_kmer,
+                  std::string &out_path,
+                  std::string &out_mode)
 {
     int i_opt(1);
     if (argc == 1)
