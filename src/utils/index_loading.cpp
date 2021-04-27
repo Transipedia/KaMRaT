@@ -54,7 +54,7 @@ void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
     idx_meta.close();
 }
 
-void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path)
+void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path, const bool need_skip_code)
 {
     std::ifstream idx_pos(idx_pos_path);
     if (!idx_pos.is_open())
@@ -62,9 +62,20 @@ void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path)
         throw std::invalid_argument("loading index-pos failed, KaMRaT index folder not found or may be corrupted");
     }
     size_t pos;
-    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+    if (need_skip_code)
     {
-        pos_vect.emplace_back(pos);
+        size_t _code;
+        while (idx_pos.read(reinterpret_cast<char *>(&_code), sizeof(uint64_t)) && idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+        {
+            pos_vect.emplace_back(pos);
+        }
+    }
+    else
+    {
+        while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+        {
+            pos_vect.emplace_back(pos);
+        }
     }
     idx_pos.close();
 }

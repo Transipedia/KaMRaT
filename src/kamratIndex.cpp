@@ -121,9 +121,9 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
 }
 
 void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded, std::vector<std::string> &colname_vect,
-                   std::vector<double> &smp_sum_vect, const std::string &idx_meta_path);    // in utils/index_loading.cpp
-void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path);           // in utils/index_loading.cpp
-void LoadCodePosMap(std::map<uint64_t, size_t> &code_set, const std::string &idx_pos_path); // in utils/index_loading.cpp
+                   std::vector<double> &smp_sum_vect, const std::string &idx_meta_path);                     // in utils/index_loading.cpp
+void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path, const bool need_skip_code); // in utils/index_loading.cpp
+void LoadCodePosMap(std::map<uint64_t, size_t> &code_set, const std::string &idx_pos_path);                  // in utils/index_loading.cpp
 const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat,
                                        const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 
@@ -153,40 +153,19 @@ void TestIndex(const std::string &idx_meta_path, const std::string &idx_pos_path
     }
     std::cout << std::endl;
 
-    if (k_len != 0)
+    std::vector<size_t> pos_vect;
+    LoadPosVect(pos_vect, idx_pos_path, k_len != 0);
+    std::vector<float> count_vect;
+    for (const size_t p : pos_vect)
     {
-        std::map<uint64_t, size_t> code_pos_map;
-        LoadCodePosMap(code_pos_map, idx_pos_path);
-
-        std::vector<float> count_vect;
-        for (const auto &elem : code_pos_map)
+        GetCountVect(count_vect, idx_mat, p, nb_smp_all);
+        idx_mat >> term;
+        std::cout << term;
+        for (const auto x : count_vect)
         {
-            GetCountVect(count_vect, idx_mat, elem.second, nb_smp_all);
-            idx_mat >> term;
-            std::cout << term;
-            for (const auto x : count_vect)
-            {
-                std::cout << "\t" << x;
-            }
-            std::cout << std::endl;
+            std::cout << "\t" << x;
         }
-    }
-    else
-    {
-        std::vector<size_t> pos_vect;
-        LoadPosVect(pos_vect, idx_pos_path);
-        std::vector<float> count_vect;
-        for (const size_t p : pos_vect)
-        {
-            GetCountVect(count_vect, idx_mat, p, nb_smp_all);
-            idx_mat >> term;
-            std::cout << term;
-            for (const auto x : count_vect)
-            {
-                std::cout << "\t" << x;
-            }
-            std::cout << std::endl;
-        }
+        std::cout << std::endl;
     }
 
     idx_mat.close();
