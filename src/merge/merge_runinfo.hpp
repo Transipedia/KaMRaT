@@ -33,7 +33,7 @@ void PrintMergeHelper()
     std::cerr << "            -min-nbkmer INT        Minimal length of extended contigs [0]" << std::endl;
     std::cerr << "            -outpath STR           Path of extension result list" << std::endl
               << "                                       if not provided, output to screen" << std::endl;
-    std::cerr << "            -with-counts STR       Output sample count vectors, STR can be one of [rep, mean, median]" << std::endl
+    std::cerr << "            -withcounts STR        Output sample count vectors, STR can be one of [rep, mean, median]" << std::endl
               << "                                       if not provided, output without count vector" << std::endl
               << std::endl;
 }
@@ -145,7 +145,7 @@ void ParseOptions(int argc, char *argv[],
         {
             out_path = argv[++i_opt];
         }
-        else if (arg == "-with-counts" && i_opt + 1 < argc)
+        else if (arg == "-withcounts" && i_opt + 1 < argc)
         {
             out_mode = argv[++i_opt];
         }
@@ -164,12 +164,12 @@ void ParseOptions(int argc, char *argv[],
     if (idx_dir.empty())
     {
         PrintMergeHelper();
-        throw std::invalid_argument("KaMRaT index folder is mandatory");
+        throw std::invalid_argument("-idxdir STR is mandatory");
     }
     if (max_ovlp == 0 || min_ovlp == 0)
     {
         PrintMergeHelper();
-        throw std::invalid_argument("overlap range is mandatory");
+        throw std::invalid_argument("-overlap MAX-MIN is mandatory");
     }
     if (kIntervMethodUniv.find(itv_mthd) == kIntervMethodUniv.cend())
     {
