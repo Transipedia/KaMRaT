@@ -43,31 +43,19 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     }
 }
 
-// const double CalcRelatSDScore(const double all_mean, const double all_stddev)
-// {
-//     if (all_mean <= 1)
-//     {
-//         return all_stddev;
-//     }
-//     else
-//     {
-//         return (all_stddev / all_mean);
-//     }
-// }
-
 const double CalcTtestScore(const arma::Mat<double> &&arma_count_vect1, const arma::Mat<double> &&arma_count_vect2)
 {
     double mean1 = arma::mean(arma::mean(arma_count_vect1)), mean2 = arma::mean(arma::mean(arma_count_vect2)),
-           stddev1 = arma::mean(arma::stddev(arma_count_vect1)), stddev2 = arma::mean(arma::stddev(arma_count_vect2));
+           var1 = arma::mean(arma::var(arma_count_vect1)), var2 = arma::mean(arma::var(arma_count_vect2));
     size_t nb1 = arma_count_vect1.size(), nb2 = arma_count_vect2.size();
-    if (stddev1 == 0 && stddev2 == 0)
+    if (var1 == 0 && var2 == 0)
     {
         return 1;
     }
     else
     {
-        double t1 = stddev1 * stddev1 / nb1,
-               t2 = stddev2 * stddev2 / nb2,
+        double t1 = var1 / nb1,
+               t2 = var2 / nb2,
                df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (nb1 - 1) + t2 * t2 / (nb2 - 1)),
                t_stat = (mean1 - mean2) / sqrt(t1 + t2);
         boost::math::students_t dist(df);
@@ -145,21 +133,26 @@ Scorer::Scorer(const std::string &scorer_str, const size_t nfold, const std::vec
     : scorer_code_(ParseScorerCode(scorer_str)), nfold_(nfold)
 {
     arma_nf_vect_ = arma::conv_to<arma::Row<double>>::from(smp_sum_vect);
-    arma_nf_vect_ = arma::mean(arma::mean(arma_nf_vect_)) / arma_nf_vect_;
-    arma_nf_vect_.print("normalization factor: ");
+    arma_nf_vect_ = arma::mean(arma::mean(arma_nf_vect_, 1)) / arma_nf_vect_;
+    // arma_nf_vect_.print("normalization factor: ");
     arma_condi_vect_ = arma::conv_to<arma::Row<size_t>>::from(condi_label_vect);
-    arma_condi_vect_.print("Label vector:");
+    // arma_condi_vect_.print("Label vector:");
     nclass_ = arma_condi_vect_.max() + 1;
     if (nclass_ != 2 && (scorer_code_ == ScorerCode::kTtest || scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kLR))
     {
-        throw std::domain_error("scoring by T-test, signal-to-noise ratio, and logistic regression only accept binary sample condition");
+        throw std::domain_error("scoring by t-test, SNR, and LR only accept binary sample condition: " + std::to_string(nclass_));
     }
     if (nclass_ < 2 && (scorer_code_ == ScorerCode::kNBC || scorer_code_ == ScorerCode::kSVM))
     {
         throw std::domain_error("scoring by naive Bayes or SVM only accepts condition number >= 2");
     }
     arma_batch_vect_ = arma::conv_to<arma::Row<double>>::from(batch_label_vect);
-    arma_batch_vect_.print("Batch vector:");
+    // arma_batch_vect_.print("Batch vector:");
+    nbatch_ = arma_batch_vect_.max() + 1;
+    if (nbatch_ > 1 && (scorer_code_ == ScorerCode::kTtest || scorer_code_ == ScorerCode::kSNR))
+    {
+        throw std::invalid_argument("T-test and SNR do not support batch effect correction");
+    }
 }
 
 const ScorerCode Scorer::GetScorerCode() const
@@ -176,21 +169,24 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect, const b
 {
     static arma::Mat<double> arma_count_vect;
     arma_count_vect = arma::conv_to<arma::Row<double>>::from(count_vect);
-    arma_count_vect.print("Count vector before transformation: ");
+    // arma_count_vect.print("Count vector before transformation: ");
     if (!no_norm)
     {
         arma_count_vect = arma_count_vect % arma_nf_vect_; // % means element-wise multiplication in armadillo
     }
     if (ln_transf)
     {
-        arma_count_vect = log(arma_count_vect);
+        arma_count_vect = log(arma_count_vect + 1);
     }
     if (standardize)
     {
-        arma_count_vect = (arma_count_vect - arma::mean(arma::mean(arma_count_vect))) / arma::mean(arma::stddev(arma_count_vect));
+        arma_count_vect = (arma_count_vect - arma::mean(arma::mean(arma_count_vect, 1))) / arma::mean(arma::stddev(arma_count_vect, 0, 1));
     }
-    arma_count_vect = arma::join_cols(arma_count_vect, arma_batch_vect_);
-    arma_count_vect.print("Count vector after transformation:");
+    if (scorer_code_ != ScorerCode::kTtest && scorer_code_ != ScorerCode::kSNR)
+    {
+        arma_count_vect = arma::join_cols(arma_count_vect, arma_batch_vect_);
+    }
+    // arma_count_vect.print("Count vector after transformation:");
 
     switch (scorer_code_)
     {

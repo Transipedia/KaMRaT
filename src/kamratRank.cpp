@@ -23,202 +23,6 @@ void LoadFeaturePosMap(std::unordered_map<std::string, size_t> &ft_pos_map, std:
                        const bool need_skip_code, const size_t nb_smp);                                            // in utils/index_loading.cpp
 const std::string &GetTagSeq(std::string &tag_str, std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 
-// const void ScanCountComputeNF(featureVect_t &feature_vect, std::vector<double> &nf_vect, TabHeader &tab_header,
-//                               const std::string &raw_counts_path, const std::string &idx_path, const std::string &rep_column)
-// {
-//     std::ifstream raw_counts_file(raw_counts_path);
-//     if (!raw_counts_file.is_open())
-//     {
-//         throw std::domain_error("count table " + raw_counts_path + " was not found");
-//     }
-//     boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
-//     {
-//         size_t pos = raw_counts_path.find_last_of(".");
-//         if (pos != std::string::npos && raw_counts_path.substr(pos + 1) == "gz")
-//         {
-//             inbuf.push(boost::iostreams::gzip_decompressor());
-//         }
-//     }
-//     inbuf.push(raw_counts_file);
-//     std::istream kmer_count_instream(&inbuf);
-
-//     std::string line;
-//     std::getline(kmer_count_instream, line);
-//     std::istringstream conv(line);
-//     tab_header.MakeColumns(conv, rep_column);
-//     conv.clear();
-
-//     nf_vect.resize(tab_header.GetNbCount(), 0);
-//     std::cerr << "\t => Number of samples parsed: " << nf_vect.size() << std::endl;
-
-//     std::ofstream idx_file(idx_path);
-//     if (!idx_file.is_open()) // to ensure the file is opened
-//     {
-//         throw std::domain_error("error open file: " + idx_path);
-//     }
-
-//     std::vector<float> count_vect;
-//     std::string value_str;
-//     double rep_value;
-//     while (std::getline(kmer_count_instream, line))
-//     {
-//         conv.str(line);
-//         rep_value = tab_header.ParseRowStr(count_vect, value_str, conv);
-//         feature_vect.emplace_back(rep_value, count_vect, value_str, idx_file);
-//         for (size_t i(0); i < count_vect.size(); ++i)
-//         {
-//             nf_vect[i] += count_vect[i];
-//         }
-//         count_vect.clear();
-//         conv.clear();
-//     }
-//     feature_vect.shrink_to_fit();
-//     std::cerr << "\t => Number of features parsed: " << feature_vect.size() << std::endl;
-//     double mean_sample_sum = (std::accumulate(nf_vect.cbegin(), nf_vect.cend(), 0.0) / nf_vect.size());
-//     for (size_t i(0); i < nf_vect.size(); ++i)
-//     {
-//         if (nf_vect[i] == 0)
-//         {
-//             nf_vect[i] = 0;
-//         }
-//         else
-//         {
-//             nf_vect[i] = mean_sample_sum / nf_vect[i];
-//         }
-//     }
-//     raw_counts_file.close();
-//     idx_file.close();
-// }
-
-// void PrintNF(const std::string &smp_sum_outpath, const std::vector<double> &nf_vect, const TabHeader &tab_header)
-// {
-//     std::ofstream sum_out(smp_sum_outpath);
-//     for (size_t i(1), j(0); i < tab_header.GetNbCol(); ++i)
-//     {
-//         if (tab_header.IsColCount(i))
-//         {
-//             if (nf_vect[j] > 100 || nf_vect[j] < 0.01)
-//             {
-//                 std::cerr << BOLDYELLOW << "[warning]"
-//                           << RESET << " sample " << tab_header.GetColNameAt(i) << " has nomralization vector above 100 or below 0.01" << std::endl;
-//             }
-//             sum_out << tab_header.GetColNameAt(i) << "\t" << nf_vect[j++] << std::endl;
-//         }
-//     }
-//     sum_out.close();
-// }
-
-// void EvalScore(featureVect_t &feature_vect,
-//                std::ifstream &idx_file, const std::vector<double> &nf_vect,
-//                std::unique_ptr<Scorer> &scorer, const TabHeader &tab_header,
-//                const bool to_ln, const bool to_standardize, const bool no_norm)
-// {
-//     std::vector<size_t> label_vect;
-//     scorer->LoadSampleLabels(tab_header.GetSampleLabelVect(label_vect));
-//     for (size_t i_ft(0); i_feature < feature_vect.size(); ++i_feature)
-//     {
-//         scorer->PrepareCountVect(feature_vect[i_feature], nf_vect, idx_file, to_ln, to_standardize, no_norm);
-//         scorer->CalcFeatureStats(feature_vect[i_feature]);
-//         feature_vect[i_feature].SetScore(scorer->EvaluateScore(feature_vect[i_feature]));
-//     }
-// }
-
-// void PrintHeader(std::ostream &out_s, const TabHeader &tab_header, const ScoreMethodCode score_method_code)
-// {
-//     std::cout << tab_header.GetColNameAt(0);
-//     if (score_method_code == ScoreMethodCode::kRelatSD) // relative sd ranking output stats for all samples
-//     {
-//         std::cout << "\t" << kScoreMethodName[score_method_code] << "\tmean.all\tsd.all";
-//     }
-//     else if (score_method_code != ScoreMethodCode::kUser) // user ranking do not output score or condition stats
-//     {
-//         const std::vector<std::string> &condi_name_vect = tab_header.GetCondiNameVect();
-//         std::cout << "\t" << kScoreMethodName[score_method_code];
-//         for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
-//         {
-//             std::cout << "\tmean." << condi_name_vect[i];
-//         }
-//         for (size_t i(0); i < tab_header.GetNbCondition(); ++i)
-//         {
-//             std::cout << "\tsd." << condi_name_vect[i];
-//         }
-//     }
-//     std::string value_str;
-//     for (size_t i(1); i < tab_header.GetNbCol(); ++i)
-//     {
-//         if (!tab_header.IsColCount(i)) // first output non-sample values
-//         {
-//             out_s << "\t" << tab_header.GetColNameAt(i);
-//         }
-//         else
-//         {
-//             value_str += "\t" + tab_header.GetColNameAt(i);
-//         }
-//     }
-//     out_s << value_str << std::endl; // then output sample counts
-// }
-
-// void PrintFeature(std::ostream &out_s, const FeatureElem &feature_elem, std::ifstream &idx_file,
-//                   const size_t nb_count, const ScoreMethodCode score_method_code)
-// {
-//     static std::vector<float> count_vect(nb_count);
-//     static std::string value_str;
-//     feature_elem.RetrieveCountVectValueStr(count_vect, value_str, idx_file, nb_count);
-//     size_t split_pos = value_str.find_first_of(" \t");
-//     out_s << value_str.substr(0, split_pos);
-//     if (score_method_code != ScoreMethodCode::kUser)
-//     {
-//         std::cout << "\t" << feature_elem.GetScore();
-//         for (const double m : feature_elem.GetCondiMeanVect())
-//         {
-//             std::cout << "\t" << m;
-//         }
-//         for (const double s : feature_elem.GetCondiStddevVect())
-//         {
-//             std::cout << "\t" << s;
-//         }
-//     }
-//     if (split_pos != std::string::npos) // if some other value remains in value string
-//     {
-//         out_s << value_str.substr(split_pos);
-//     }
-//     for (size_t i(0); i < nb_count; ++i)
-//     {
-//         out_s << "\t" << count_vect[i];
-//     }
-//     out_s << std::endl;
-// }
-
-// void ModelPrint(const featureVect_t &feature_vect, std::ifstream &idx_file, const size_t nb_sel,
-//                 const TabHeader &tab_header, const std::string &out_path, const ScoreMethodCode score_method_code)
-// {
-//     std::ofstream out_file;
-//     if (!out_path.empty())
-//     {
-//         out_file.open(out_path);
-//         if (!out_file.is_open())
-//         {
-//             throw std::domain_error("cannot open file: " + out_path);
-//         }
-//     }
-//     auto backup_buf = std::cout.rdbuf();
-//     if (!out_path.empty()) // output to file if a path is given, to screen if not
-//     {
-//         std::cout.rdbuf(out_file.rdbuf());
-//     }
-//     PrintHeader(std::cout, tab_header, score_method_code);
-//     const size_t parsed_nb_sel = (nb_sel == 0 ? feature_vect.size() : nb_sel), nb_count = tab_header.GetNbCount();
-//     for (size_t i(0); i < parsed_nb_sel; ++i)
-//     {
-//         PrintFeature(std::cout, feature_vect[i], idx_file, nb_count, score_method_code);
-//     }
-//     std::cout.rdbuf(backup_buf);
-//     if (out_file.is_open())
-//     {
-//         out_file.close();
-//     }
-// }
-
 void MakeFeatureVectFromIndex(featureVect_t &ft_vect, std::unordered_map<std::string, size_t> &ft_pos_map)
 {
     for (auto it = ft_pos_map.cbegin(); it != ft_pos_map.cend(); it = ft_pos_map.erase(it))
@@ -248,9 +52,9 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, std::unordered_map<st
         if (line_conv >> nb_mem_pos)
         {
             mem_pos_vect.resize(nb_mem_pos);
+            line_conv.ignore(1);
             line_conv.read(reinterpret_cast<char *>(&mem_pos_vect[0]), nb_mem_pos * sizeof(size_t));
             ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, mem_pos_vect));
-            mem_pos_vect.clear();
             after_merge = true;
         }
         else
@@ -270,7 +74,7 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, std::unordered_map<st
 }
 
 void ParseDesign(std::vector<size_t> &condi_label_vect, std::vector<size_t> &batch_label_vect,
-                 const std::string &dsgn_path, const std::vector<std::string> &colname_vect, const size_t nb_smp)
+                       const std::string &dsgn_path, const std::vector<std::string> &colname_vect, const size_t nb_smp)
 {
     std::ifstream dsgn_file(dsgn_path);
     if (!dsgn_file.is_open())
@@ -287,12 +91,12 @@ void ParseDesign(std::vector<size_t> &condi_label_vect, std::vector<size_t> &bat
     {
         line_conv.str(line);
         line_conv >> smp_name >> condi >> batch;
-        const auto &ins_condi = condi2label.insert({condi, nb_condi + 1});
+        const auto &ins_condi = condi2label.insert({condi, nb_condi});
         if (ins_condi.second)
         {
             nb_condi++;
         }
-        const auto &ins_batch = batch2label.insert({batch, nb_batch + 1});
+        const auto &ins_batch = batch2label.insert({batch, nb_batch});
         if (ins_batch.second)
         {
             nb_batch++;
@@ -349,16 +153,13 @@ void PrintHeader(const bool after_merge, const std::vector<std::string> &colname
 {
     if (after_merge)
     {
-        std::cout << "contig\tnb-merged-kmer";
+        std::cout << "contig\tnb-merged-kmer"
+                  << "\t";
     }
-    else
+    std::cout << colname_vect[0] << "\t" << scorer_name;
+    for (size_t i_col(1); i_col < colname_vect.size(); ++i_col)
     {
-        std::cout << "feature";
-    }
-    std::cout << "\t" << scorer_name;
-    for (const auto &s : colname_vect)
-    {
-        std::cout << "\t" << s;
+        std::cout << "\t" << colname_vect[i_col];
     }
     std::cout << std::endl;
 }
@@ -383,7 +184,6 @@ void PrintWithCounts(const bool after_merge, const featureVect_t &ft_vect, std::
             std::cout << "\t" << x;
         }
         std::cout << std::endl;
-        count_vect.clear();
     }
 }
 

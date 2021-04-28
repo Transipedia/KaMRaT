@@ -31,7 +31,7 @@ private:
     const size_t nfold_;                // prediction class number
     arma::Mat<double> arma_nf_vect_;    // normalization factor vector
     arma::Row<size_t> arma_condi_vect_; // real condition label vector
-    size_t nclass_;                     // classification fold number
+    size_t nclass_, nbatch_;            // classification fold number
     arma::Mat<double> arma_batch_vect_; // batch label vector
 };
 

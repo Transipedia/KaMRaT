@@ -195,7 +195,7 @@ const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std
             mem_kmer_counts(i_pos, i_smp) = count_vect_x[i_smp];
         }
     }
-    arma::median(mem_kmer_counts, 0).print();
+    // arma::median(mem_kmer_counts, 0).print("Median: ");
     count_vect = arma::conv_to<std::vector<float>>::from(arma::median(mem_kmer_counts, 0));
     return count_vect;
 }

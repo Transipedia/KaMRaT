@@ -97,7 +97,7 @@
 void RankWelcome()
 {
     std::cerr << "KaMRaT rank: univariate feature ranking" << std::endl
-              << "------------------------------------------------------------------------------------------------------------------" << std::endl;
+              << "---------------------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintRankHelper()
@@ -128,6 +128,7 @@ void PrintRankHelper()
     std::cerr << "            -outpath STR         Path of ranking result" << std::endl
               << "                                     if not provided, output to screen" << std::endl;
     std::cerr << "            -withcounts          Output sample count vectors [false]" << std::endl
+              << "                                     the output count vectors are neither normalized, nor ln transformed, nor strandardized" << std::endl
               << std::endl;
     std::cerr << "[NOTE]      For ranking methods lrc, nbc, and svm, there can be a second univariant cross-validaton option (nfold)" << std::endl
               << "                if nfold = 0, leave-one-out cross-validation" << std::endl

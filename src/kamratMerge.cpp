@@ -276,7 +276,10 @@ void PrintAsIntermediate(const contigVect_t &ctg_vect, const size_t min_nbkmer)
         std::cout.write(reinterpret_cast<char *>(&rep_pos), sizeof(size_t));
         for (size_t p : elem->GetMemPosVect())
         {
-            std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
+            if (p != rep_pos) // not repeat the representative position
+            {
+                std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
+            }
         }
         std::cout << std::endl;
     }
