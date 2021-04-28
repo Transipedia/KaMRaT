@@ -223,8 +223,8 @@ void PrintHeader(const bool has_value, const std::vector<std::string> &colname_v
     std::cout << std::endl;
 }
 
-void PrintWithCounts(const bool has_value, const contigVect_t &ctg_vect, std::ifstream &idx_mat, const std::string &out_mode,
-                     const size_t nb_smp, const size_t min_nbkmer, const size_t k_len, const bool stranded)
+void PrintWithCounts(const bool has_value, const contigVect_t &ctg_vect, std::ifstream &idx_mat,
+                     const std::string &out_mode, const size_t nb_smp, const size_t min_nbkmer)
 {
     std::string rep_seq;
     std::vector<float> count_vect;
@@ -372,7 +372,7 @@ int MergeMain(int argc, char **argv)
     if (!out_mode.empty())
     {
         PrintHeader(has_value, colname_vect);
-        PrintWithCounts(has_value, ctg_vect, idx_mat, out_mode, nb_smp, min_nbkmer, k_len, stranded);
+        PrintWithCounts(has_value, ctg_vect, idx_mat, out_mode, nb_smp, min_nbkmer);
     }
     else
     {

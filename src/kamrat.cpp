@@ -6,9 +6,9 @@
 
 int IndexMain(int argc, char *argv[]);
 int MergeMain(int argc, char *argv[]);
+int RankMain(int argc, char *argv[]);
 // int FilterMain(int argc, char *argv[]);
 // int MaskMain(int argc, char *argv[]);
-// int RankMain(int argc, char *argv[]);
 // int EstimateMain(int argc, char *argv[]);
 
 const void Welcome()
@@ -59,6 +59,10 @@ int main(int argc, char *argv[])
         {
             MergeMain(argc - 1, &(argv[1]));
         }
+        else if (strcmp(argv[1], "rank") == 0)
+        {
+            RankMain(argc - 1, &(argv[1]));
+        }
         // else if (strcmp(argv[1], "filter") == 0)
         // {
         //     FilterMain(argc - 1, &(argv[1]));
@@ -66,10 +70,6 @@ int main(int argc, char *argv[])
         // else if (strcmp(argv[1], "mask") == 0)
         // {
         //     MaskMain(argc - 1, &(argv[1]));
-        // }
-        // else if (strcmp(argv[1], "rank") == 0)
-        // {
-        //     RankMain(argc - 1, &(argv[1]));
         // }
         // else if (strcmp(argv[1], "estimate") == 0)
         // {

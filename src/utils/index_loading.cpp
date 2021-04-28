@@ -62,20 +62,13 @@ void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path,
         throw std::invalid_argument("loading index-pos failed, KaMRaT index folder not found or may be corrupted");
     }
     size_t pos;
-    if (need_skip_code)
+    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
     {
-        size_t _code;
-        while (idx_pos.read(reinterpret_cast<char *>(&_code), sizeof(uint64_t)) && idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+        if (need_skip_code)
         {
-            pos_vect.emplace_back(pos);
+            idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t));
         }
-    }
-    else
-    {
-        while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
-        {
-            pos_vect.emplace_back(pos);
-        }
+        pos_vect.emplace_back(pos);
     }
     idx_pos.close();
 }
@@ -124,6 +117,29 @@ void LoadCodePosValMap(std::map<uint64_t, std::pair<size_t, float>> &code_posval
     if (!sel_code_val_map.empty())
     {
         throw std::domain_error(std::to_string(sel_code_val_map.size()) + " k-mer(s) in the selection file do not exist in index");
+    }
+    idx_pos.close();
+}
+
+void LoadFeaturePosMap(std::unordered_map<std::string, size_t> &ft_pos_map, std::ifstream &idx_mat, const std::string &idx_pos_path,
+                       const bool need_skip_code, const size_t nb_smp)
+{
+    std::ifstream idx_pos(idx_pos_path);
+    if (!idx_pos.is_open())
+    {
+        throw std::invalid_argument("loading index-pos failed, KaMRaT index folder not found or may be corrupted");
+    }
+    size_t pos;
+    std::string feature;
+    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+    {
+        if (need_skip_code)
+        {
+            idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t));
+        }
+        idx_mat.seekg(pos + nb_smp * sizeof(float));
+        idx_mat >> feature;
+        ft_pos_map.insert({feature, pos});
     }
     idx_pos.close();
 }

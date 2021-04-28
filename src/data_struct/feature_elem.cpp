@@ -7,14 +7,29 @@ const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::
 const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
                                              const std::vector<size_t> mem_pos_vect); // in utils/index_loading.cpp
 
-FeatureElem::FeatureElem(const std::string &&feature, const size_t pos)
+FeatureElem::FeatureElem(const std::string &feature, const size_t pos)
     : feature_(feature), mem_pos_vect_(1, pos)
 {
 }
 
-FeatureElem::FeatureElem(const std::string &&feature, const std::vector<size_t> &&mem_pos_vect)
+FeatureElem::FeatureElem(const std::string &feature, const std::vector<size_t> &mem_pos_vect)
     : feature_(feature), mem_pos_vect_(mem_pos_vect)
 {
+}
+
+const std::string &FeatureElem::GetFeature() const
+{
+    return feature_;
+}
+
+const size_t FeatureElem::GetRepPos() const
+{
+    return mem_pos_vect_[0];
+}
+
+const size_t FeatureElem::GetNbMemPos() const
+{
+    return mem_pos_vect_.size();
 }
 
 const double FeatureElem::GetScore() const
@@ -22,15 +37,21 @@ const double FeatureElem::GetScore() const
     return score_;
 }
 
+void FeatureElem::SetScore(const double score)
+{
+    score_ = score;
+}
+
 const double FeatureElem::AdjustScore(const double factor, const double lower_lim, const double upper_lim)
 {
     score_ *= factor;
     score_ = (score_ < lower_lim) ? lower_lim : score_;
     score_ = (score_ > upper_lim) ? upper_lim : score_;
+    return score_;
 }
 
 const std::vector<float> &FeatureElem::EstimateCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat,
-                                                         const size_t nb_smp, const std::string &&count_mode) const
+                                                         const size_t nb_smp, const std::string &count_mode) const
 {
     if (mem_pos_vect_.size() == 1 || count_mode == "rep")
     {
@@ -44,4 +65,5 @@ const std::vector<float> &FeatureElem::EstimateCountVect(std::vector<float> &cou
     {
         GetMedianCountVect(count_vect, idx_mat, nb_smp, mem_pos_vect_);
     }
+    return count_vect;
 }
