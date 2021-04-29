@@ -8,22 +8,22 @@
 // using code2kmer_t = std::map<uint64_t, std::pair<std::string, size_t>>;
 using ftVect_t = std::vector<std::pair<std::string, size_t>>;
 
-const double CalcVectMedian(const std::vector<float> &x)
-{
-    static std::vector<float> x_tmp;
-    x_tmp = x;
-    size_t n_elem = x_tmp.size();
-    auto mid_elem = x_tmp.begin() + n_elem / 2;
-    std::nth_element(x_tmp.begin(), mid_elem, x_tmp.end());
-    if (n_elem % 2 != 0)
-    {
-        return *mid_elem;
-    }
-    else
-    {
-        return 0.5 * (*mid_elem + *(std::max_element(x_tmp.begin(), mid_elem)));
-    }
-}
+// const double CalcVectMedian(const std::vector<float> &x)
+// {
+//     static std::vector<float> x_tmp;
+//     x_tmp = x;
+//     size_t n_elem = x_tmp.size();
+//     auto mid_elem = x_tmp.begin() + n_elem / 2;
+//     std::nth_element(x_tmp.begin(), mid_elem, x_tmp.end());
+//     if (n_elem % 2 != 0)
+//     {
+//         return *mid_elem;
+//     }
+//     else
+//     {
+//         return 0.5 * (*mid_elem + *(std::max_element(x_tmp.begin(), mid_elem)));
+//     }
+// }
 
 void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
                    std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
@@ -52,6 +52,16 @@ void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
         smp_sum_vect.emplace_back(std::stod(term));
     }
     idx_meta.close();
+}
+
+const std::vector<double> &ComputeNF(std::vector<double> &smp_sum_vect, const size_t nb_smp)
+{
+    const double smp_mean = arma::mean(arma::mean(arma::conv_to<arma::Row<double>>::from(smp_sum_vect), 1));
+    for (size_t i(0); i < nb_smp; ++i)
+    {
+        smp_sum_vect[i] = smp_mean / smp_sum_vect[i];
+    }
+    return smp_sum_vect;
 }
 
 void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path, const bool need_skip_code)
