@@ -74,7 +74,7 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, std::unordered_map<st
 }
 
 void ParseDesign(std::vector<size_t> &condi_label_vect, std::vector<size_t> &batch_label_vect,
-                       const std::string &dsgn_path, const std::vector<std::string> &colname_vect, const size_t nb_smp)
+                 const std::string &dsgn_path, const std::vector<std::string> &colname_vect, const size_t nb_smp)
 {
     std::ifstream dsgn_file(dsgn_path);
     if (!dsgn_file.is_open())
@@ -273,6 +273,20 @@ int RankMain(int argc, char *argv[])
         inter_time = clock();
     }
 
+    std::ofstream out_file;
+    if (!out_path.empty())
+    {
+        out_file.open(out_path);
+        if (!out_file.is_open())
+        {
+            throw std::domain_error("cannot open file: " + out_path);
+        }
+    }
+    auto backup_buf = std::cout.rdbuf();
+    if (!out_path.empty()) // output to file if a path is given, to screen if not
+    {
+        std::cout.rdbuf(out_file.rdbuf());
+    }
     if (with_counts)
     {
         PrintHeader(after_merge, colname_vect, scorer.GetScorerName());
@@ -282,9 +296,15 @@ int RankMain(int argc, char *argv[])
     {
         PrintAsIntermediate(ft_vect, max_to_sel);
     }
+    idx_mat.close();
+
+    std::cout.rdbuf(backup_buf);
+    if (out_file.is_open())
+    {
+        out_file.close();
+    }
     std::cerr << "Output finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
 
-    idx_mat.close();
     return EXIT_SUCCESS;
 }

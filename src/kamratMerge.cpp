@@ -347,7 +347,6 @@ int MergeMain(int argc, char **argv)
         throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
     }
     InitializeContigList(ctg_vect, idx_mat, nb_smp, code_posval_map);
-
     std::cerr << "Option parsing and index loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
@@ -388,7 +387,6 @@ int MergeMain(int argc, char **argv)
     {
         out_file.close();
     }
-
     std::cerr << "Contig print finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Total executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     return EXIT_SUCCESS;
