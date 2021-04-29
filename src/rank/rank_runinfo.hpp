@@ -125,7 +125,7 @@ void PrintRankHelper()
     std::cerr << "            -rankonraw           Estimate scores and rank on raw count, without normalization" << std::endl;
     std::cerr << "            -seltop NUM          If NUM > 1, it indicates top number of features to output (treated as integer)" << std::endl
               << "                                 If NUM <= 1, it indicates the ratio of features to output" << std::endl;
-    std::cerr << "            -outpath STR         Path of ranking result" << std::endl
+    std::cerr << "            -outpath STR         Path to ranking result" << std::endl
               << "                                     if not provided, output to screen" << std::endl;
     std::cerr << "            -withcounts          Output sample count vectors [false]" << std::endl
               << "                                     the output count vectors are neither normalized, nor ln transformed, nor strandardized" << std::endl

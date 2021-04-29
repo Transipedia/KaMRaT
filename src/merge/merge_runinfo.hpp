@@ -31,7 +31,7 @@ void PrintMergeHelper()
               << "                                       can be one of {none, pearson, spearman, mac}" << std::endl
               << "                                       the threshold may follow a ':' symbol" << std::endl;
     std::cerr << "            -min-nbkmer INT        Minimal length of extended contigs [0]" << std::endl;
-    std::cerr << "            -outpath STR           Path of extension result list" << std::endl
+    std::cerr << "            -outpath STR           Path to extension results" << std::endl
               << "                                       if not provided, output to screen" << std::endl;
     std::cerr << "            -withcounts STR        Output sample count vectors, STR can be one of [rep, mean, median]" << std::endl
               << "                                       if not provided, output without count vector" << std::endl
