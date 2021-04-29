@@ -1,13 +1,13 @@
 #ifndef KAMRAT_INDEX_INDEXRUNINFO_HPP
 #define KAMRAT_INDEX_INDEXRUNINFO_HPP
 
-const void IndexWelcome()
+void IndexWelcome()
 {
     std::cerr << "KaMRaT index: index count table on disk" << std::endl
               << "---------------------------------------------------------------------------------" << std::endl;
 }
 
-const void PrintIndexHelper()
+void PrintIndexHelper()
 {
     std::cerr << "[USAGE]    kamrat index -intab STR -outdir STR [-klen INT -unstrand]" << std::endl
               << std::endl;
@@ -21,8 +21,8 @@ const void PrintIndexHelper()
               << std::endl;
 }
 
-const void PrintRunInfo(const std::string &count_tab_path, const std::string &out_dir,
-                        const bool kmer_mode, const size_t k_len, const bool stranded)
+void PrintRunInfo(const std::string &count_tab_path, const std::string &out_dir,
+                  const bool kmer_mode, const size_t k_len, const bool stranded)
 {
     std::cerr << "Count table path:          " << count_tab_path << std::endl;
     std::cerr << "Output index directory:    " << out_dir << std::endl;
@@ -38,8 +38,8 @@ const void PrintRunInfo(const std::string &count_tab_path, const std::string &ou
     std::cerr << std::endl;
 }
 
-const void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::string &out_dir,
-                        bool &kmer_mode, size_t &k_len, bool &stranded)
+void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::string &out_dir,
+                  bool &kmer_mode, size_t &k_len, bool &stranded)
 {
     int i_opt(1);
     if (argc == 1)

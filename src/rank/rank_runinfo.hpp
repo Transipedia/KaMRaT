@@ -5,95 +5,6 @@
 #include <string>
 #include <memory>
 
-// const void ParseScorer(std::unique_ptr<Scorer> &scorer, std::string &score_method, const bool ln_transf, const bool standardize)
-// {
-//     std::string score_cmd;
-//     size_t split_pos = score_method.find(":");
-//     if (split_pos != std::string::npos)
-//     {
-//         score_cmd = score_method.substr(split_pos + 1);
-//         score_method = score_method.substr(0, split_pos);
-//     }
-//     if (score_method == "rsd")
-//     {
-//         if (standardize)
-//         {
-//             throw std::invalid_argument("Standard deviation score should not be applied on standardized counts\n"
-//                                         "And the forced running is not permitted either (divided by 0)");
-//         }
-//         scorer = std::make_unique<Scorer>(ScoreMethodCode::kRelatSD);
-//     }
-//     else if (score_method == "ttest")
-//     {
-//         if (!ln_transf && score_cmd != "F")
-//         {
-//             throw std::invalid_argument("Ttest requires ln(x + 1) transformation, put -score-method ttest:F to force to run");
-//         }
-//         scorer = std::make_unique<Scorer>(ScoreMethodCode::kTtest);
-//     }
-//     else if (score_method == "snr")
-//     {
-//         scorer = std::make_unique<Scorer>(ScoreMethodCode::kSNR);
-//     }
-//     else if (score_method == "lrc")
-//     {
-//         if (!score_cmd.empty())
-//         {
-//             scorer = std::make_unique<Scorer>(ScoreMethodCode::kLogitReg, std::stoul(score_cmd)); // C++: typedef unsigned long size_t
-//         }
-//         else
-//         {
-//             scorer = std::make_unique<Scorer>(ScoreMethodCode::kLogitReg, 1); // by default, evaluate features without cross-validation
-//         }
-//     }
-//     else if (score_method == "nbc")
-//     {
-//         if (!score_cmd.empty())
-//         {
-//             scorer = std::make_unique<Scorer>(ScoreMethodCode::kNaiveBayes, std::stoul(score_cmd)); // C++: typedef unsigned long size_t
-//         }
-//         else
-//         {
-//             scorer = std::make_unique<Scorer>(ScoreMethodCode::kNaiveBayes, 1); // by default, evaluate features without cross-validation
-//         }
-//     }
-//     else if (score_method == "svm")
-//     {
-//         if (!standardize && score_cmd != "F")
-//         {
-//             throw std::invalid_argument("Standardization is required for SVM classification, put -score-method svm:F to force to run");
-//         }
-//         scorer = std::make_unique<Scorer>(ScoreMethodCode::kSVM);
-//     }
-//     else
-//     {
-//         if (score_cmd == "dec")
-//         {
-//             scorer = std::make_unique<Scorer>(score_method, SortModeCode::kDec);
-//         }
-//         else if (score_cmd == "decabs")
-//         {
-//             scorer = std::make_unique<Scorer>(score_method, SortModeCode::kDecAbs);
-//         }
-//         else if (score_cmd == "inc")
-//         {
-//             scorer = std::make_unique<Scorer>(score_method, SortModeCode::kInc);
-//         }
-//         else if (score_cmd == "incabs")
-//         {
-//             scorer = std::make_unique<Scorer>(score_method, SortModeCode::kIncAbs);
-//         }
-//         else if (score_cmd.empty())
-//         {
-//             throw std::invalid_argument("user-defined ranking with column (" + score_method + ") but without indicating sorting mode");
-//         }
-//         else
-//         {
-//             throw std::invalid_argument("unknown sorting mode: " + score_cmd);
-//         }
-//     }
-// }
-
 void RankWelcome()
 {
     std::cerr << "KaMRaT rank: univariate feature ranking" << std::endl
@@ -200,14 +111,14 @@ void PrintRunInfo(const std::string &idx_dir,
               << std::endl;
 }
 
-inline void ParseOptions(int argc, char *argv[],
-                         std::string &idx_dir,
-                         std::string &rk_mthd, size_t &nfold,
-                         std::string &with_path, std::string &count_mode,
-                         std::string &dsgn_path,
-                         bool &ln_transf, bool &standardize, bool &no_norm,
-                         float &sel_top,
-                         std::string &out_path, bool &with_counts)
+void ParseOptions(int argc, char *argv[],
+                  std::string &idx_dir,
+                  std::string &rk_mthd, size_t &nfold,
+                  std::string &with_path, std::string &count_mode,
+                  std::string &dsgn_path,
+                  bool &ln_transf, bool &standardize, bool &no_norm,
+                  float &sel_top,
+                  std::string &out_path, bool &with_counts)
 {
     int i_opt(1);
     if (argc == 1)
