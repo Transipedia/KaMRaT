@@ -2,8 +2,8 @@ targets : kamrat clean
 
 CPPFLAGS = -Wall -Werror -g -std=c++14
 
-kamrat : kamrat.cpp kamratIndex kamratMerge kamratRank
-	g++ -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams
+kamrat : kamrat.cpp kamratIndex kamratMerge kamratRank kamratFilter kamratMask
+	g++ -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -lboost_iostreams -I/path_to_conda_mlpack_env/include
 
 kamratIndex : kamratIndex.cpp utils
 	g++ -c kamratIndex.cpp utils/index_loading.cpp utils/seq_coding.cpp -lboost_iostreams $(CPPFLAGS)
@@ -12,26 +12,28 @@ kamratMerge : kamratMerge.cpp data_struct/contig_elem.cpp data_struct/merge_knot
 	g++ -c kamratMerge.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp utils/seq_coding.cpp utils/index_loading.cpp utils/vect_opera.cpp
 
 kamratRank : kamratRank.cpp data_struct/scorer.cpp data_struct/feature_elem.cpp
-	g++ -c kamratRank.cpp data_struct/scorer.cpp data_struct/feature_elem.cpp -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include -lboost_iostreams $(CPPFLAGS)
+	g++ -c kamratRank.cpp data_struct/scorer.cpp data_struct/feature_elem.cpp -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include $(CPPFLAGS)
+
+kamratFilter : kamratFilter.cpp utils
+	g++ -c kamratFilter.cpp utils/index_loading.cpp $(CPPFLAGS)
+
+kamratMask : kamratMask.cpp utils
+	g++ -c kamratMask.cpp utils/index_loading.cpp utils/seq_coding.cpp $(CPPFLAGS)
 
 utils : utils/seq_coding.cpp utils/index_loading.cpp utils/vect_opera.cpp
 	g++ -c utils/seq_coding.cpp $(CPPFLAGS)
 	g++ -c utils/index_loading.cpp -larmadillo $(CPPFLAGS)
 	g++ -c utils/vect_opera.cpp $(CPPFLAGS)
 
+clean :
+	rm -f *.o
 
 
 
 
-kamratMask.o : kamratMask.cpp
-	g++ -c kamratMask.cpp -lboost_iostreams $(CPPFLAGS)
 
-kamratFilter.o : kamratFilter.cpp common/tab_header.cpp
-	g++ -c kamratFilter.cpp common/tab_header.cpp -lboost_iostreams $(CPPFLAGS)
+
 
 
 contigEvaluate : contigEvaluate.cpp common/tab_header.cpp common/kmer_elem.cpp
 	g++ -o ../bin/contigEvaluate contigEvaluate.cpp common/tab_header.cpp common/kmer_elem.cpp -lboost_iostreams $(CPPFLAGS)
-
-clean :
-	rm -f *.o

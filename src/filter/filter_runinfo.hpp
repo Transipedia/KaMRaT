@@ -1,97 +1,124 @@
 #ifndef KAMRAT_FILTER_FILTERRUNINFO_HPP
 #define KAMRAT_FILTER_FILTERRUNINFO_HPP
 
-#include <iostream>
-#include <string>
+void FilterWelcome()
+{
+    std::cerr << "KaMRaT filter: feature filter by expression level" << std::endl
+              << "-----------------------------------------------------------------------------------------------------------" << std::endl;
+}
 
-const void PrintFilterHelper()
+void PrintFilterHelper()
 {
     std::cerr << "[USAGE]    kamrat filter -filter-info STR [-options] KMER_TAB_PATH" << std::endl
               << std::endl;
-    std::cerr << "[OPTION]   -h,-help               Print the helper" << std::endl;
-    std::cerr << "           -filter-info STR       Filter-info path, should be a table of two columns WITHOUT header row, MANDATORY" << std::endl
-              << "                                      the first column should be sample names" << std::endl
-              << "                                      the second column should be either UP or DOWN (all capital letters)" << std::endl
+    std::cerr << "[OPTION]    -h,-help              Print the helper" << std::endl;
+    std::cerr << "            -idxdir STR           Indexing folder by KaMRaT index, mandatory" << std::endl;
+    std::cerr << "            -design STR           Path to filter design file, a table of two columns, mandatory" << std::endl
+              << "                                      the first column indicate sample names" << std::endl
+              << "                                      the second column should be either UP or DOWN (capital letters)" << std::endl
               << "                                          samples with UP will be considered as up-regulated samples" << std::endl
               << "                                          samples with DOWN will be considered as down-regulated samples" << std::endl
-              << "                                          samples not mentioned in the file will not taken into consideration (being neutral)" << std::endl
+              << "                                          samples not given will be neutral (not considered for filter)" << std::endl
               << "                                          samples can also be all UP or all DOWN" << std::endl;
-    std::cerr << "           -up-min INT1:INT2      Up feature lower bound, [by default 1:1 (no filter)]" << std::endl
-              << "                                      print the feature if at least (>=) INT1 UP-samples have count >= INT2" << std::endl;
-    std::cerr << "           -down-max INT1:INT2    Down feature upper bound [by default 1:inf (no filter)]" << std::endl
-              << "                                      print the feature if at least (>=) INT1 DOWN-samples have count <= INT2" << std::endl;
-    std::cerr << "           -out-path              Output table path [default: output to screen]" << std::endl
+    std::cerr << "            -upmin INT1:INT2      Up feature lower bound, [1:1, meaning no filter]" << std::endl
+              << "                                      output features counting >= INT1 in >= INT2 UP-samples" << std::endl;
+    std::cerr << "            -downmax INT1:INT2    Down feature upper bound [inf:1, meaning no filter]" << std::endl
+              << "                                      output features counting <= INT1 in >= INT2 DOWN-samples" << std::endl;
+    std::cerr << "            -normalize            Filter with normalized counts [false]" << std::endl;
+    std::cerr << "            -outpath STR          Path to results after filter" << std::endl
+              << "                                      if not provided, output to screen" << std::endl;
+    std::cerr << "            -withcounts           Output sample count vectors [false]" << std::endl
               << std::endl;
 }
 
-const void PrintRunInfo(const std::string &filter_info_path,
-                        const size_t up_min_rec, const size_t up_min_abd,
-                        const size_t down_min_rec, const size_t down_max_abd,
-                        const std::string &out_path,
-                        const std::string &count_tab_path)
+void PrintRunInfo(const std::string &idx_dir,
+                        const std::string &dsgn_path,
+                        const size_t up_min_abd, const size_t up_min_rec,
+                        const size_t down_max_abd, const size_t down_min_rec,
+                        const bool norm,
+                        const std::string &out_path, const bool with_counts)
 {
-    std::cerr << "Filter-info path:                           " << filter_info_path << std::endl;
-    std::cerr << "Up-regulated lower bound:                   " << std::endl
-              << "    at least " << up_min_rec << " up-regulated samples are counted at least " << up_min_abd << std::endl;
-    std::cerr << "Down-regulated upper bound:                 " << std::endl
-              << "    at least " << down_min_rec << " down-regulated samples are counted at most " 
-              << (down_max_abd == std::numeric_limits<size_t>::max() ? "inf" : std::to_string(down_max_abd)) << std::endl;
-    if (!out_path.empty())
-    {
-        std::cerr << "Output path:                   " << out_path << std::endl;
-    }
-    else
-    {
-        std::cerr << "Output to screen" << std::endl;
-    }
-    std::cerr << "Count table path:                           " << count_tab_path << std::endl;
     std::cerr << std::endl;
+    std::cerr << "KaMRaT index:                        " << idx_dir << std::endl;
+    std::cerr << "Path to filter design file:          " << dsgn_path << std::endl;
+    std::cerr << "Up-regulated lower bound:            " << std::endl
+              << "\tfeatures counting >= " << up_min_abd << " in >= " << up_min_rec << " up-regulated samples" << std::endl;
+    std::cerr << "Down-regulated upper bound:          " << std::endl
+              << "\tfeatures counting <= " << (down_max_abd == std::numeric_limits<size_t>::max() ? "inf" : std::to_string(down_max_abd))
+              << " in >= " << down_min_rec << "down-regulated samples" << std::endl;
+    std::cerr << "Filter after count normalization:    " << (norm ? "TRUE" : "FALSE") << std::endl;
+    std::cerr << "Output:                              " << (out_path.empty() ? "to screen" : out_path) << ", ";
+    std::cerr << (with_counts ? "with" : "without") << " count vectors" << std::endl
+              << std::endl;
 }
 
-const void ParseOptions(int argc, char *argv[],
-                        std::string &filter_info_path,
-                        size_t &up_min_rec, size_t &up_min_abd,
-                        size_t &down_min_rec, size_t &down_max_abd,
-                        std::string &out_path,
-                        std::string &count_tab_path)
+void ParseOptions(int argc, char *argv[],
+                        std::string &idx_dir,
+                        std::string &dsgn_path,
+                        size_t &up_min_abd, size_t &up_min_rec,
+                        size_t &down_max_abd, size_t &down_min_rec,
+                        bool &norm,
+                        std::string &out_path, bool &with_counts)
 {
-    std::string str_thres;
     int i_opt(1);
+    if (argc == 1)
+    {
+        PrintFilterHelper();
+        exit(EXIT_SUCCESS);
+    }
+    size_t split_pos;
+    std::string arg;
     while (i_opt < argc && argv[i_opt][0] == '-')
     {
-        std::string arg(argv[i_opt]);
+        arg = argv[i_opt];
         if (arg == "-help" || arg == "-h")
         {
             PrintFilterHelper();
             exit(EXIT_SUCCESS);
         }
-        else if (arg == "-filter-info" && i_opt + 1 < argc)
+        else if (arg == "-design" && i_opt + 1 < argc)
         {
-            filter_info_path = argv[++i_opt];
+            dsgn_path = argv[++i_opt];
         }
-        else if (arg == "-up-min" && i_opt + 1 < argc)
+        else if (arg == "-upmin" && i_opt + 1 < argc)
         {
-            str_thres = argv[++i_opt];
-            size_t split_pos = str_thres.find(":");
+            arg = argv[++i_opt];
+            split_pos = arg.find(":");
             if (split_pos != std::string::npos)
             {
-                up_min_rec = std::stoul(str_thres.substr(0, split_pos));
-                up_min_abd = std::stoul(str_thres.substr(split_pos + 1));
+                up_min_abd = std::stoul(arg.substr(0, split_pos));
+                up_min_rec = std::stoul(arg.substr(split_pos + 1));
+            }
+            else
+            {
+                throw std::invalid_argument("unable to parse -upmin argument: " + arg);
             }
         }
-        else if (arg == "-down-max" && i_opt + 1 < argc)
+        else if (arg == "-downmax" && i_opt + 1 < argc)
         {
-            str_thres = argv[++i_opt];
-            size_t split_pos = str_thres.find(":");
+            arg = argv[++i_opt];
+            split_pos = arg.find(":");
             if (split_pos != std::string::npos)
             {
-                down_min_rec = std::stoul(str_thres.substr(0, split_pos));
-                down_max_abd = std::stoul(str_thres.substr(split_pos + 1));
+                down_max_abd = std::stoul(arg.substr(0, split_pos));
+                down_min_rec = std::stoul(arg.substr(split_pos + 1));
+            }
+            else
+            {
+                throw std::invalid_argument("unable to parse -downmax argument: " + arg);
             }
         }
-        else if (arg == "-out-path" && i_opt + 1 < argc)
+        else if (arg == "-norm")
+        {
+            norm = true;
+        }
+        else if (arg == "-outpath" && i_opt + 1 < argc)
         {
             out_path = argv[++i_opt];
+        }
+        else if (arg == "-withcounts")
+        {
+            with_counts = true;
         }
         else
         {
@@ -100,16 +127,20 @@ const void ParseOptions(int argc, char *argv[],
         }
         ++i_opt;
     }
-    if (i_opt == argc)
+    if (i_opt < argc)
     {
         PrintFilterHelper();
-        throw std::domain_error("k-mer count table path is mandatory");
+        throw std::invalid_argument("cannot parse arguments after " + std::string(argv[i_opt]));
     }
-    count_tab_path = argv[i_opt++];
-    if (filter_info_path.empty())
+    if (idx_dir.empty())
     {
         PrintFilterHelper();
-        throw std::domain_error("filter-info path is mandatory");
+        throw std::invalid_argument("-idxdir STR is mandatory");
+    }
+    if (dsgn_path.empty())
+    {
+        PrintFilterHelper();
+        throw std::domain_error("-design STR is mandatory");
     }
 }
 
