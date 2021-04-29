@@ -11,7 +11,7 @@ const std::unordered_set<std::string> kOutMode{"rep", "mean", "median"};
 
 void MergeWelcome()
 {
-    std::cerr << "KaMRaT merge: sequence extension" << std::endl
+    std::cerr << "KaMRaT merge: k-mer sequence extension" << std::endl
               << "------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
