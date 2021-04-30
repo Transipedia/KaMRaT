@@ -49,20 +49,20 @@ void PrintRunInfo(const std::string &idx_dir,
                   const std::string &out_mode)
 {
     std::cerr << std::endl;
-    std::cerr << "KaMRaT index:             " << idx_dir << std::endl;
-    std::cerr << "k-mer length:             " << k_len << std::endl;
-    std::cerr << "Overlap range:            from " << max_ovlp << " to " << min_ovlp << std::endl;
-    std::cerr << "Stranded extension:       " << (stranded ? "On" : "Off") << std::endl;
-    std::cerr << "Select k-mers in file:    " << (sel_path.empty() ? "k-mers in index" : sel_path) << std::endl;
-    std::cerr << "Representative mode:      " << rep_mode << std::endl;
-    std::cerr << "Intervention method:      " << itv_mthd << std::endl;
+    std::cerr << "KaMRaT index:                      " << idx_dir << std::endl;
+    std::cerr << "k-mer length:                      " << k_len << std::endl;
+    std::cerr << "Overlap range:                     from " << max_ovlp << " to " << min_ovlp << std::endl;
+    std::cerr << "Stranded extension:                " << (stranded ? "On" : "Off") << std::endl;
+    std::cerr << "Select k-mers in file:             " << (sel_path.empty() ? "k-mers in index" : sel_path) << std::endl;
+    std::cerr << "Representative mode:               " << rep_mode << std::endl;
+    std::cerr << "Intervention method:               " << itv_mthd << std::endl;
     if (itv_mthd != "none")
     {
         std::cerr << "\tthreshold = " << itv_thres << std::endl;
     }
-    std::cout << "Minimal output length:    " + std::to_string(min_nb_kmer) << std::endl;
-    std::cerr << "Output:                   " << (out_path.empty() ? "to screen" : out_path) << std::endl;
-    std::cerr << "\t" << (out_mode.empty() ? "without" : out_mode) + " count vectors" << std::endl
+    std::cout << "Minimal component k-mer number:    " + std::to_string(min_nb_kmer) << std::endl;
+    std::cerr << "Output:                            " << (out_path.empty() ? "to screen" : out_path) << ", ";
+    std::cerr << (out_mode.empty() ? "without" : out_mode) + " count vectors" << std::endl
               << std::endl;
 }
 

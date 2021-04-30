@@ -10,9 +10,6 @@
 #include "data_struct/contig_elem.hpp"
 #include "data_struct/merge_knot.hpp"
 
-#define RESET "\033[0m"
-#define BOLDYELLOW "\033[1m\033[33m"
-
 using contigVect_t = std::vector<std::unique_ptr<ContigElem>>;
 
 uint64_t Seq2Int(const std::string &seq, const size_t k_length, const bool stranded); // in utils/seq_coding.cpp
@@ -292,7 +289,7 @@ int MergeMain(int argc, char **argv)
     std::clock_t begin_time = clock(), inter_time;
     std::string idx_dir, sel_path, rep_mode("min"), itv_mthd("spearman"), out_path, out_mode;
     float itv_thres(0.25);
-    size_t max_ovlp(0), min_ovlp(0), nb_smp(0), k_len(0), min_nbkmer(0);
+    size_t max_ovlp(0), min_ovlp(0), nb_smp(0), k_len(0), min_nbkmer(1);
     bool stranded(false), has_value(false);
     std::vector<std::string> colname_vect;
     ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, sel_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_mode);
@@ -307,11 +304,6 @@ int MergeMain(int argc, char **argv)
         throw std::invalid_argument("max overlap (" + std::to_string(max_ovlp) + ") should not exceed k-mer length (" + std::to_string(k_len) + ")");
     }
     PrintRunInfo(idx_dir, k_len, max_ovlp, min_ovlp, stranded, sel_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_mode);
-    if (out_mode == "mean")
-    {
-        std::cerr << BOLDYELLOW << "[warning]" << RESET << " estimate mean counts of contigs may introduce bias" << std::endl
-                  << std::endl;
-    }
 
     std::unordered_map<uint64_t, float> sel_code_val_map;         // k-mer code and value from given list
     std::map<uint64_t, std::pair<size_t, float>> code_posval_map; // k-mer code and position from index
@@ -324,21 +316,6 @@ int MergeMain(int argc, char **argv)
     // {
     //     std::cout << elem.first << "\t" << elem.second.first << "\t" << elem.second.second << std::endl;
     // }
-
-    std::ofstream out_file;
-    if (!out_path.empty())
-    {
-        out_file.open(out_path);
-        if (!out_file.is_open())
-        {
-            throw std::domain_error("cannot open file: " + out_path);
-        }
-    }
-    auto backup_buf = std::cout.rdbuf();
-    if (!out_path.empty()) // output to file if a path is given, to screen if not
-    {
-        std::cout.rdbuf(out_file.rdbuf());
-    }
 
     contigVect_t ctg_vect;
     std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
@@ -366,6 +343,23 @@ int MergeMain(int argc, char **argv)
                            ctg_vect.end());
             hashed_merge_knots.clear();
         }
+    }
+    std::cerr << "Contig extension finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
+    inter_time = clock();
+
+    std::ofstream out_file;
+    if (!out_path.empty())
+    {
+        out_file.open(out_path);
+        if (!out_file.is_open())
+        {
+            throw std::domain_error("cannot open file: " + out_path);
+        }
+    }
+    auto backup_buf = std::cout.rdbuf();
+    if (!out_path.empty()) // output to file if a path is given, to screen if not
+    {
+        std::cout.rdbuf(out_file.rdbuf());
     }
     if (has_value && out_mode.empty())
     {

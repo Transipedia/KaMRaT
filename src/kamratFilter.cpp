@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <limits>
 #include <ctime>
 
 #include "filter/filter_runinfo.hpp"

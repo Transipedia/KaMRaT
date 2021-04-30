@@ -194,9 +194,10 @@ const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::
 const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
                                              const std::vector<size_t> mem_pos_vect)
 {
-    static arma::Mat<float> mem_kmer_counts(mem_pos_vect.size(), nb_smp);
+    static arma::Mat<float> mem_kmer_counts;
     static std::vector<float> count_vect_x;
 
+    mem_kmer_counts.set_size(mem_pos_vect.size(), nb_smp);
     for (size_t i_pos(0); i_pos < mem_pos_vect.size(); ++i_pos)
     {
         GetCountVect(count_vect_x, idx_mat, mem_pos_vect[i_pos], nb_smp);
