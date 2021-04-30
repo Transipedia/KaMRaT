@@ -1,15 +1,11 @@
 #include <vector>
-#include <numeric>
-#include <cmath>
-#include <algorithm>
+#include <numeric> // std::accumulate
+#include <cmath> // sqrt
 
-template <typename T>
-const double CalcVectMean(const std::vector<T> &x)
+const double CalcVectMean(const std::vector<float> &x)
 {
     return (std::accumulate(x.cbegin(), x.cend(), 0.0) / x.size());
 }
-template const double CalcVectMean(const std::vector<double> &x);
-template const double CalcVectMean(const std::vector<float> &x);
 
 void CalcVectRank(std::vector<float> &x_rk, const std::vector<float> &x)
 {

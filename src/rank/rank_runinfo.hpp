@@ -23,14 +23,13 @@ void PrintRankHelper()
               << "                                     lr:nfold     accuracy by logistic regression classifier" << std::endl
               << "                                     nbc:nfold    accuracy by naive Bayes classifier" << std::endl
               << "                                     svm:nfold    accuracy on SVM classifier" << std::endl;
+    std::cerr << "            -design STR          Path to file indicating sample-condition design" << std::endl
+              << "                                     without header line, each row can be either: " << std::endl
+              << "                                         sample name, sample condition" << std::endl
+              << "                                         sample name, sample condition, sample batch (only for lrc, nbc, and svm)" << std::endl;
     std::cerr << "            -with STR1[:STR2]    File indicating features to rank (STR1) and counting mode (STR2)" << std::endl
               << "                                     if not provided, all indexed features are used for ranking" << std::endl
               << "                                     STR2 can be one of [rep, mean, median]" << std::endl;
-    std::cerr << "            -design STR          File indicating sample-condition design, without header line" << std::endl
-              << "                                     if not provided, all samples are assigned by the same condition" << std::endl
-              << "                                     if provided, each row can be either: " << std::endl
-              << "                                         sample name, sample condition" << std::endl
-              << "                                         sample name, sample condition, sample batch (only for lrc, nbc, and svm)" << std::endl;
     std::cerr << "            -ln                  Apply ln(x + 1) transformation for score estimation [false]" << std::endl;
     std::cerr << "            -standardize         Standarize count vector for score estimation [false]" << std::endl;
     std::cerr << "            -rankonraw           Estimate scores and rank on raw count, without normalization" << std::endl;

@@ -106,7 +106,7 @@ const void ContigElem::LeftExtend(std::unique_ptr<ContigElem> left_contig_elem, 
         left_contig_elem->ReverseComplement();
     }
     seq_ = left_contig_elem->GetSeq() + seq_.substr(n_overlap);
-    const size_t new_head_pos = mem_pos_vect_.size();
+    const size_t new_head_pos = mem_pos_vect_.size() - 1;
     mem_pos_vect_.insert(mem_pos_vect_.end() - 1,
                          left_contig_elem->GetMemPosVect().begin(),
                          left_contig_elem->GetMemPosVect().end()); // keep the current rear unchanged
