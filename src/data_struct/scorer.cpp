@@ -46,16 +46,16 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
 const double CalcTtestScore(const arma::Mat<double> &&arma_count_vect1, const arma::Mat<double> &&arma_count_vect2)
 {
     double mean1 = arma::mean(arma::mean(arma_count_vect1)), mean2 = arma::mean(arma::mean(arma_count_vect2)),
-           var1 = arma::mean(arma::var(arma_count_vect1)), var2 = arma::mean(arma::var(arma_count_vect2));
+           stddev1 = arma::mean(arma::stddev(arma_count_vect1)), stddev2 = arma::mean(arma::stddev(arma_count_vect2));
     size_t nb1 = arma_count_vect1.size(), nb2 = arma_count_vect2.size();
-    if (var1 == 0 && var2 == 0)
+    if (stddev1 == 0 && stddev2 == 0)
     {
         return 1;
     }
     else
     {
-        double t1 = var1 / nb1,
-               t2 = var2 / nb2,
+        double t1 = stddev1 * stddev1 / nb1,
+               t2 = stddev2 * stddev2 / nb2,
                df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (nb1 - 1) + t2 * t2 / (nb2 - 1)),
                t_stat = (mean1 - mean2) / sqrt(t1 + t2);
         boost::math::students_t dist(df);
