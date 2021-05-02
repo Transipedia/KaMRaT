@@ -29,7 +29,14 @@
 
 const uint64_t Seq2Int(const std::string &seq, const size_t k_len, const bool stranded); // seq_coding.cpp
 
-const size_t CountColumn(std::ofstream &idx_meta, const std::string &line_str)
+void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
+                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path);                // in utils/index_loading.cpp
+void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path, const bool need_skip_code); // in utils/index_loading.cpp
+void LoadCodePosMap(std::map<uint64_t, size_t> &code_set, const std::string &idx_pos_path);                  // in utils/index_loading.cpp
+const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat,
+                                       const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
+
+const size_t CountColumn(const std::string &line_str)
 {
     size_t nb_smp(0);
     std::istringstream conv(line_str);
@@ -44,8 +51,44 @@ const size_t CountColumn(std::ofstream &idx_meta, const std::string &line_str)
     return nb_smp;
 }
 
-const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vector<double> &sum_vect, const std::string &line_str,
-                      const size_t k_len, const bool stranded, const size_t nb_smp)
+void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, const size_t nf_base)
+{
+    std::string line_str, term;
+    std::istringstream conv;
+    std::vector<float> count_vect;
+
+    std::getline(kmer_count_instream, line_str);
+    size_t nb_smp = CountColumn(line_str);
+    nf_vect.resize(nb_smp, 0);
+    while (std::getline(kmer_count_instream, line_str))
+    {
+        conv.str(line_str);
+        for (conv >> term; conv >> term; count_vect.push_back(std::stof(term))) // parse feature name and following count columns
+        {
+        }
+        if (count_vect.size() != nb_smp) // check if all rows have same number of columns as the header row
+        {
+            throw std::length_error("sample numbers are not consistent: " + std::to_string(nb_smp) + " vs " + std::to_string(count_vect.size()));
+        }
+        for (size_t i_smp(0); i_smp < nb_smp; ++i_smp) // add count vectors together for eventual normalization
+        {
+            nf_vect[i_smp] += count_vect[i_smp];
+        }
+        conv.clear();
+        count_vect.clear();
+    }
+    for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
+    {
+        nf_vect[i_smp] = nf_base / nf_vect[i_smp];
+        if (nf_vect[i_smp] < 0.1)
+        {
+            throw std::invalid_argument("normalization factor too small (" + std::to_string(nf_vect[i_smp]) + "), please try larger base");
+        }
+    }
+}
+
+void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, const std::vector<double> &nf_vect,
+                const std::string &line_str, const size_t k_len, const bool stranded, const size_t nb_smp, const bool to_norm)
 {
     static std::istringstream conv(line_str);
     static std::vector<float> count_vect;
@@ -54,20 +97,11 @@ const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vecto
     static size_t ft_code(0), ft_pos;
 
     conv.str(line_str);
-    ft_pos = static_cast<size_t>(idx_mat.tellp());
     for (conv >> ft_name; conv >> term; count_vect.push_back(std::stof(term))) // parse feature name and following count columns
     {
     }
-    if (count_vect.size() != nb_smp) // check if all rows have same number of columns as the header row
-    {
-        throw std::length_error("sample numbers are not consistent: " + std::to_string(nb_smp) + " vs " + std::to_string(count_vect.size()));
-    }
-
-    for (size_t i_smp(0); i_smp < nb_smp; ++i_smp) // add count vectors together for eventual normalization
-    {
-        sum_vect[i_smp] += count_vect[i_smp];
-    }
-    if (k_len != 0) // if index in k-mer mode => ft_code calculated by Seq2Int
+    ft_pos = static_cast<size_t>(idx_mat.tellp());
+    if (k_len > 0) // if index in k-mer mode => ft_code calculated by Seq2Int
     {
         if (k_len != ft_name.size()) // check k-mer length
         {
@@ -82,21 +116,25 @@ const void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, std::vecto
     }
     idx_pos.write(reinterpret_cast<char *>(&ft_pos), sizeof(size_t)); // [idx_pos] feature code and feature position, ordered by code
 
+    if (to_norm)
+    {
+        for (size_t i_smp(0); i_smp < nb_smp; ++i_smp)
+        {
+            count_vect[i_smp] *= nf_vect[i_smp];
+        }
+    }
     idx_mat.write(reinterpret_cast<char *>(&count_vect[0]), count_vect.size() * sizeof(float)); // [idx_mat] feature count vector
     idx_mat << ft_name << std::endl;
-
-    ft_name.clear();
-    term.clear();
     count_vect.clear();
     conv.clear();
 }
 
-void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &idx_mat,
-               std::istream &kmer_count_instream, const size_t k_len, const bool stranded)
+void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &idx_mat, std::istream &kmer_count_instream,
+               const std::vector<double> &nf_vect, const size_t k_len, const bool stranded, const size_t nf_base)
 {
     std::string line_str;
     std::getline(kmer_count_instream, line_str); // read header row in table
-    size_t nb_smp = CountColumn(idx_meta, line_str);
+    size_t nb_smp = CountColumn(line_str);
 
     idx_meta << nb_smp << "\t" << k_len; // [idx_meta 1] sample number, k-mer length, and strandedness if applicable
     if (k_len != 0)
@@ -104,28 +142,12 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
         idx_meta << "\t" << (stranded ? 'T' : 'F');
     }
     idx_meta << std::endl;
-
     idx_meta << line_str << std::endl; // [idx_meta 2] the header row
-
-    std::vector<double> sum_vect(nb_smp, 0);
     while (std::getline(kmer_count_instream, line_str))
     {
-        IndexCount(idx_pos, idx_mat, sum_vect, line_str, k_len, stranded, nb_smp); // [idx_pos, idx_mat] (inside)
+        IndexCount(idx_pos, idx_mat, nf_vect, line_str, k_len, stranded, nb_smp, nf_base > 0); // [idx_pos, idx_mat] (inside)
     }
-    idx_meta << sum_vect[0]; // [idx_meta 3] sample sum vector
-    for (size_t i(1); i < nb_smp; ++i)
-    {
-        idx_meta << "\t" << sum_vect[i];
-    }
-    idx_meta << std::endl;
 }
-
-void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded, std::vector<std::string> &colname_vect,
-                   std::vector<double> &smp_sum_vect, const std::string &idx_meta_path);                     // in utils/index_loading.cpp
-void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path, const bool need_skip_code); // in utils/index_loading.cpp
-void LoadCodePosMap(std::map<uint64_t, size_t> &code_set, const std::string &idx_pos_path);                  // in utils/index_loading.cpp
-const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat,
-                                       const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 
 void TestIndex(const std::string &idx_meta_path, const std::string &idx_pos_path, const std::string &idx_mat_path)
 {
@@ -134,17 +156,11 @@ void TestIndex(const std::string &idx_meta_path, const std::string &idx_pos_path
     size_t nb_smp_all, k_len;
     bool stranded;
     std::vector<std::string> colnames_vect;
-    std::vector<double> smp_sum_vect;
-    LoadIndexMeta(nb_smp_all, k_len, stranded, colnames_vect, smp_sum_vect, idx_meta_path);
+    LoadIndexMeta(nb_smp_all, k_len, stranded, colnames_vect, idx_meta_path);
     std::cout << nb_smp_all << "\t" << k_len;
     if (k_len > 0)
     {
         std::cout << "\t" << (stranded ? "T" : "F");
-    }
-    std::cout << std::endl;
-    for (double s : smp_sum_vect)
-    {
-        std::cout << s << "\t";
     }
     std::cout << std::endl;
     for (auto const &term : colnames_vect)
@@ -177,16 +193,45 @@ int IndexMain(int argc, char **argv)
 
     std::clock_t begin_time = clock();
     std::string out_dir, count_tab_path;
-    size_t k_len(0);
-    bool kmer_mode(false), stranded(true);
+    size_t k_len(0), nf_base(0);
+    bool stranded(true);
 
-    ParseOptions(argc, argv, count_tab_path, out_dir, kmer_mode, k_len, stranded);
-    PrintRunInfo(count_tab_path, out_dir, kmer_mode, k_len, stranded);
-
-    if (!kmer_mode)
+    ParseOptions(argc, argv, count_tab_path, out_dir, k_len, stranded, nf_base);
+    PrintRunInfo(count_tab_path, out_dir, k_len, stranded, nf_base);
+    if (0 == k_len)
     {
         std::cerr << BOLDYELLOW << "[warning]" << RESET << " indexing in general: features are not considered as k-mers" << std::endl
                   << std::endl;
+    }
+    if (0 == nf_base)
+    {
+        std::cerr << BOLDYELLOW << "[warning]" << RESET << " indexing without normalization" << std::endl
+                  << std::endl;
+    }
+
+    std::ofstream idx_meta(out_dir + "/idx-meta.bin"), idx_pos(out_dir + "/idx-pos.bin"), idx_mat(out_dir + "/idx-mat.bin");
+    if (!idx_meta.is_open() || !idx_pos.is_open() || !idx_mat.is_open())
+    {
+        throw std::invalid_argument("output folder for index does not exist: " + out_dir);
+    }
+
+    std::vector<double> nf_vect;
+    if (nf_base > 0) // if to normalize
+    {
+        std::ifstream count_tab(count_tab_path);
+        if (!count_tab.is_open())
+        {
+            throw std::invalid_argument("cannot open count table file: " + count_tab_path);
+        }
+        boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+        if (count_tab_path.substr(count_tab_path.size() - 2) == "gz")
+        {
+            inbuf.push(boost::iostreams::gzip_decompressor());
+        }
+        inbuf.push(count_tab);
+        std::istream kmer_count_instream(&inbuf);
+        ComputeNF(nf_vect, kmer_count_instream, nf_base);
+        count_tab.close();
     }
 
     std::ifstream count_tab(count_tab_path);
@@ -195,32 +240,19 @@ int IndexMain(int argc, char **argv)
         throw std::invalid_argument("cannot open count table file: " + count_tab_path);
     }
     boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+    if (count_tab_path.substr(count_tab_path.size() - 2) == "gz")
     {
-        size_t pos = count_tab_path.find_last_of(".");
-        if (pos != std::string::npos && count_tab_path.substr(pos + 1) == "gz")
-        {
-            inbuf.push(boost::iostreams::gzip_decompressor());
-        }
+        inbuf.push(boost::iostreams::gzip_decompressor());
     }
     inbuf.push(count_tab);
     std::istream kmer_count_instream(&inbuf);
-
-    std::ofstream idx_meta(out_dir + "/idx-meta.bin"), idx_pos(out_dir + "/idx-pos.bin"), idx_mat(out_dir + "/idx-mat.bin");
-    if (!idx_meta.is_open() || !idx_pos.is_open() || !idx_mat.is_open())
-    {
-        throw std::invalid_argument("output folder for index does not exist: " + out_dir);
-    }
-    ScanIndex(idx_meta, idx_pos, idx_mat, kmer_count_instream, k_len, stranded);
-
-    idx_mat.close();
-    idx_pos.close();
-    idx_meta.close();
+    ScanIndex(idx_meta, idx_pos, idx_mat, kmer_count_instream, nf_vect, k_len, stranded, nf_base);
     count_tab.close();
+    idx_mat.close(), idx_pos.close(), idx_meta.close();
+
+    TestIndex(out_dir + "/idx-meta.bin", out_dir + "/idx-pos.bin", out_dir + "/idx-mat.bin");
 
     std::cerr << "Count table indexing finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Total executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
-
-    // TestIndex(out_dir + "/idx-meta.bin", out_dir + "/idx-pos.bin", out_dir + "/idx-mat.bin");
-
     return EXIT_SUCCESS;
 }

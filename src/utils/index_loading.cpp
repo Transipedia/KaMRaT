@@ -25,6 +25,28 @@ using ftVect_t = std::vector<std::pair<std::string, size_t>>;
 //     }
 // }
 
+void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded, std::vector<std::string> &colname_vect, const std::string &idx_meta_path)
+{
+    std::ifstream idx_meta(idx_meta_path);
+    if (!idx_meta.is_open())
+    {
+        throw std::invalid_argument("loading index-meta failed, KaMRaT index folder not found or may be corrupted");
+    }
+    std::string term;
+    idx_meta >> nb_smp_all >> k_len;
+    if (k_len > 0)
+    {
+        idx_meta >> term;
+        stranded = (term == "T" ? true : false);
+    }
+    for (size_t i(0); i <= nb_smp_all; ++i) // including the first column name
+    {
+        idx_meta >> term;
+        colname_vect.emplace_back(term);
+    }
+    idx_meta.close();
+}
+
 void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
                    std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
                    const std::string &idx_meta_path)

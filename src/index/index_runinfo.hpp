@@ -4,29 +4,32 @@
 void IndexWelcome()
 {
     std::cerr << "KaMRaT index: index count table on disk" << std::endl
-              << "---------------------------------------------------------------------------------" << std::endl;
+              << "------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintIndexHelper()
 {
-    std::cerr << "[USAGE]    kamrat index -intab STR -outdir STR [-klen INT -unstrand]" << std::endl
+    std::cerr << "[USAGE]    kamrat index -intab STR -outdir STR [-klen INT -unstrand -nfbase INT]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]   -h, -help      Print the helper" << std::endl;
     std::cerr << "           -intab STR     Input table for index, mandatory" << std::endl;
     std::cerr << "           -outdir STR    Output index directory, mandatory" << std::endl;
     std::cerr << "           -klen          k-mer length, mandatory if features are k-mer" << std::endl
               << "                              if present, indexation will be switched to k-mer mode" << std::endl;
-    std::cerr << "           -unstrand      unstranded mode, indexation with canonical k-mers" << std::endl
-              << "                              if present, indexation will be switched to k-mer mode" << std::endl
+    std::cerr << "           -unstrand      Unstranded mode, indexation with canonical k-mers" << std::endl
+              << "                              if present, indexation will be switched to k-mer mode" << std::endl;
+    std::cerr << "           -nfbase INT    Base for calculating normalization factor" << std::endl
+              << "                              normCount_ij <- INT * rawCount_ij / sum_i{rawCount_ij}" << std::endl
+              << "                              if not provided, input counts will not be normalized" << std::endl
               << std::endl;
 }
 
 void PrintRunInfo(const std::string &count_tab_path, const std::string &out_dir,
-                  const bool kmer_mode, const size_t k_len, const bool stranded)
+                  const size_t k_len, const bool stranded, const size_t nf_base)
 {
     std::cerr << "Count table path:          " << count_tab_path << std::endl;
     std::cerr << "Output index directory:    " << out_dir << std::endl;
-    if (kmer_mode)
+    if (k_len > 0)
     {
         std::cerr << "k-mer length:              " << k_len << std::endl;
         std::cerr << "Stranded k-mers:           " << (stranded ? "TRUE" : "FALSE") << std::endl;
@@ -35,11 +38,15 @@ void PrintRunInfo(const std::string &count_tab_path, const std::string &out_dir,
     {
         std::cerr << "Indexation with general feature" << std::endl;
     }
+    if (nf_base > 0)
+    {
+        std::cerr << "Normalization base:        " << nf_base << std::endl;
+    }
     std::cerr << std::endl;
 }
 
 void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::string &out_dir,
-                  bool &kmer_mode, size_t &k_len, bool &stranded)
+                  size_t &k_len, bool &stranded, size_t &nf_base)
 {
     int i_opt(1);
     if (argc == 1)
@@ -47,6 +54,7 @@ void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::stri
         PrintIndexHelper();
         exit(EXIT_SUCCESS);
     }
+    bool kmer_mode(false);
     while (i_opt < argc && argv[i_opt][0] == '-')
     {
         std::string arg(argv[i_opt]);
@@ -72,6 +80,10 @@ void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::stri
         {
             stranded = false;
             kmer_mode = true;
+        }
+        else if (arg == "-nfbase" && i_opt + 1 < argc)
+        {
+            nf_base = std::stoul(argv[++i_opt]);
         }
         else
         {
