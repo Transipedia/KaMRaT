@@ -61,7 +61,7 @@ void PrintRunInfo(const std::string &idx_dir,
         std::cerr << ", threshold = " << itv_thres << std::endl;
     }
     std::cerr << std::endl;
-    std::cout << "Minimal component k-mer number:    " + std::to_string(min_nb_kmer) << std::endl;
+    std::cerr << "Minimal component k-mer number:    " + std::to_string(min_nb_kmer) << std::endl;
     std::cerr << "Output:                            " << (out_path.empty() ? "to screen" : out_path) << ", ";
     std::cerr << (out_mode.empty() ? "without" : out_mode) + " count vectors" << std::endl
               << std::endl;
