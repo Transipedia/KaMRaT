@@ -12,6 +12,8 @@ public:
     const size_t GetSerial(const std::string &&which_to_get) const noexcept;
     const bool IsRC(const std::string &&which_to_get) const noexcept;
     const bool IsMergeable() const noexcept;
+    const bool HasPred() const noexcept;
+    const bool HasSucc() const noexcept;
 
 private:
     size_t pred_serial_, succ_serial_;

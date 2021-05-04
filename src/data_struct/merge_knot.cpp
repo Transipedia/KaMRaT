@@ -75,3 +75,13 @@ const bool MergeKnot::IsMergeable() const noexcept
     }
     return true;
 }
+
+const bool MergeKnot::HasPred() const noexcept
+{
+    return has_pred_;
+}
+
+const bool MergeKnot::HasSucc() const noexcept
+{
+    return has_succ_;
+}

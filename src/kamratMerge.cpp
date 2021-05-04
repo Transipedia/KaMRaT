@@ -19,9 +19,7 @@ const double CalcPearsonDist(const std::vector<float> &x, const std::vector<floa
 const double CalcSpearmanDist(const std::vector<float> &x, const std::vector<float> &y); // in utils/vect_opera.cpp
 const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &y);      // in utils/vect_opera.cpp
 
-void LoadIndexMeta(size_t &nb_smp, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
-                   const std::string &idx_meta_path); // in utils/index_loading.cpp
+void LoadIndexMeta(size_t &nb_smp, size_t &k_len, bool &stranded, std::vector<std::string> &colname_vect, const std::string &idx_meta_path); // in utils/index_loading.cpp
 void LoadCodePosValMap(std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
                        std::unordered_map<uint64_t, float> &sel_code_val_map,
                        const std::string &idx_pos_path);                                                           // in utils/index_loading.cpp
@@ -101,8 +99,23 @@ void MakeOverlapKnots(fix2knot_t &hashed_merge_knots, const contigVect_t &ctg_ve
                 is_suffix_rc = true;
             }
         }
-        hashed_merge_knots.insert({prefix, MergeKnot()}).first->second.AddContig(i_ctg, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
-        hashed_merge_knots.insert({suffix, MergeKnot()}).first->second.AddContig(i_ctg, is_suffix_rc, (is_suffix_rc ? "succ" : "pred"));
+        if (prefix == suffix) // if the k-mer has equal prefix and suffix
+        {
+            const auto &ins_pair = hashed_merge_knots.insert({prefix, MergeKnot()});
+            if (ins_pair.second || !ins_pair.first->second.HasPred()) // if neither side occupied or right side occupied
+            {
+                hashed_merge_knots.insert({prefix, MergeKnot()}).first->second.AddContig(i_ctg, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
+            }
+            else // if left side occupied or both sides occupied
+            {
+                hashed_merge_knots.insert({suffix, MergeKnot()}).first->second.AddContig(i_ctg, is_suffix_rc, (is_suffix_rc ? "succ" : "pred"));
+            }
+        }
+        else // if the k-mer has different prefix and suffix
+        {
+            hashed_merge_knots.insert({prefix, MergeKnot()}).first->second.AddContig(i_ctg, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
+            hashed_merge_knots.insert({suffix, MergeKnot()}).first->second.AddContig(i_ctg, is_suffix_rc, (is_suffix_rc ? "succ" : "pred"));
+        }
     }
 }
 
@@ -287,14 +300,13 @@ int MergeMain(int argc, char **argv)
     MergeWelcome();
 
     std::clock_t begin_time = clock(), inter_time;
-    std::string idx_dir, sel_path, rep_mode("min"), itv_mthd("spearman"), out_path, out_mode;
+    std::string idx_dir, sel_path, rep_mode("min"), itv_mthd("pearson"), out_path, out_mode;
     float itv_thres(0.25);
     size_t max_ovlp(0), min_ovlp(0), nb_smp(0), k_len(0), min_nbkmer(1);
     bool stranded(false), has_value(false);
     std::vector<std::string> colname_vect;
     ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, sel_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_mode);
-    std::vector<double> _smp_sum_vect; // _smp_sum_vect not needed in KaMRaT-merge
-    LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, _smp_sum_vect, idx_dir + "/idx-meta.bin");
+    LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
     if (k_len == 0)
     {
         throw std::domain_error("KaMRaT-merge relies on the index in k-mer mode, please rerun KaMRaT-index with -klen option");
