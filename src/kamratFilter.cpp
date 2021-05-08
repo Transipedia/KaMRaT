@@ -176,6 +176,6 @@ int FilterMain(int argc, char *argv[])
     {
         out_file.close();
     }
-    std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
+    std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     return EXIT_SUCCESS;
 }

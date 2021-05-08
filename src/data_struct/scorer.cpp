@@ -128,13 +128,10 @@ const double CalcSVMScore(const size_t nfold, const arma::Row<size_t> &arma_labe
     }
 }
 
-Scorer::Scorer(const std::string &scorer_str, const size_t nfold, const std::vector<double> &smp_sum_vect,
+Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
                const std::vector<size_t> &condi_label_vect, const std::vector<size_t> &batch_label_vect)
     : scorer_code_(ParseScorerCode(scorer_str)), nfold_(nfold)
 {
-    arma_nf_vect_ = arma::conv_to<arma::Row<double>>::from(smp_sum_vect);
-    arma_nf_vect_ = arma::mean(arma::mean(arma_nf_vect_, 1)) / arma_nf_vect_;
-    // arma_nf_vect_.print("normalization factor: ");
     arma_condi_vect_ = arma::conv_to<arma::Row<size_t>>::from(condi_label_vect);
     // arma_condi_vect_.print("Label vector:");
     nclass_ = arma_condi_vect_.max() + 1;
@@ -165,15 +162,11 @@ const std::string &Scorer::GetScorerName() const
     return kScorerNameVect[scorer_code_];
 }
 
-const double Scorer::EstimateScore(const std::vector<float> &count_vect, const bool no_norm, const bool ln_transf, const bool standardize) const
+const double Scorer::EstimateScore(const std::vector<float> &count_vect, const bool ln_transf, const bool standardize) const
 {
     static arma::Mat<double> arma_count_vect;
     arma_count_vect = arma::conv_to<arma::Row<double>>::from(count_vect);
     // arma_count_vect.print("Count vector before transformation: ");
-    if (!no_norm)
-    {
-        arma_count_vect = arma_count_vect % arma_nf_vect_; // % means element-wise multiplication in armadillo
-    }
     if (ln_transf)
     {
         arma_count_vect = log(arma_count_vect + 1);

@@ -17,8 +17,7 @@
 using featureVect_t = std::vector<std::unique_ptr<FeatureElem>>;
 
 void LoadIndexMeta(size_t &nb_smp, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
-                   const std::string &idx_meta_path); // in utils/index_loading.cpp
+                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path); // in utils/index_loading.cpp
 void LoadFeaturePosMap(std::unordered_map<std::string, size_t> &ft_pos_map, std::ifstream &idx_mat, const std::string &idx_pos_path,
                        const bool need_skip_code, const size_t nb_smp);                                            // in utils/index_loading.cpp
 const std::string &GetTagSeq(std::string &tag_str, std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
@@ -203,21 +202,17 @@ int RankMain(int argc, char *argv[])
     std::string idx_dir, rk_mthd, with_path, count_mode, dsgn_path, out_path;
     float sel_top(-1); // negative value means without selection, print all features
     size_t nfold, nb_smp, k_len, max_to_sel;
-    bool ln_transf(false), standardize(false), no_norm(false), with_counts(false), after_merge(false), _stranded; // _stranded not needed in KaMRaT-rank
-
-    ParseOptions(argc, argv, idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, ln_transf, standardize, no_norm, sel_top, out_path, with_counts);
-    PrintRunInfo(idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, ln_transf, standardize, no_norm, sel_top, out_path, with_counts);
-
+    bool ln_transf(false), standardize(false), with_counts(false), after_merge(false), _stranded; // _stranded not needed in KaMRaT-rank
     std::vector<std::string> colname_vect;
-    std::vector<double> smp_sum_vect;
-    LoadIndexMeta(nb_smp, k_len, _stranded, colname_vect, smp_sum_vect, idx_dir + "/idx-meta.bin");
+    ParseOptions(argc, argv, idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, ln_transf, standardize, sel_top, out_path, with_counts);
+    PrintRunInfo(idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, ln_transf, standardize, sel_top, out_path, with_counts);
+    LoadIndexMeta(nb_smp, k_len, _stranded, colname_vect, idx_dir + "/idx-meta.bin");
 
     std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
     if (!idx_mat.is_open())
     {
         throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
     }
-
     featureVect_t ft_vect;
     std::unordered_map<std::string, size_t> ft_pos_map;
     LoadFeaturePosMap(ft_pos_map, idx_mat, idx_dir + "/idx-pos.bin", k_len != 0, nb_smp);
@@ -231,7 +226,6 @@ int RankMain(int argc, char *argv[])
     }
     std::cerr << "Option parsing and index loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
-
     if (sel_top <= 0)
     {
         max_to_sel = ft_vect.size();
@@ -251,12 +245,12 @@ int RankMain(int argc, char *argv[])
     }
     std::vector<size_t> condi_label_vect, batch_label_vect;
     ParseDesign(condi_label_vect, batch_label_vect, dsgn_path, colname_vect, nb_smp);
-    Scorer scorer(rk_mthd, nfold, smp_sum_vect, condi_label_vect, batch_label_vect);
+    Scorer scorer(rk_mthd, nfold, condi_label_vect, batch_label_vect);
     std::vector<float> count_vect;
     for (const auto &ft : ft_vect)
     {
         ft->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
-        ft->SetScore(scorer.EstimateScore(count_vect, no_norm, ln_transf, standardize));
+        ft->SetScore(scorer.EstimateScore(count_vect, ln_transf, standardize));
     }
     SortScore(ft_vect, scorer.GetScorerCode());
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
@@ -304,7 +298,7 @@ int RankMain(int argc, char *argv[])
         out_file.close();
     }
     std::cerr << "Output finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
-    std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
+    std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
 
     return EXIT_SUCCESS;
 }

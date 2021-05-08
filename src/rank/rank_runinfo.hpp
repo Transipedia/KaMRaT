@@ -32,7 +32,6 @@ void PrintRankHelper()
               << "                                     STR2 can be one of [rep, mean, median]" << std::endl;
     std::cerr << "            -ln                  Apply ln(x + 1) transformation for score estimation [false]" << std::endl;
     std::cerr << "            -standardize         Standarize count vector for score estimation [false]" << std::endl;
-    std::cerr << "            -rankonraw           Estimate scores and rank on raw count, without normalization" << std::endl;
     std::cerr << "            -seltop NUM          If NUM > 1, it indicates top number of features to output (treated as integer)" << std::endl
               << "                                 If NUM <= 1, it indicates the ratio of features to output" << std::endl;
     std::cerr << "            -outpath STR         Path to ranking result" << std::endl
@@ -51,7 +50,7 @@ void PrintRunInfo(const std::string &idx_dir,
                   const std::string &rk_mthd, const size_t nfold,
                   const std::string &with_path, const std::string &count_mode,
                   const std::string &dsgn_path,
-                  const bool ln_transf, const bool standardize, const bool no_norm,
+                  const bool ln_transf, const bool standardize,
                   const float sel_top,
                   const std::string &out_path, const bool with_counts)
 {
@@ -91,7 +90,6 @@ void PrintRunInfo(const std::string &idx_dir,
     }
     std::cerr << "ln(x + 1) transformation:     " << (ln_transf ? "On" : "Off") << std::endl;
     std::cerr << "Standardization:              " << (standardize ? "On" : "Off") << std::endl;
-    std::cerr << "Rank on raw counts:           " << (no_norm ? "On" : "Off") << std::endl;
     std::cerr << "Selection of top features:    ";
     if (sel_top <= 0)
     {
@@ -115,7 +113,7 @@ void ParseOptions(int argc, char *argv[],
                   std::string &rk_mthd, size_t &nfold,
                   std::string &with_path, std::string &count_mode,
                   std::string &dsgn_path,
-                  bool &ln_transf, bool &standardize, bool &no_norm,
+                  bool &ln_transf, bool &standardize,
                   float &sel_top,
                   std::string &out_path, bool &with_counts)
 {
@@ -178,10 +176,6 @@ void ParseOptions(int argc, char *argv[],
         else if (arg == "-standardize")
         {
             standardize = true;
-        }
-        else if (arg == "-rankonraw")
-        {
-            no_norm = true;
         }
         else if (arg == "-seltop" && i_opt + 1 < argc)
         {
