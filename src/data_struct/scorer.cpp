@@ -79,8 +79,7 @@ const double CalcSNRScore(const arma::Mat<double> &&arma_count_vect1, const arma
 
 const double CalcLRScore(const size_t nfold, const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect)
 {
-    const size_t nb_fold_final = (nfold == 0 ? arma_label_vect.size() : nfold);
-    if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
+    if (nfold == 1) // without cross-validation, train and test on the whole set
     {
         mlpack::regression::LogisticRegression<> lr(arma_count_vect, arma_label_vect);
         mlpack::cv::Accuracy acc;
@@ -89,15 +88,14 @@ const double CalcLRScore(const size_t nfold, const arma::Row<size_t> &arma_label
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
         mlpack::cv::KFoldCV<mlpack::regression::LogisticRegression<>, mlpack::cv::Accuracy>
-            score_data(nb_fold_final, arma_count_vect, arma_label_vect);
+            score_data(nfold, arma_count_vect, arma_label_vect);
         return score_data.Evaluate();
     }
 }
 
 const double CalcNBCScore(const size_t nfold, const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
 {
-    const size_t nb_fold_final = (nfold == 0 ? arma_label_vect.size() : nfold);
-    if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
+    if (nfold == 1) // without cross-validation, train and test on the whole set
     {
         mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_count_vect, arma_label_vect, nclass);
         mlpack::cv::Accuracy acc;
@@ -106,15 +104,14 @@ const double CalcNBCScore(const size_t nfold, const arma::Row<size_t> &arma_labe
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::Accuracy>
-            score_data(nb_fold_final, arma_count_vect, arma_label_vect, nclass);
+            score_data(nfold, arma_count_vect, arma_label_vect, nclass);
         return score_data.Evaluate();
     }
 }
 
 const double CalcSVMScore(const size_t nfold, const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
 {
-    const size_t nb_fold_final = (nfold == 0 ? arma_label_vect.size() : nfold);
-    if (nb_fold_final == 1) // without cross-validation, train and test on the whole set
+    if (nfold == 1) // without cross-validation, train and test on the whole set
     {
         mlpack::svm::LinearSVM<> lsvm(arma_count_vect, arma_label_vect, nclass);
         mlpack::cv::Accuracy acc;
@@ -123,14 +120,14 @@ const double CalcSVMScore(const size_t nfold, const arma::Row<size_t> &arma_labe
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
         mlpack::cv::KFoldCV<mlpack::svm::LinearSVM<>, mlpack::cv::Accuracy>
-            score_data(nb_fold_final, arma_count_vect, arma_label_vect, nclass);
+            score_data(nfold, arma_count_vect, arma_label_vect, nclass);
         return score_data.Evaluate();
     }
 }
 
 Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
                const std::vector<size_t> &condi_label_vect, const std::vector<size_t> &batch_label_vect)
-    : scorer_code_(ParseScorerCode(scorer_str)), nfold_(nfold)
+    : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? condi_label_vect.size() : nfold))
 {
     arma_condi_vect_ = arma::conv_to<arma::Row<size_t>>::from(condi_label_vect);
     // arma_condi_vect_.print("Label vector:");
