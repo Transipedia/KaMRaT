@@ -128,7 +128,8 @@ void SortScore(featureVect_t &ft_vect, const ScorerCode scorer_code)
             -> bool { return fabs(ft1->GetScore()) > fabs(ft2->GetScore()); };
         std::sort(ft_vect.begin(), ft_vect.end(), comp);
     }
-    else if (scorer_code == ScorerCode::kNBC || scorer_code == ScorerCode::kLR || scorer_code == ScorerCode::kSVM) // dec
+    else if (scorer_code == ScorerCode::kDIDS || scorer_code == ScorerCode::kLR ||
+             scorer_code == ScorerCode::kNBC || scorer_code == ScorerCode::kSVM) // dec
     {
         auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
             -> bool { return ft1->GetScore() > ft2->GetScore(); };

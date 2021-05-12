@@ -10,11 +10,12 @@ enum ScorerCode
 {
     kTtest = 0,
     kSNR,
+    kDIDS,
     kLR,
     kNBC,
     kSVM
 };
-const std::vector<std::string> kScorerNameVect{"padj.ttest", "SNR", "acc.LR", "acc.NBC", "acc.SVM"};
+const std::vector<std::string> kScorerNameVect{"padj.ttest", "SNR", "DIDS.score", "acc.LR", "acc.NBC", "acc.SVM"};
 
 class Scorer
 {

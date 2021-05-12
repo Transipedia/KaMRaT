@@ -1,3 +1,4 @@
+#include <cmath>
 #include <boost/math/distributions/students_t.hpp>
 #include <mlpack/core/cv/k_fold_cv.hpp>
 #include <mlpack/core/cv/metrics/accuracy.hpp>
@@ -10,6 +11,7 @@
 /* ============================ Scoring Method ============================ *\
  * ttest        p-value of t-test, adjusted by Benjamini-Hochberg procedure  *
  * snr          signal-to-noise ratio                                        *
+ * dids         DIDS score                                                   *
  * lr           logistic regression                                          *
  * nbc          naive Bayes classifier                                       *
  * svm          support vector machine                                       *
@@ -24,6 +26,10 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     else if (scorer_str == "snr")
     {
         return ScorerCode::kSNR;
+    }
+    else if (scorer_str == "dids")
+    {
+        return ScorerCode::kDIDS;
     }
     else if (scorer_str == "lr")
     {
@@ -75,6 +81,22 @@ const double CalcSNRScore(const arma::Mat<double> &&arma_count_vect1, const arma
     {
         return ((mean1 - mean2) / (stddev1 + stddev2));
     }
+}
+
+const double CalcDIDSScore(const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
+{
+    double max_score(0), sqrt_sum, ref_max;
+    for (size_t i_condi(0); i_condi < nclass; ++i_condi)
+    {
+        ref_max = arma_count_vect.elem(arma::find(arma_label_vect == i_condi)).max();
+        sqrt_sum = 0;
+        for (double x : arma::conv_to<std::vector<double>>::from(arma_count_vect.elem(arma::find(arma_label_vect != i_condi))))
+        {
+            sqrt_sum += (x > ref_max ? sqrt(x - ref_max) : 0); // alternatively, sqrt((x - ref_max) / ref_max)
+        }
+        max_score = (sqrt_sum > max_score ? sqrt_sum : max_score);
+    }
+    return max_score;
 }
 
 const double CalcLRScore(const size_t nfold, const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect)
@@ -172,7 +194,7 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect, const b
     {
         arma_count_vect = (arma_count_vect - arma::mean(arma::mean(arma_count_vect, 1))) / arma::mean(arma::stddev(arma_count_vect, 0, 1));
     }
-    if (scorer_code_ != ScorerCode::kTtest && scorer_code_ != ScorerCode::kSNR)
+    if (scorer_code_ != ScorerCode::kTtest && scorer_code_ != ScorerCode::kSNR && scorer_code_ != ScorerCode::kDIDS)
     {
         arma_count_vect = arma::join_cols(arma_count_vect, arma_batch_vect_);
     }
@@ -186,6 +208,8 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect, const b
     case ScorerCode::kSNR:
         return CalcSNRScore(arma_count_vect.elem(arma::find(arma_condi_vect_ == 0)),
                             arma_count_vect.elem(arma::find(arma_condi_vect_ == 1)));
+    case ScorerCode::kDIDS:
+        return CalcDIDSScore(arma_condi_vect_, arma_count_vect, nclass_);
     case ScorerCode::kLR:
         return CalcLRScore(nfold_, arma_condi_vect_, arma_count_vect);
     case ScorerCode::kNBC:
