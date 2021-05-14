@@ -8,14 +8,15 @@
 
 enum ScorerCode
 {
-    kTtest = 0,
+    kTtestPadj = 0,
+    kTtestPi,
     kSNR,
     kDIDS,
     kLR,
-    kNBC,
+    kBayes,
     kSVM
 };
-const std::vector<std::string> kScorerNameVect{"padj.ttest", "SNR", "DIDS.score", "acc.LR", "acc.NBC", "acc.SVM"};
+const std::vector<std::string> kScorerNameVect{"ttest.padj", "ttest.pi", "SNR", "DIDS.score", "LR.acc", "Bayes.acc", "SVM.acc"};
 
 class Scorer
 {
@@ -24,7 +25,7 @@ public:
 
     const ScorerCode GetScorerCode() const;
     const std::string &GetScorerName() const;
-    const double EstimateScore(const std::vector<float> &count_vect, bool ln_transf, bool standardize) const;
+    const double EstimateScore(const std::vector<float> &count_vect) const;
 
 private:
     const ScorerCode scorer_code_;      // scoring method code

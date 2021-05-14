@@ -8,21 +8,23 @@
 void RankWelcome()
 {
     std::cerr << "KaMRaT rank: univariate feature ranking" << std::endl
-              << "---------------------------------------------------------------------------------------------------------------------------" << std::endl;
+              << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintRankHelper()
 {
-    std::cerr << "[USAGE]    kamrat rank -idxdir STR -count-mode STR -rank-by STR [-options] FEATURE_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]    kamrat rank -idxdir STR -count-mode STR -rankby STR [-options] FEATURE_TAB_PATH" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help             Print the helper " << std::endl;
     std::cerr << "            -idxdir STR          Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -rankby STR          Ranking method, mandatory, can be one of: " << std::endl
-              << "                                     ttest        adjusted p-value of t-test between conditions (require -ln)" << std::endl
-              << "                                     snr          signal-to-noise ratio between conditions" << std::endl
-              << "                                     lr:nfold     accuracy by logistic regression classifier" << std::endl
-              << "                                     nbc:nfold    accuracy by naive Bayes classifier" << std::endl
-              << "                                     svm:nfold    accuracy on SVM classifier" << std::endl;
+              << "                                     ttest.padj      adjusted p-value of t-test between conditions" << std::endl
+              << "                                     ttest.pi        \u03C0-value of t-test between conditions" << std::endl
+              << "                                     snr             signal-to-noise ratio between conditions" << std::endl
+              << "                                     dids            DIDS score" << std::endl
+              << "                                     lr:nfold        accuracy by logistic regression classifier" << std::endl
+              << "                                     bayes:nfold     accuracy by naive Bayes classifier" << std::endl
+              << "                                     svm:nfold       accuracy on SVM classifier" << std::endl;
     std::cerr << "            -design STR          Path to file indicating sample-condition design" << std::endl
               << "                                     without header line, each row can be either: " << std::endl
               << "                                         sample name, sample condition" << std::endl
@@ -30,19 +32,20 @@ void PrintRankHelper()
     std::cerr << "            -with STR1[:STR2]    File indicating features to rank (STR1) and counting mode (STR2)" << std::endl
               << "                                     if not provided, all indexed features are used for ranking" << std::endl
               << "                                     STR2 can be one of [rep, mean, median]" << std::endl;
-    std::cerr << "            -ln                  Apply ln(x + 1) transformation for score estimation [false]" << std::endl;
-    std::cerr << "            -standardize         Standarize count vector for score estimation [false]" << std::endl;
-    std::cerr << "            -seltop NUM          If NUM > 1, it indicates top number of features to output (treated as integer)" << std::endl
-              << "                                 If NUM <= 1, it indicates the ratio of features to output" << std::endl;
+    std::cerr << "            -seltop NUM          Select top ranked features" << std::endl
+              << "                                     if NUM > 1, number of top features to select (should be integer)" << std::endl
+              << "                                     if 0 < NUM <= 1, ratio of top features to select" << std::endl
+              << "                                     if absent or NUM <= 0, output all features" << std::endl;
     std::cerr << "            -outpath STR         Path to ranking result" << std::endl
               << "                                     if not provided, output to screen" << std::endl;
     std::cerr << "            -withcounts          Output sample count vectors [false]" << std::endl
-              << "                                     the output count vectors are neither normalized, nor ln transformed, nor strandardized" << std::endl
               << std::endl;
-    std::cerr << "[NOTE]      For ranking methods lrc, nbc, and svm, there can be a second univariant cross-validaton option (nfold)" << std::endl
+    std::cerr << "[NOTE]      For ranking methods lrc, nbc, and svm, a univariate CV fold number (nfold) can be provided" << std::endl
               << "                if nfold = 0, leave-one-out cross-validation" << std::endl
               << "                if nfold = 1, without cross-validation, training and testing on the whole datset" << std::endl
               << "                if nfold > 1, n-fold cross-validation" << std::endl
+              << "            For t-test ranking methods, a transformation log2(x + 1) is applied to sample counts" << std::endl
+              << "            For SVM ranking, sample counts standardization is applied feature by feature" << std::endl
               << std::endl;
 }
 
@@ -50,7 +53,6 @@ void PrintRunInfo(const std::string &idx_dir,
                   const std::string &rk_mthd, const size_t nfold,
                   const std::string &with_path, const std::string &count_mode,
                   const std::string &dsgn_path,
-                  const bool ln_transf, const bool standardize,
                   const float sel_top,
                   const std::string &out_path, const bool with_counts)
 {
@@ -88,8 +90,6 @@ void PrintRunInfo(const std::string &idx_dir,
     {
         std::cerr << "Sample design:                " << dsgn_path << std::endl;
     }
-    std::cerr << "ln(x + 1) transformation:     " << (ln_transf ? "On" : "Off") << std::endl;
-    std::cerr << "Standardization:              " << (standardize ? "On" : "Off") << std::endl;
     std::cerr << "Selection of top features:    ";
     if (sel_top <= 0)
     {
@@ -113,7 +113,6 @@ void ParseOptions(int argc, char *argv[],
                   std::string &rk_mthd, size_t &nfold,
                   std::string &with_path, std::string &count_mode,
                   std::string &dsgn_path,
-                  bool &ln_transf, bool &standardize,
                   float &sel_top,
                   std::string &out_path, bool &with_counts)
 {
@@ -168,14 +167,6 @@ void ParseOptions(int argc, char *argv[],
         else if (arg == "-design" && i_opt + 1 < argc)
         {
             dsgn_path = argv[++i_opt];
-        }
-        else if (arg == "-ln")
-        {
-            ln_transf = true;
-        }
-        else if (arg == "-standardize")
-        {
-            standardize = true;
         }
         else if (arg == "-seltop" && i_opt + 1 < argc)
         {

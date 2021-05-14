@@ -8,20 +8,25 @@
 
 #include "scorer.hpp" // armadillo library need be included after mlpack
 
-/* ============================ Scoring Method ============================ *\
- * ttest        p-value of t-test, adjusted by Benjamini-Hochberg procedure  *
- * snr          signal-to-noise ratio                                        *
- * dids         DIDS score                                                   *
- * lr           logistic regression                                          *
- * nbc          naive Bayes classifier                                       *
- * svm          support vector machine                                       *
-\* ======================================================================== */
+/* ============================== Scoring Method ========================= *\
+ * ttest.padj    p-adj of t-test, adjusted by Benjamini-Hochberg procedure *
+ * ttest.pi      pi-value of t-test                                        *
+ * snr           signal-to-noise ratio                                     *
+ * dids          DIDS score                                                *
+ * lr            logistic regression                                       *
+ * nbc           naive Bayes classifier                                    *
+ * svm           support vector machine                                    *
+\* ======================================================================= */
 
 const ScorerCode ParseScorerCode(const std::string &scorer_str)
 {
-    if (scorer_str == "ttest")
+    if (scorer_str == "ttest.padj")
     {
-        return ScorerCode::kTtest;
+        return ScorerCode::kTtestPadj;
+    }
+    if (scorer_str == "ttest.pi")
+    {
+        return ScorerCode::kTtestPi;
     }
     else if (scorer_str == "snr")
     {
@@ -35,9 +40,9 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     {
         return ScorerCode::kLR;
     }
-    else if (scorer_str == "nbc")
+    else if (scorer_str == "bayes")
     {
-        return ScorerCode::kNBC;
+        return ScorerCode::kBayes;
     }
     else if (scorer_str == "svm")
     {
@@ -49,14 +54,15 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     }
 }
 
-const double CalcTtestScore(const arma::Mat<double> &&arma_count_vect1, const arma::Mat<double> &&arma_count_vect2)
+const double CalcTtestScore(const arma::Mat<double> &&arma_count_vect1, const arma::Mat<double> &&arma_count_vect2, const bool return_pi)
 {
     double mean1 = arma::mean(arma::mean(arma_count_vect1)), mean2 = arma::mean(arma::mean(arma_count_vect2)),
-           stddev1 = arma::mean(arma::stddev(arma_count_vect1)), stddev2 = arma::mean(arma::stddev(arma_count_vect2));
+           stddev1 = arma::mean(arma::stddev(arma_count_vect1)), stddev2 = arma::mean(arma::stddev(arma_count_vect2)),
+           praw;
     size_t nb1 = arma_count_vect1.size(), nb2 = arma_count_vect2.size();
     if (stddev1 == 0 && stddev2 == 0)
     {
-        return 1;
+        praw = 1;
     }
     else
     {
@@ -65,7 +71,15 @@ const double CalcTtestScore(const arma::Mat<double> &&arma_count_vect1, const ar
                df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (nb1 - 1) + t2 * t2 / (nb2 - 1)),
                t_stat = (mean1 - mean2) / sqrt(t1 + t2);
         boost::math::students_t dist(df);
-        return (2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat))));
+        praw = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
+    }
+    if (return_pi)
+    {
+        return (-log10(praw) * fabs(mean2 - mean1));
+    }
+    else
+    {
+        return praw;
     }
 }
 
@@ -115,7 +129,7 @@ const double CalcLRScore(const size_t nfold, const arma::Row<size_t> &arma_label
     }
 }
 
-const double CalcNBCScore(const size_t nfold, const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
+const double CalcBayesScore(const size_t nfold, const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
 {
     if (nfold == 1) // without cross-validation, train and test on the whole set
     {
@@ -154,20 +168,22 @@ Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
     arma_condi_vect_ = arma::conv_to<arma::Row<size_t>>::from(condi_label_vect);
     // arma_condi_vect_.print("Label vector:");
     nclass_ = arma_condi_vect_.max() + 1;
-    if (nclass_ != 2 && (scorer_code_ == ScorerCode::kTtest || scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kLR))
+    if (nclass_ != 2 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
+                         scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kLR))
     {
         throw std::domain_error("scoring by t-test, SNR, and LR only accept binary sample condition: " + std::to_string(nclass_));
     }
-    if (nclass_ < 2 && (scorer_code_ == ScorerCode::kNBC || scorer_code_ == ScorerCode::kSVM))
+    if (nclass_ < 2 && (scorer_code_ == ScorerCode::kDIDS || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM))
     {
-        throw std::domain_error("scoring by naive Bayes or SVM only accepts condition number >= 2");
+        throw std::domain_error("scoring by DIDS, Bayes or SVM only accepts condition number >= 2");
     }
     arma_batch_vect_ = arma::conv_to<arma::Row<double>>::from(batch_label_vect);
     // arma_batch_vect_.print("Batch vector:");
     nbatch_ = arma_batch_vect_.max() + 1;
-    if (nbatch_ > 1 && (scorer_code_ == ScorerCode::kTtest || scorer_code_ == ScorerCode::kSNR))
+    if (nbatch_ > 1 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
+                        scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kDIDS))
     {
-        throw std::invalid_argument("T-test and SNR do not support batch effect correction");
+        throw std::invalid_argument("T-test, SNR and DIDS do not support batch effect correction");
     }
 }
 
@@ -181,20 +197,20 @@ const std::string &Scorer::GetScorerName() const
     return kScorerNameVect[scorer_code_];
 }
 
-const double Scorer::EstimateScore(const std::vector<float> &count_vect, const bool ln_transf, const bool standardize) const
+const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
 {
     static arma::Mat<double> arma_count_vect;
     arma_count_vect = arma::conv_to<arma::Row<double>>::from(count_vect);
     // arma_count_vect.print("Count vector before transformation: ");
-    if (ln_transf)
+    if (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi) // if t-test, apply log2(x + 1) transformation
     {
-        arma_count_vect = log(arma_count_vect + 1);
+        arma_count_vect = log2(arma_count_vect + 1);
     }
-    if (standardize)
+    else if (scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // if ML, apply standarization
     {
         arma_count_vect = (arma_count_vect - arma::mean(arma::mean(arma_count_vect, 1))) / arma::mean(arma::stddev(arma_count_vect, 0, 1));
     }
-    if (scorer_code_ != ScorerCode::kTtest && scorer_code_ != ScorerCode::kSNR && scorer_code_ != ScorerCode::kDIDS)
+    if (scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // add batch rows for LR, Bayes, SVM
     {
         arma_count_vect = arma::join_cols(arma_count_vect, arma_batch_vect_);
     }
@@ -202,9 +218,11 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect, const b
 
     switch (scorer_code_)
     {
-    case ScorerCode::kTtest:
+    case ScorerCode::kTtestPadj:
+    case ScorerCode::kTtestPi:
         return CalcTtestScore(arma_count_vect.elem(arma::find(arma_condi_vect_ == 0)),
-                              arma_count_vect.elem(arma::find(arma_condi_vect_ == 1)));
+                              arma_count_vect.elem(arma::find(arma_condi_vect_ == 1)),
+                              scorer_code_ == ScorerCode::kTtestPi);
     case ScorerCode::kSNR:
         return CalcSNRScore(arma_count_vect.elem(arma::find(arma_condi_vect_ == 0)),
                             arma_count_vect.elem(arma::find(arma_condi_vect_ == 1)));
@@ -212,8 +230,8 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect, const b
         return CalcDIDSScore(arma_condi_vect_, arma_count_vect, nclass_);
     case ScorerCode::kLR:
         return CalcLRScore(nfold_, arma_condi_vect_, arma_count_vect);
-    case ScorerCode::kNBC:
-        return CalcNBCScore(nfold_, arma_condi_vect_, arma_count_vect, nclass_);
+    case ScorerCode::kBayes:
+        return CalcBayesScore(nfold_, arma_condi_vect_, arma_count_vect, nclass_);
     case ScorerCode::kSVM:
         return CalcSVMScore(nfold_, arma_condi_vect_, arma_count_vect, nclass_);
     default:

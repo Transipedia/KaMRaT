@@ -125,20 +125,23 @@ void SortScore(featureVect_t &ft_vect, const ScorerCode scorer_code)
     if (scorer_code == ScorerCode::kSNR) // decabs
     {
         auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-            -> bool { return fabs(ft1->GetScore()) > fabs(ft2->GetScore()); };
+            -> bool
+        { return fabs(ft1->GetScore()) > fabs(ft2->GetScore()); };
         std::sort(ft_vect.begin(), ft_vect.end(), comp);
     }
-    else if (scorer_code == ScorerCode::kDIDS || scorer_code == ScorerCode::kLR ||
-             scorer_code == ScorerCode::kNBC || scorer_code == ScorerCode::kSVM) // dec
+    else if (scorer_code == ScorerCode::kTtestPi || scorer_code == ScorerCode::kDIDS || scorer_code == ScorerCode::kLR ||
+             scorer_code == ScorerCode::kBayes || scorer_code == ScorerCode::kSVM) // dec
     {
         auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-            -> bool { return ft1->GetScore() > ft2->GetScore(); };
+            -> bool
+        { return ft1->GetScore() > ft2->GetScore(); };
         std::sort(ft_vect.begin(), ft_vect.end(), comp);
     }
-    else if (scorer_code == ScorerCode::kTtest) // inc
+    else if (scorer_code == ScorerCode::kTtestPadj) // inc
     {
         auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-            -> bool { return ft1->GetScore() < ft2->GetScore(); };
+            -> bool
+        { return ft1->GetScore() < ft2->GetScore(); };
         std::sort(ft_vect.begin(), ft_vect.end(), comp);
     }
     // else if (...) // incabs, useless
@@ -203,10 +206,10 @@ int RankMain(int argc, char *argv[])
     std::string idx_dir, rk_mthd, with_path, count_mode, dsgn_path, out_path;
     float sel_top(-1); // negative value means without selection, print all features
     size_t nfold, nb_smp, k_len, max_to_sel;
-    bool ln_transf(false), standardize(false), with_counts(false), after_merge(false), _stranded; // _stranded not needed in KaMRaT-rank
+    bool with_counts(false), after_merge(false), _stranded; // _stranded not needed in KaMRaT-rank
     std::vector<std::string> colname_vect;
-    ParseOptions(argc, argv, idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, ln_transf, standardize, sel_top, out_path, with_counts);
-    PrintRunInfo(idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, ln_transf, standardize, sel_top, out_path, with_counts);
+    ParseOptions(argc, argv, idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, sel_top, out_path, with_counts);
+    PrintRunInfo(idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, sel_top, out_path, with_counts);
     LoadIndexMeta(nb_smp, k_len, _stranded, colname_vect, idx_dir + "/idx-meta.bin");
 
     std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
@@ -251,12 +254,12 @@ int RankMain(int argc, char *argv[])
     for (const auto &ft : ft_vect)
     {
         ft->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
-        ft->SetScore(scorer.EstimateScore(count_vect, ln_transf, standardize));
+        ft->SetScore(scorer.EstimateScore(count_vect));
     }
     SortScore(ft_vect, scorer.GetScorerCode());
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
-    if (scorer.GetScorerCode() == ScorerCode::kTtest) // BH procedure
+    if (scorer.GetScorerCode() == ScorerCode::kTtestPadj) // BH procedure
     {
         std::cerr << "\tadjusting p-values using BH procedure..." << std::endl
                   << std::endl;
