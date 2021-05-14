@@ -309,7 +309,7 @@ int MergeMain(int argc, char **argv)
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
     if (k_len == 0)
     {
-        throw std::domain_error("KaMRaT-merge relies on the index in k-mer mode, please rerun KaMRaT-index with -klen option");
+        throw std::invalid_argument("KaMRaT-merge relies on the index in k-mer mode, please rerun KaMRaT-index with -klen option");
     }
     if (k_len <= max_ovlp)
     {
