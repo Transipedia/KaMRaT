@@ -11,9 +11,6 @@
 #include "data_struct/feature_elem.hpp"
 #include "data_struct/scorer.hpp"
 
-#define RESET "\033[0m"
-#define BOLDYELLOW "\033[1m\033[33m"
-
 using featureVect_t = std::vector<std::unique_ptr<FeatureElem>>;
 
 void LoadIndexMeta(size_t &nb_smp, size_t &k_len, bool &stranded,

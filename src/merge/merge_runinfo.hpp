@@ -23,7 +23,7 @@ void PrintMergeHelper()
     std::cerr << "            -idxdir STR            Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -overlap MAX-MIN       Overlap range for extension, mandatory" << std::endl
               << "                                       MIN and MAX are integers, MIN <= MAX <= k-mer length" << std::endl;
-    std::cerr << "            -subset STR1[:STR2]    File indicating k-mers to be extended (STR1) and rep-mode (STR2)" << std::endl
+    std::cerr << "            -with STR1[:STR2]      File indicating k-mers to be extended (STR1) and rep-mode (STR2)" << std::endl
               << "                                       if not provided, all indexed k-mers are used for extension" << std::endl
               << "                                       in the file STR1, a supplementary column of rep-value can be provided" << std::endl
               << "                                       STR2 can be one of {min, minabs, max, maxabs} [min]" << std::endl;
@@ -53,7 +53,7 @@ void PrintRunInfo(const std::string &idx_dir,
     std::cerr << "k-mer length:                      " << k_len << std::endl;
     std::cerr << "Overlap range:                     from " << max_ovlp << " to " << min_ovlp << std::endl;
     std::cerr << "Stranded extension:                " << (stranded ? "On" : "Off") << std::endl;
-    std::cerr << "Select k-mers in file:             " << (sel_path.empty() ? "k-mers in index" : sel_path) << std::endl;
+    std::cerr << "Merge k-mers in file:              " << (sel_path.empty() ? "k-mers in index" : sel_path) << std::endl;
     std::cerr << "Representative mode:               " << rep_mode << std::endl;
     std::cerr << "Intervention method:               " << itv_mthd;
     if (itv_mthd != "none")
@@ -118,7 +118,7 @@ void ParseOptions(int argc, char *argv[],
                 throw std::invalid_argument("overlap range should not exceed 31");
             }
         }
-        else if (arg == "-subset" && i_opt + 1 < argc)
+        else if (arg == "-with" && i_opt + 1 < argc)
         {
             arg = argv[++i_opt];
             split_pos = arg.find(":");
