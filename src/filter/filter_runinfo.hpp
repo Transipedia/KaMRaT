@@ -46,7 +46,7 @@ void PrintRunInfo(const std::string &idx_dir,
     std::cerr << "Down-regulated upper bound:    " << std::endl
               << "\tfeatures counting <= " << (down_max_abd == std::numeric_limits<size_t>::max() ? "inf" : std::to_string(down_max_abd))
               << " in >= " << down_min_rec << " down-regulated samples" << std::endl;
-    std::cerr << "Remove eligible features:      " << (reverse_filter ? "TRUE" : "FALSE") << std::endl;
+    std::cerr << "Remove eligible features:      " << (reverse_filter ? "True" : "False") << std::endl;
     std::cerr << "Output:                        " << (out_path.empty() ? "to screen" : out_path) << ", ";
     std::cerr << (with_counts ? "with" : "without") << " count vectors" << std::endl
               << std::endl;
