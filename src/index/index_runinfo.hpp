@@ -32,7 +32,7 @@ void PrintRunInfo(const std::string &count_tab_path, const std::string &out_dir,
     if (k_len > 0)
     {
         std::cerr << "k-mer length:              " << k_len << std::endl;
-        std::cerr << "Stranded k-mers:           " << (stranded ? "TRUE" : "FALSE") << std::endl;
+        std::cerr << "Stranded k-mers:           " << (stranded ? "True" : "False") << std::endl;
     }
     else
     {
