@@ -3,7 +3,7 @@
 
 void IndexWelcome()
 {
-    std::cerr << "KaMRaT index: index count table on disk" << std::endl
+    std::cerr << "KaMRaT index: index feature count table on disk" << std::endl
               << "------------------------------------------------------------------------------------" << std::endl;
 }
 

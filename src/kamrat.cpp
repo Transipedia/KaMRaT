@@ -9,7 +9,7 @@ int MergeMain(int argc, char *argv[]);
 int RankMain(int argc, char *argv[]);
 int FilterMain(int argc, char *argv[]);
 int MaskMain(int argc, char *argv[]);
-// int EstimateMain(int argc, char *argv[]);
+int QueryMain(int argc, char *argv[]);
 
 const void Welcome()
 {
@@ -33,12 +33,12 @@ const void PrintHelper()
     std::cerr << "[Usage]" << std::endl
               << "    kamrat <command> [options]" << std::endl
               << "[Command]" << std::endl
-              << "    index:       index the given matrix, get ready for other modules" << std::endl
-              << "    merge:       merge k-mer count table into contig count table" << std::endl
-              << "    filter:      filter count table according to occurence among samples" << std::endl
-              << "    mask:        mask/select count table according to given sequences" << std::endl
-              << "    rank:        rank count table features according to association to sample condition" << std::endl
-              << "    estimate:    estimate count for each given sequence" << std::endl
+              << "    index:     index feature count table on disk" << std::endl
+              << "    merge:     k-mer sequence extension" << std::endl
+              << "    rank:      univariate feature ranking" << std::endl
+              << "    filter:    feature filter by expression level" << std::endl
+              << "    mask:      k-mer sequence masking" << std::endl
+              << "    query:     query sequences" << std::endl
               << std::endl;
 }
 
@@ -71,10 +71,10 @@ int main(int argc, char *argv[])
         {
             MaskMain(argc - 1, &(argv[1]));
         }
-        // else if (strcmp(argv[1], "estimate") == 0)
-        // {
-        //     EstimateMain(argc - 1, &(argv[1]));
-        // }
+        else if (strcmp(argv[1], "estimate") == 0)
+        {
+            QueryMain(argc - 1, &(argv[1]));
+        }
         else
         {
             PrintHelper();
