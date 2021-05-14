@@ -11,107 +11,43 @@
 
 // const float kMinDistance = 0, kMaxDistance = 1;
 
-// void ScanCountTable(TabHeader &tab_header, code2kmer_t &code2kmer, std::vector<double> &nf_vect, const size_t k_len, const bool stranded,
-//                     const std::string &kmer_count_path, const std::string &idx_path)
-// {
-//     std::ifstream kmer_count_file(kmer_count_path);
-//     if (!kmer_count_file.is_open())
-//     {
-//         throw std::domain_error("k-mer count file " + kmer_count_path + " was not found");
-//     }
-//     boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
-//     {
-//         size_t pos = kmer_count_path.find_last_of(".");
-//         if (pos != std::string::npos && kmer_count_path.substr(pos + 1) == "gz")
-//         {
-//             inbuf.push(boost::iostreams::gzip_decompressor());
-//         }
-//     }
-//     inbuf.push(kmer_count_file);
-//     std::istream kmer_count_instream(&inbuf);
+double QueryDist(const std::string &seq, const std::string &query_mtd)
+{
 
-//     std::string line;
-//     //----- Dealing with Header Line for Constructing ColumnInfo Object -----//
-//     std::getline(kmer_count_instream, line);
-//     std::istringstream conv(line);
-//     tab_header.MakeColumns(conv, "");
-//     conv.clear();
-//     nf_vect.resize(tab_header.GetNbCount(), 0);
-//     std::cerr << "\t => Number of sample parsed: " << nf_vect.size() << std::endl;
-
-//     std::ofstream idx_file(idx_path);
-//     if (!idx_file.is_open()) // to ensure the file is opened
-//     {
-//         throw std::domain_error("error open file: " + idx_path);
-//     }
-
-//     //----- Dealing with Following k-mer Count Lines -----//
-//     std::vector<float> count_vect;
-//     std::string value_str, seq;
-//     for (size_t iline(0); std::getline(kmer_count_instream, line); ++iline)
-//     {
-//         conv.str(line);
-//         float rep_value = tab_header.ParseRowStr(count_vect, value_str, conv);
-//         for (size_t ismp(0); ismp < count_vect.size(); ++ismp)
-//         {
-//             nf_vect[ismp] += count_vect[ismp];
-//         }
-//         seq = line.substr(0, line.find_first_of(" \t")); // first column as feature (string)
-//         if (seq.size() != k_len)
-//         {
-//             throw std::domain_error("the given k-len parameter not coherent with input k-mer: " + seq);
-//         }
-//         if (!code2kmer.insert({Seq2Int(seq, seq.size(), stranded), KMerElem(rep_value, count_vect, value_str, idx_file)}).second)
-//         {
-//             throw std::domain_error("duplicate input (newly inserted k-mer already exists in k-mer hash list): " + seq);
-//         }
-//         conv.clear();
-//     }
-//     double mean_sample_sum = (std::accumulate(nf_vect.cbegin(), nf_vect.cend(), 0.0) / nf_vect.size());
-//     for (size_t i(0); i < nf_vect.size(); ++i)
-//     {
-//         if (nf_vect[i] == 0)
-//         {
-//             nf_vect[i] = 0;
-//         }
-//         else
-//         {
-//             nf_vect[i] = mean_sample_sum / nf_vect[i];
-//         }
-//     }
-//     kmer_count_file.close();
-//     idx_file.close();
-// }
-
-// void EstablishSeqListFromMultilineFasta(fastaVect_t &seq_vect, const std::string &seq_file_path)
-// {
-//     std::ifstream contig_list_file(seq_file_path);
-//     if (!contig_list_file.is_open())
-//     {
-//         throw std::domain_error("contig fasta file " + seq_file_path + "was not found");
-//     }
-//     std::string seq_name, seq, line;
-//     bool is_first_line(true);
-//     while (std::getline(contig_list_file, line))
-//     {
-//         if (line[0] == '>') // if a header line (i.e. a new sequence)
-//         {
-//             if (!is_first_line)
-//             {
-//                 seq_vect.emplace_back(std::make_pair(seq_name, seq)); // cache the previous sequence
-//                 seq.clear();                                          // prepare for the next sequence
-//             }
-//             seq_name = line.substr(1); // record the next sequence name
-//             is_first_line = false;
-//         }
-//         else
-//         {
-//             seq += line;
-//         }
-//     }
-//     seq_vect.emplace_back(std::make_pair(seq_name, seq)); // cache the last sequence
-//     contig_list_file.close();
-// }
+}
+void ScanQuery(const std::string &seq_file_path, const std::string &query_mtd, const bool out_name)
+{
+    std::ifstream contig_list_file(seq_file_path);
+    if (!contig_list_file.is_open())
+    {
+        throw std::invalid_argument("cannot open file: " + seq_file_path);
+    }
+    std::string seq_name, seq, line, kmer1, kmer2;
+    bool is_first_line(true);
+    while (std::getline(contig_list_file, line))
+    {
+        if (line[0] == '>') // if a header line (i.e. a new sequence)
+        {
+            if (!is_first_line)
+            {
+                if (query_mtd == "pearson" || query_mtd == "spearman" || query_mtd == "mac")
+                {
+                    QueryDist(kmer1, kmer2, seq, query_mtd);
+                }
+                seq.clear();                                          // prepare for the next sequence
+            }
+            PrintDist(out_name ? seq_name : seq, kmer1, kmer2);
+            seq_name = line.substr(1); // record the next sequence name
+            is_first_line = false;
+        }
+        else
+        {
+            seq += line;
+        }
+    }
+    seq_vect.emplace_back(std::make_pair(seq_name, seq)); // cache the last sequence
+    contig_list_file.close();
+}
 
 // const float EvaluateSeqDist(std::string &max_kmer1, std::string &max_kmer2,
 //                             const std::string &contig_seq, const std::vector<double> &nf_vect, const bool no_norm,
@@ -313,21 +249,8 @@ int main(int argc, char **argv)
     std::cerr << "Option parsing and index loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-
-
-
-
-    // TabHeader tab_header(colname_list_path);
-    // code2kmer_t code2kmer;
-    // std::vector<double> nf_vect;
-    // ScanCountTable(tab_header, code2kmer, nf_vect, k_len, stranded, kmer_count_path, idx_path);
-
-    // std::cerr << "Count table Scanning finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
-    // inter_time = clock();
-
-    // fastaVect_t fasta_vect;
-    // EstablishSeqListFromMultilineFasta(fasta_vect, seq_file_path);
-    // std::cerr << "Number of sequence for evaluation: " << fasta_vect.size() << std::endl;
+    ScanQuery(seq_file_path);
+    std::cerr << "Number of sequence for evaluation: " << fasta_vect.size() << std::endl;
 
     // std::ofstream out_file;
     // if (!out_path.empty())
