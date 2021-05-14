@@ -9,7 +9,7 @@ void MaskWelcome()
 
 inline void PrintMaskHelper()
 {
-    std::cerr << "[Usage]    kamrat mask -idxdir STR -fasta STR [-options] KMER_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat mask -idxdir STR -fasta STR [-options]" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help         Print the helper" << std::endl;
     std::cerr << "            -idxdir STR      Indexing folder by KaMRaT index, mandatory" << std::endl;

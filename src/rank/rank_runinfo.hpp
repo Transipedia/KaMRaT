@@ -13,7 +13,7 @@ void RankWelcome()
 
 void PrintRankHelper()
 {
-    std::cerr << "[USAGE]    kamrat rank -idxdir STR -count-mode STR -rankby STR [-options] FEATURE_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]    kamrat rank -idxdir STR -count-mode STR -rankby STR [-options]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help             Print the helper " << std::endl;
     std::cerr << "            -idxdir STR          Indexing folder by KaMRaT index, mandatory" << std::endl;

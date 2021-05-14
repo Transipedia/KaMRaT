@@ -9,7 +9,7 @@ void FilterWelcome()
 
 void PrintFilterHelper()
 {
-    std::cerr << "[USAGE]    kamrat filter -filter-info STR [-options] KMER_TAB_PATH" << std::endl
+    std::cerr << "[USAGE]    kamrat filter -filter-info STR [-options]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help              Print the helper" << std::endl;
     std::cerr << "            -idxdir STR           Indexing folder by KaMRaT index, mandatory" << std::endl;

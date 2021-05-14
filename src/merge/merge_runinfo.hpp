@@ -17,7 +17,7 @@ void MergeWelcome()
 
 void PrintMergeHelper()
 {
-    std::cerr << "[Usage]    kamrat merge -overlap MAX-MIN -idx-dir STR [-options] KMER_TAB_PATH" << std::endl
+    std::cerr << "[Usage]    kamrat merge -overlap MAX-MIN -idx-dir STR [-options]" << std::endl
               << std::endl;
     std::cerr << "[Option]    -h,-help               Print the helper" << std::endl;
     std::cerr << "            -idxdir STR            Indexing folder by KaMRaT index, mandatory" << std::endl;
