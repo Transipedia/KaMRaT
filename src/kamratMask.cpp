@@ -8,8 +8,7 @@
 #include "mask/mask_runinfo.hpp"
 
 void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
-                   const std::string &idx_meta_path); // in utils/index_loading.cpp
+                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path); // in utils/index_loading.cpp
 const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat,
                                        const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 
@@ -56,7 +55,7 @@ void ScanPrint(std::ifstream &idx_pos, std::ifstream &idx_mat, const std::unorde
     size_t code, pos;
     while (idx_pos.read(reinterpret_cast<char *>(&code), sizeof(size_t)) && idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
     {
-        const bool is_in_mask = (kmer_mask.find(code) == kmer_mask.cend());
+        const bool is_in_mask = (kmer_mask.find(code) != kmer_mask.cend());
         if (is_in_mask == reverse_mask) // (is_in_mask && reverse_mask) || (!is_in_mask && !reverse_mask)
         {
             GetCountVect(count_vect, idx_mat, pos, nb_smp);
@@ -83,9 +82,8 @@ int MaskMain(int argc, char **argv)
     size_t nb_smp, k_len;
     bool stranded, reverse_mask(false), with_counts(false);
     std::vector<std::string> colname_vect;
-    std::vector<double> _smp_sum_vect; // _smp_sum_vect not needed
     ParseOptions(argc, argv, idx_dir, mask_file_path, reverse_mask, out_path, with_counts);
-    LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, _smp_sum_vect, idx_dir + "/idx-meta.bin");
+    LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
     PrintRunInfo(idx_dir, k_len, stranded, mask_file_path, reverse_mask, out_path, with_counts);
     if (k_len == 0)
     {
@@ -116,9 +114,10 @@ int MaskMain(int argc, char **argv)
     }
     if (with_counts)
     {
-        for (const auto &s : colname_vect)
+        std::cout << colname_vect[0];
+        for (size_t i_col(1); i_col <= nb_smp; ++i_col)
         {
-            std::cout << "\t" << s;
+            std::cout << "\t" << colname_vect[i_col];
         }
         std::cout << std::endl;
     }

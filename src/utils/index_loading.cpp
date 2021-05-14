@@ -47,45 +47,6 @@ void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded, std::vecto
     idx_meta.close();
 }
 
-void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, std::vector<double> &smp_sum_vect,
-                   const std::string &idx_meta_path)
-{
-    std::ifstream idx_meta(idx_meta_path);
-    if (!idx_meta.is_open())
-    {
-        throw std::invalid_argument("loading index-meta failed, KaMRaT index folder not found or may be corrupted");
-    }
-    std::string term;
-    idx_meta >> nb_smp_all >> k_len;
-    if (k_len > 0)
-    {
-        idx_meta >> term;
-        stranded = (term == "T" ? true : false);
-    }
-    for (size_t i(0); i <= nb_smp_all; ++i) // including the first column name
-    {
-        idx_meta >> term;
-        colname_vect.emplace_back(term);
-    }
-    for (size_t i(0); i < nb_smp_all; ++i)
-    {
-        idx_meta >> term;
-        smp_sum_vect.emplace_back(std::stod(term));
-    }
-    idx_meta.close();
-}
-
-const std::vector<double> &ComputeNF(std::vector<double> &smp_sum_vect, const size_t nb_smp)
-{
-    const double smp_mean = arma::mean(arma::mean(arma::conv_to<arma::Row<double>>::from(smp_sum_vect), 1));
-    for (size_t i(0); i < nb_smp; ++i)
-    {
-        smp_sum_vect[i] = smp_mean / smp_sum_vect[i];
-    }
-    return smp_sum_vect;
-}
-
 void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path, const bool need_skip_code)
 {
     std::ifstream idx_pos(idx_pos_path);

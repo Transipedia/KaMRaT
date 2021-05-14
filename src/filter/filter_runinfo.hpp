@@ -24,7 +24,7 @@ void PrintFilterHelper()
               << "                                      output features counting >= INT1 in >= INT2 UP-samples" << std::endl;
     std::cerr << "            -downmax INT1:INT2    Down feature upper bound [inf:1, meaning no filter]" << std::endl
               << "                                      output features counting <= INT1 in >= INT2 DOWN-samples" << std::endl;
-    std::cerr << "            -normalize            Filter with normalized counts [false]" << std::endl;
+    std::cerr << "            -reverse              Reverse filter, to remove eligible features [false]" << std::endl;
     std::cerr << "            -outpath STR          Path to results after filter" << std::endl
               << "                                      if not provided, output to screen" << std::endl;
     std::cerr << "            -withcounts           Output sample count vectors [false]" << std::endl
@@ -32,33 +32,33 @@ void PrintFilterHelper()
 }
 
 void PrintRunInfo(const std::string &idx_dir,
-                        const std::string &dsgn_path,
-                        const size_t up_min_abd, const size_t up_min_rec,
-                        const size_t down_max_abd, const size_t down_min_rec,
-                        const bool norm,
-                        const std::string &out_path, const bool with_counts)
+                  const std::string &dsgn_path,
+                  const size_t up_min_abd, const size_t up_min_rec,
+                  const size_t down_max_abd, const size_t down_min_rec,
+                  const bool reverse_filter,
+                  const std::string &out_path, const bool with_counts)
 {
     std::cerr << std::endl;
-    std::cerr << "KaMRaT index:                        " << idx_dir << std::endl;
-    std::cerr << "Path to filter design file:          " << dsgn_path << std::endl;
-    std::cerr << "Up-regulated lower bound:            " << std::endl
+    std::cerr << "KaMRaT index:                  " << idx_dir << std::endl;
+    std::cerr << "Path to filter design file:    " << dsgn_path << std::endl;
+    std::cerr << "Up-regulated lower bound:      " << std::endl
               << "\tfeatures counting >= " << up_min_abd << " in >= " << up_min_rec << " up-regulated samples" << std::endl;
-    std::cerr << "Down-regulated upper bound:          " << std::endl
+    std::cerr << "Down-regulated upper bound:    " << std::endl
               << "\tfeatures counting <= " << (down_max_abd == std::numeric_limits<size_t>::max() ? "inf" : std::to_string(down_max_abd))
-              << " in >= " << down_min_rec << "down-regulated samples" << std::endl;
-    std::cerr << "Filter after count normalization:    " << (norm ? "TRUE" : "FALSE") << std::endl;
-    std::cerr << "Output:                              " << (out_path.empty() ? "to screen" : out_path) << ", ";
+              << " in >= " << down_min_rec << " down-regulated samples" << std::endl;
+    std::cerr << "Remove eligible features:      " << (reverse_filter ? "TRUE" : "FALSE") << std::endl;
+    std::cerr << "Output:                        " << (out_path.empty() ? "to screen" : out_path) << ", ";
     std::cerr << (with_counts ? "with" : "without") << " count vectors" << std::endl
               << std::endl;
 }
 
 void ParseOptions(int argc, char *argv[],
-                        std::string &idx_dir,
-                        std::string &dsgn_path,
-                        size_t &up_min_abd, size_t &up_min_rec,
-                        size_t &down_max_abd, size_t &down_min_rec,
-                        bool &norm,
-                        std::string &out_path, bool &with_counts)
+                  std::string &idx_dir,
+                  std::string &dsgn_path,
+                  size_t &up_min_abd, size_t &up_min_rec,
+                  size_t &down_max_abd, size_t &down_min_rec,
+                  bool &reverse_filter,
+                  std::string &out_path, bool &with_counts)
 {
     int i_opt(1);
     if (argc == 1)
@@ -75,6 +75,10 @@ void ParseOptions(int argc, char *argv[],
         {
             PrintFilterHelper();
             exit(EXIT_SUCCESS);
+        }
+        if (arg == "-idxdir" && i_opt + 1 < argc)
+        {
+            idx_dir = argv[++i_opt];
         }
         else if (arg == "-design" && i_opt + 1 < argc)
         {
@@ -108,9 +112,9 @@ void ParseOptions(int argc, char *argv[],
                 throw std::invalid_argument("unable to parse -downmax argument: " + arg);
             }
         }
-        else if (arg == "-norm")
+        else if (arg == "-reverse")
         {
-            norm = true;
+            reverse_filter = true;
         }
         else if (arg == "-outpath" && i_opt + 1 < argc)
         {

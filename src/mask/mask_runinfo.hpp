@@ -14,7 +14,7 @@ inline void PrintMaskHelper()
     std::cerr << "[Option]    -h,-help         Print the helper" << std::endl;
     std::cerr << "            -idxdir STR      Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -fasta STR       Sequence fasta file as the mask, mandatory" << std::endl;
-    std::cerr << "            -reversemask     Reverse mask, to select the k-mers in sequence fasta file [false]" << std::endl;
+    std::cerr << "            -reverse         Reverse mask, to select the k-mers in sequence fasta file [false]" << std::endl;
     std::cerr << "            -outpath STR     Path to extension results" << std::endl
               << "                                 if not provided, output to screen" << std::endl;
     std::cerr << "            -withcounts      Output sample count vectors [false]" << std::endl
@@ -64,7 +64,7 @@ inline void ParseOptions(int argc, char *argv[],
         {
             mask_file_path = argv[++i_opt];
         }
-        else if (arg == "-reversemask")
+        else if (arg == "-reverse")
         {
             reverse_mask = true;
         }
