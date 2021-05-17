@@ -9,7 +9,7 @@ int MergeMain(int argc, char *argv[]);
 int RankMain(int argc, char *argv[]);
 int FilterMain(int argc, char *argv[]);
 int MaskMain(int argc, char *argv[]);
-int QueryMain(int argc, char *argv[]);
+// int QueryMain(int argc, char *argv[]);
 
 const void Welcome()
 {
@@ -71,10 +71,10 @@ int main(int argc, char *argv[])
         {
             MaskMain(argc - 1, &(argv[1]));
         }
-        else if (strcmp(argv[1], "estimate") == 0)
-        {
-            QueryMain(argc - 1, &(argv[1]));
-        }
+        // else if (strcmp(argv[1], "estimate") == 0)
+        // {
+        //     QueryMain(argc - 1, &(argv[1]));
+        // }
         else
         {
             PrintHelper();
