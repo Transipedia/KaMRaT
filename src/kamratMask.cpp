@@ -68,6 +68,10 @@ void ScanPrint(std::ifstream &idx_pos, std::ifstream &idx_mat, const std::unorde
                     std::cout << "\t" << x;
                 }
             }
+            else
+            {
+                std::cout << "\t0";
+            }
             std::cout << std::endl;
         }
     }

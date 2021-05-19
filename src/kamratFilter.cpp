@@ -100,6 +100,10 @@ void ScanPrint(std::ifstream &idx_mat, const std::vector<size_t> &ft_pos_vect, c
                     std::cout << "\t" << x;
                 }
             }
+            else
+            {
+                std::cout << "\t0";
+            }
             std::cout << std::endl;
         }
     }
