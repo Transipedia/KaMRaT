@@ -40,16 +40,13 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, std::unordered_map<st
     size_t nb_mem_pos(1);
     std::vector<size_t> mem_pos_vect;
     std::unordered_map<std::string, size_t>::const_iterator it;
-    std::istringstream line_conv;
-    while (std::getline(with_file, line))
+    while (with_file >> feature >> nb_mem_pos)
     {
-        line_conv.str(line);
-        line_conv >> feature;
-        if (line_conv >> nb_mem_pos)
+        if (nb_mem_pos > 0)
         {
             mem_pos_vect.resize(nb_mem_pos);
-            line_conv.ignore(1);
-            line_conv.read(reinterpret_cast<char *>(&mem_pos_vect[0]), nb_mem_pos * sizeof(size_t));
+            with_file.ignore(1);
+            with_file.read(reinterpret_cast<char *>(&mem_pos_vect[0]), nb_mem_pos * sizeof(size_t));
             ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, mem_pos_vect));
             after_merge = true;
         }
@@ -62,7 +59,6 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, std::unordered_map<st
             }
             ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, it->second));
         }
-        line_conv.clear();
     }
     ft_pos_map.clear();
     with_file.close();
