@@ -6,7 +6,7 @@
 #include <vector>
 #include <set>
 
-const std::set<std::string> kQueryMethodUniv{"pearson", "spearman", "mac", "mean", "median"};
+const std::set<std::string> kQueryMethodUniv{"mean", "median"};
 
 void QueryWelcome()
 {
@@ -22,9 +22,6 @@ void PrintQueryHelper()
     std::cerr << "            -idxdir STR      Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -fasta STR       Sequence fasta file, mandatory" << std::endl;
     std::cerr << "            -toquery STR     Query method, mandatory, can be one of:" << std::endl
-              << "                                 pearson     largest Pearson distance between findable adjacent k-mers" << std::endl
-              << "                                 spearman    largest Spearman distance between findable adjacent k-mers" << std::endl
-              << "                                 mac         largest MAC distance between findable adjacent k-mers" << std::endl
               << "                                 mean        mean count among all composite k-mers for each sample" << std::endl
               << "                                 median      median count among all composite k-mers for each sample" << std::endl;
     std::cerr << "            -maxshift INT    Maximum allowed shift between k-mers [inf]" << std::endl;
