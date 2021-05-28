@@ -9,13 +9,103 @@
 
 #include "query/query_runinfo.hpp"
 
-// const float kMinDistance = 0, kMaxDistance = 1;
+const float kMinDistance = 0, kMaxDistance = 1;
 
-double QueryDist(const std::string &seq, const std::string &query_mtd)
+uint64_t Seq2Int(const std::string &seq, const size_t k_length, const bool stranded); // in utils/seq_coding.cpp
+uint64_t GetRC(const uint64_t code, size_t k_length);                                 // in utils/seq_coding.cpp
+uint64_t NextCode(uint64_t code, const size_t k_length, const char new_nuc);          // in utils/seq_coding.cpp
+
+const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
+                                       std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
+
+const double CalcPearsonDist(const std::vector<float> &x, const std::vector<float> &y);  // in utils/vect_opera.cpp
+const double CalcSpearmanDist(const std::vector<float> &x, const std::vector<float> &y); // in utils/vect_opera.cpp
+const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &y);      // in utils/vect_opera.cpp
+
+double QueryDist(std::string &kmer1, std::string &kmer2, std::ifstream &idx_mat,
+                 const size_t nb_smp, const size_t k_len, const bool stranded, const size_t max_shift,
+                 const std::unordered_map<uint64_t, size_t> &code_pos_map, const std::string &seq, const std::string &query_mtd)
 {
+    if (seq.size() == k_len && code_pos_map.find(Seq2Int(seq, k_len, stranded)) != code_pos_map.cend()) // if seq is a k-mer in k-mer count table
+    {
+        kmer1 = kmer2 = seq;
+        return kMinDistance;
+    }
+    else if (seq.size() <= k_len) // if seq is a k-mer but not in k-mer count table or if it's shorter than a k-mer
+    {
+        kmer1 = kmer2 = "NONE";
+        return kMaxDistance;
+    }
 
+    static std::vector<float> left_count_vect, right_count_vect;
+    size_t seq_size = seq.size(), kmer_code1, kmer_code2;
+
+    // Start condition: left k-mer as the first findable one in the k-mer count table //
+    size_t start_pos1 = 0;
+    uint64_t kmer_code1 = Seq2Int(seq.substr(0, k_len), k_len, true);
+    auto iter1 = code_pos_map.find(kmer_code1);
+    while (start_pos1 + k_len < seq_size)
+    {
+        if ((iter1 = code_pos_map.find(kmer_code1)) != code_pos_map.cend() ||
+            (!stranded && (iter1 = code_pos_map.find(GetRC(kmer_code1, k_len))) != code_pos_map.cend()))
+        {
+            break;
+        }
+        kmer_code1 = NextCode(kmer_code1, k_len, seq[start_pos1 + k_len]);
+        start_pos1++;
+    }
+    if (start_pos1 + k_len >= seq_size) // not able to find a left k-mer to start
+    {
+        kmer1 = kmer2 = "NONE";
+        return kMaxDistance;
+    }
+    GetCountVect(left_count_vect, idx_mat, iter1->second, nb_smp);
+    idx_mat >> kmer1;
+
+    // Traverse the whole sequence //
+    float max_dist = kMinDistance, dist_x;
+    size_t start_pos2 = start_pos1;
+    uint64_t kmer_code2 = kmer_code1;
+    auto iter2 = iter1;
+    while (start_pos1 + k_len < seq_size)
+    {
+        do
+        {
+            kmer_code2 = NextCode(kmer_code2, k_len, seq[start_pos2 + k_len]);
+            start_pos2++;
+            if ((iter2 = code_pos_map.find(kmer_code2)) != code_pos_map.cend() ||
+                (!stranded && (iter2 = code_pos_map.find(GetRC(kmer_code2, k_len))) != code_pos_map.cend()))
+            {
+                break;
+            }
+        } while (start_pos2 + k_len <= seq_size && start_pos2 - start_pos1 <= max_shift);
+        if (start_pos2 + k_len > seq_size || start_pos2 - start_pos1 > max_shift) // not able to find a right k-mer within allowed zone
+        {
+            kmer2 = "NONE";
+            return kMaxDistance;
+        }
+        GetCountVect(right_count_vect, idx_mat, iter2->second, nb_smp);
+        if ((query_mtd == "pearson" && (dist_x = CalcPearsonDist(left_count_vect, right_count_vect)) > max_dist) ||
+            (query_mtd == "spearman" && (dist_x = CalcSpearmanDist(left_count_vect, right_count_vect)) > max_dist) ||
+            (query_mtd == "mac" && (dist_x = CalcMACDist(left_count_vect, right_count_vect)) > max_dist)) // short-circuit operator
+        {
+            max_dist = dist_x;
+            kmer_code1 = kmer_code1;
+            kmer_code2 = kmer_code2;
+        }
+        start_pos1 = start_pos2;
+        kmer_code1 = kmer_code2;
+        iter1 = iter2;
+        left_count_vect.swap(right_count_vect); // same as left_count_vect = right_count_vect, but in constant complexity
+    }
+
+    Int2Seq(kmer1, kmer_code1, k_len);
+    Int2Seq(kmer2, kmer_code2, k_len);
+    return max_dist;
 }
-void ScanQuery(const std::string &seq_file_path, const std::string &query_mtd, const bool out_name)
+
+void ScanQuery(const std::string &seq_file_path, std::ifstream &idx_mat, const std::unordered_map<uint64_t, size_t> &code_pos_map,
+               const std::string &query_mtd, const bool out_name)
 {
     std::ifstream contig_list_file(seq_file_path);
     if (!contig_list_file.is_open())
@@ -32,9 +122,9 @@ void ScanQuery(const std::string &seq_file_path, const std::string &query_mtd, c
             {
                 if (query_mtd == "pearson" || query_mtd == "spearman" || query_mtd == "mac")
                 {
-                    QueryDist(kmer1, kmer2, seq, query_mtd);
+                    QueryDist(kmer1, kmer2, idx_mat, code_pos_map, seq, query_mtd);
                 }
-                seq.clear();                                          // prepare for the next sequence
+                seq.clear(); // prepare for the next sequence
             }
             PrintDist(out_name ? seq_name : seq, kmer1, kmer2);
             seq_name = line.substr(1); // record the next sequence name
@@ -49,87 +139,12 @@ void ScanQuery(const std::string &seq_file_path, const std::string &query_mtd, c
     contig_list_file.close();
 }
 
-// const float EvaluateSeqDist(std::string &max_kmer1, std::string &max_kmer2,
-//                             const std::string &contig_seq, const std::vector<double> &nf_vect, const bool no_norm,
+// const float EvaluateSeqDist(std::string &kmer1, std::string &kmer2,
+//                             const std::string &seq, const std::vector<double> &nf_vect, const bool no_norm,
 //                             const size_t k_len, const bool stranded, const std::string &query_mtd,
-//                             const code2kmer_t &code2kmer, std::ifstream &idx_file, const size_t nb_count, const size_t max_shift)
+//                             const code2kmer_t &code_pos_map, std::ifstream &idx_file, const size_t nb_count, const size_t max_shift)
 // {
-//     if (contig_seq.size() == k_len && code2kmer.find(Seq2Int(contig_seq, k_len, stranded)) != code2kmer.cend()) // if seq is a k-mer in k-mer count table
-//     {
-//         max_kmer1 = max_kmer2 = contig_seq;
-//         return kMinDistance;
-//     }
-//     else if (contig_seq.size() <= k_len) // if seq is a k-mer but not in k-mer count table or if it's shorter than a k-mer
-//     {
-//         max_kmer1 = max_kmer2 = "NONE";
-//         return kMaxDistance;
-//     }
-
-//     static std::vector<float> left_count_vect, right_count_vect;
-//     size_t seq_size = contig_seq.size(), max_kmer_code1, max_kmer_code2;
-
-//     // Start condition: left k-mer as the first findable one in the k-mer count table //
-//     size_t start_pos1 = 0;
-//     uint64_t kmer_code1 = Seq2Int(contig_seq.substr(0, k_len), k_len, true);
-//     auto iter1 = code2kmer.find(kmer_code1);
-//     while (start_pos1 + k_len < seq_size)
-//     {
-//         if ((iter1 = code2kmer.find(kmer_code1)) != code2kmer.cend() ||
-//             (!stranded && (iter1 = code2kmer.find(GetRC(kmer_code1, k_len))) != code2kmer.cend()))
-//         {
-//             break;
-//         }
-//         kmer_code1 = NextCode(kmer_code1, k_len, contig_seq[start_pos1 + k_len]);
-//         start_pos1++;
-//     }
-//     if (start_pos1 + k_len >= seq_size) // not able to find a left k-mer to start
-//     {
-//         max_kmer1 = max_kmer2 = "NONE";
-//         return kMaxDistance;
-//     }
-//     no_norm ? iter1->second.GetCountVect(left_count_vect, idx_file, nb_count) : iter1->second.GetCountVect(left_count_vect, idx_file, nb_count, nf_vect);
-
-//     // Traverse the whole sequence //
-//     float max_dist = kMinDistance, dist_x;
-//     size_t start_pos2 = start_pos1;
-//     uint64_t kmer_code2 = kmer_code1;
-//     auto iter2 = iter1;
-//     while (start_pos1 + k_len < seq_size)
-//     {
-//         do
-//         {
-//             kmer_code2 = NextCode(kmer_code2, k_len, contig_seq[start_pos2 + k_len]);
-//             start_pos2++;
-//             if ((iter2 = code2kmer.find(kmer_code2)) != code2kmer.cend() ||
-//                 (!stranded && (iter2 = code2kmer.find(GetRC(kmer_code2, k_len))) != code2kmer.cend()))
-//             {
-//                 break;
-//             }
-//         } while (start_pos2 + k_len <= seq_size && start_pos2 - start_pos1 <= max_shift);
-//         if (start_pos2 + k_len > seq_size || start_pos2 - start_pos1 > max_shift) // not able to find a right k-mer within allowed zone
-//         {
-//             Int2Seq(max_kmer1, kmer_code1, k_len);
-//             max_kmer2 = "NONE";
-//             return kMaxDistance;
-//         }
-//         no_norm ? iter2->second.GetCountVect(right_count_vect, idx_file, nb_count) : iter2->second.GetCountVect(right_count_vect, idx_file, nb_count, nf_vect);
-//         if ((query_mtd == "pearson" && (dist_x = CalcPearsonDist(left_count_vect, right_count_vect)) > max_dist) ||
-//             (query_mtd == "spearman" && (dist_x = CalcSpearmanDist(left_count_vect, right_count_vect)) > max_dist) ||
-//             (query_mtd == "mac" && (dist_x = CalcMACDist(left_count_vect, right_count_vect)) > max_dist)) // short-circuit operator
-//         {
-//             max_dist = dist_x;
-//             max_kmer_code1 = kmer_code1;
-//             max_kmer_code2 = kmer_code2;
-//         }
-//         start_pos1 = start_pos2;
-//         kmer_code1 = kmer_code2;
-//         iter1 = iter2;
-//         left_count_vect.swap(right_count_vect); // same as left_count_vect = right_count_vect, but in constant complexity
-//     }
-
-//     Int2Seq(max_kmer1, max_kmer_code1, k_len);
-//     Int2Seq(max_kmer2, max_kmer_code2, k_len);
-//     return max_dist;
+//
 // }
 
 // const std::vector<float> &EvaluateSeqCount(std::vector<float> &count_vect, const std::string &contig_seq, const std::vector<double> &nf_vect,
@@ -346,7 +361,6 @@ int main(int argc, char **argv)
     }
     std::cout << std::endl;
 
-
     idx_mat.close();
     std::cout.rdbuf(backup_buf);
     if (out_file.is_open())
@@ -355,5 +369,4 @@ int main(int argc, char **argv)
     }
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     return EXIT_SUCCESS;
-
 }

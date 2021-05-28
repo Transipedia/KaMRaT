@@ -102,13 +102,25 @@ void MakeOverlapKnots(fix2knot_t &hashed_merge_knots, const contigVect_t &ctg_ve
         if (prefix == suffix) // if the k-mer has equal prefix and suffix
         {
             const auto &ins_pair = hashed_merge_knots.insert({prefix, MergeKnot()});
-            if (ins_pair.second || !ins_pair.first->second.HasPred()) // if neither side occupied or right side occupied
+            if (!ins_pair.first->second.HasPred() && !is_suffix_rc)
             {
-                hashed_merge_knots.insert({prefix, MergeKnot()}).first->second.AddContig(i_ctg, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
+                ins_pair.first->second.AddContig(i_ctg, false, "pred");
             }
-            else // if left side occupied or both sides occupied
+            else if (!ins_pair.first->second.HasPred() && is_prefix_rc)
             {
-                hashed_merge_knots.insert({suffix, MergeKnot()}).first->second.AddContig(i_ctg, is_suffix_rc, (is_suffix_rc ? "succ" : "pred"));
+                ins_pair.first->second.AddContig(i_ctg, true, "pred");
+            }
+            else if (!ins_pair.first->second.HasSucc() && !is_prefix_rc)
+            {
+                ins_pair.first->second.AddContig(i_ctg, false, "succ");
+            }
+            else if (!ins_pair.first->second.HasSucc() && is_suffix_rc)
+            {
+                ins_pair.first->second.AddContig(i_ctg, true, "succ");
+            }
+            else
+            {
+                ins_pair.first->second.AddContig(i_ctg, is_prefix_rc, (is_prefix_rc ? "pred" : "succ"));
             }
         }
         else // if the k-mer has different prefix and suffix
