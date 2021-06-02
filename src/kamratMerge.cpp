@@ -6,7 +6,7 @@
 #include <cmath>
 #include <algorithm> // std::remove_if
 
-#include "merge/merge_runinfo.hpp"
+#include "runinfo_files/merge_runinfo.hpp"
 #include "data_struct/contig_elem.hpp"
 #include "data_struct/merge_knot.hpp"
 

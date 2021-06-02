@@ -7,7 +7,7 @@
 #include <limits>
 #include <ctime>
 
-#include "query/query_runinfo.hpp"
+#include "runinfo_files/query_runinfo.hpp"
 
 const float kMinDistance = 0, kMaxDistance = 1;
 

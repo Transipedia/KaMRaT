@@ -6,7 +6,7 @@
 #include <limits>
 #include <ctime>
 
-#include "filter/filter_runinfo.hpp"
+#include "runinfo_files/filter_runinfo.hpp"
 
 #define RESET "\033[0m"
 #define BOLDYELLOW "\033[1m\033[33m"

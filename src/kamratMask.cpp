@@ -5,7 +5,7 @@
 #include <fstream>
 #include <ctime>
 
-#include "mask/mask_runinfo.hpp"
+#include "runinfo_files/mask_runinfo.hpp"
 
 void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
                    std::vector<std::string> &colname_vect, const std::string &idx_meta_path); // in utils/index_loading.cpp

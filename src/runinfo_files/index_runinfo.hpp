@@ -1,5 +1,5 @@
-#ifndef KAMRAT_INDEX_INDEXRUNINFO_HPP
-#define KAMRAT_INDEX_INDEXRUNINFO_HPP
+#ifndef KAMRAT_RUNINFOFILES_INDEXRUNINFO_HPP
+#define KAMRAT_RUNINFOFILES_INDEXRUNINFO_HPP
 
 void IndexWelcome()
 {
@@ -114,4 +114,4 @@ void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::stri
     }
 }
 
-#endif //KAMRAT_INDEX_INDEXRUNINFO_HPP
+#endif //KAMRAT_RUNINFOFILES_INDEXRUNINFO_HPP

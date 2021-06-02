@@ -5,13 +5,11 @@
 #include <unordered_set>
 #include <fstream>
 #include <sstream>
-
 #include <map>
-
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-#include "index/index_runinfo.hpp"
+#include "runinfo_files/index_runinfo.hpp"
 
 #define RESET "\033[0m"
 #define BOLDYELLOW "\033[1m\033[33m"

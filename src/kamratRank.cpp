@@ -7,7 +7,7 @@
 #include <memory>
 #include <ctime>
 
-#include "rank/rank_runinfo.hpp"
+#include "runinfo_files/rank_runinfo.hpp"
 #include "data_struct/feature_elem.hpp"
 #include "data_struct/scorer.hpp"
 

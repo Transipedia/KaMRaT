@@ -1,5 +1,5 @@
-#ifndef KAMRAT_MASK_MASKRUNINFO_HPP
-#define KAMRAT_MASK_MASKRUNINFO_HPP
+#ifndef KAMRAT_RUNINFOFILES_MASKRUNINFO_HPP
+#define KAMRAT_RUNINFOFILES_MASKRUNINFO_HPP
 
 void MaskWelcome()
 {
@@ -100,4 +100,4 @@ inline void ParseOptions(int argc, char *argv[],
     }
 }
 
-#endif //KAMRAT_MASK_MASKRUNINFO_HPP
+#endif //KAMRAT_RUNINFOFILES_MASKRUNINFO_HPP

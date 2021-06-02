@@ -1,8 +1,6 @@
-#ifndef KAMRAT_MERGE_MERGERUNINFO_HPP
-#define KAMRAT_MERGE_MERGERUNINFO_HPP
+#ifndef KAMRAT_RUNINFOFILES_MERGERUNINFO_HPP
+#define KAMRAT_RUNINFOFILES_MERGERUNINFO_HPP
 
-#include <iostream>
-#include <string>
 #include <unordered_set>
 
 const std::unordered_set<std::string> kIntervMethodUniv{"none", "pearson", "spearman", "mac"};
@@ -189,4 +187,4 @@ void ParseOptions(int argc, char *argv[],
     }
 }
 
-#endif //KAMRAT_MERGE_MERGERUNINFO_HPP
+#endif //KAMRAT_RUNINFOFILES_MERGERUNINFO_HPP

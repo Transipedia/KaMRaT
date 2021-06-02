@@ -1,9 +1,5 @@
-#ifndef KAMRAT_RANK_RANKRUNINFO_HPP
-#define KAMRAT_RANK_RANKRUNINFO_HPP
-
-#include <iostream>
-#include <string>
-#include <memory>
+#ifndef KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP
+#define KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP
 
 void RankWelcome()
 {
@@ -209,4 +205,4 @@ void ParseOptions(int argc, char *argv[],
     }
 }
 
-#endif //KAMRAT_RANK_RANKRUNINFO_HPP
+#endif //KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP

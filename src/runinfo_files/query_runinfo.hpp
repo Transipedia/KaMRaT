@@ -1,12 +1,9 @@
-#ifndef KAMRAT_RUNINFOPARSER_QUERY_HPP
-#define KAMRAT_RUNINFOPARSER_QUERY_HPP
+#ifndef KAMRAT_RUNINFOFILES_QUERY_HPP
+#define KAMRAT_RUNINFOFILES_QUERY_HPP
 
-#include <iostream>
-#include <string>
-#include <vector>
-#include <set>
+#include <unordered_set>
 
-const std::set<std::string> kQueryMethodUniv{"mean", "median"};
+const std::unordered_set<std::string> kQueryMethodUniv{"mean", "median"};
 
 void QueryWelcome()
 {
@@ -108,4 +105,4 @@ void ParseOptions(int argc, char *argv[], std::string &idx_dir, std::string &seq
     }
 }
 
-#endif //KAMRAT_RUNINFOPARSER_QUERY_HPP
+#endif //KAMRAT_RUNINFOFILES_QUERY_HPP
