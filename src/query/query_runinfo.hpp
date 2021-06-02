@@ -24,31 +24,26 @@ void PrintQueryHelper()
     std::cerr << "            -toquery STR     Query method, mandatory, can be one of:" << std::endl
               << "                                 mean        mean count among all composite k-mers for each sample" << std::endl
               << "                                 median      median count among all composite k-mers for each sample" << std::endl;
-    std::cerr << "            -maxshift INT    Maximum allowed shift between k-mers [inf]" << std::endl;
-    std::cerr << "            -outname         Output sequence names instead of sequences [false]" << std::endl;
+    std::cerr << "            -withabsent      Output also absent queries (count vector all 0) [default: false]" << std::endl;
     std::cerr << "            -outpath STR     Path to extension results" << std::endl
               << "                                 if not provided, output to screen" << std::endl
               << std::endl;
 }
 
 void PrintRunInfo(const std::string &idx_dir, const std::string &seq_file_path,
-                  const std::string &query_mtd, const size_t max_shift,
-                  const bool out_name, const std::string &out_path)
+                  const std::string &query_mtd, const bool with_absent, const std::string &out_path)
 {
     std::cerr << std::endl;
-    std::cerr << "KaMRaT index:                 " << idx_dir << std::endl;
-    std::cerr << "Path to sequence file:        " << seq_file_path << std::endl;
-    std::cerr << "Query method:       " << query_mtd << std::endl;
-    std::cerr << "Maximum allowed shift:        " << max_shift << std::endl;
-    std::cerr << "Output with sequence name:    " << (out_name ? "True" : "False") << std::endl;
-    std::cerr << "Output:                       " << (out_path.empty() ? "to screen" : out_path) << ", "
+    std::cerr << "KaMRaT index:             " << idx_dir << std::endl;
+    std::cerr << "Path to sequence file:    " << seq_file_path << std::endl;
+    std::cerr << "Query method:             " << query_mtd << std::endl;
+    std::cout << "Output absent query:      " << (with_absent ? "True" : "False") << std::endl;
+    std::cerr << "Output:                   " << (out_path.empty() ? "to screen" : out_path) << std::endl
               << std::endl;
 }
 
-void ParseOptions(int argc, char *argv[],
-                  std::string &idx_dir, std::string &seq_file_path,
-                  std::string &query_mtd, size_t &max_shift,
-                  bool &out_name, std::string &out_path)
+void ParseOptions(int argc, char *argv[], std::string &idx_dir, std::string &seq_file_path,
+                  std::string &query_mtd, bool &with_absent, std::string &out_path)
 {
     int i_opt(1);
     if (argc == 1)
@@ -76,13 +71,9 @@ void ParseOptions(int argc, char *argv[],
         {
             query_mtd = argv[++i_opt];
         }
-        else if (arg == "-maxshift" && i_opt + 1 < argc)
+        else if (arg == "-withabsent")
         {
-            max_shift = std::stoul(argv[++i_opt]);
-        }
-        else if (arg == "-outname")
-        {
-            out_name = true;
+            with_absent = true;
         }
         else if (arg == "-outpath" && i_opt + 1 < argc)
         {
@@ -103,9 +94,14 @@ void ParseOptions(int argc, char *argv[],
     if (seq_file_path.empty())
     {
         PrintQueryHelper();
+        throw std::invalid_argument("-fasta STR is mandatory");
+    }
+    if (query_mtd.empty())
+    {
+        PrintQueryHelper();
         throw std::invalid_argument("-toquery STR is mandatory");
     }
-    if (kQueryMethodUniv.find(query_mtd) == kQueryMethodUniv.cend())
+    else if (kQueryMethodUniv.find(query_mtd) == kQueryMethodUniv.cend())
     {
         PrintQueryHelper();
         throw std::invalid_argument("unknown query method: " + query_mtd);

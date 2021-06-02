@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <fstream>
 #include <sstream>
 #include <limits>
@@ -16,22 +16,33 @@ uint64_t GetRC(const uint64_t code, size_t k_length);                           
 uint64_t NextCode(uint64_t code, const size_t k_length, const char new_nuc);          // in utils/seq_coding.cpp
 
 void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path);             // in utils/index_loading.cpp
-void LoadCodePosMap(std::unordered_map<uint64_t, size_t> &code_pos_map, const std::string &idx_pos_path); // in utils/index_loading.cpp
+                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path);   // in utils/index_loading.cpp
+void LoadCodePosMap(std::map<uint64_t, size_t> &code_pos_map, const std::string &idx_pos_path); // in utils/index_loading.cpp
 
 const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
                                            const std::vector<size_t> mem_pos_vect); // in utils/index_loading.cpp
 const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
                                              const std::vector<size_t> mem_pos_vect); // in utils/index_loading.cpp
 
-void GetQueryRes(std::vector<float> &count_vect, const std::string &seq, const std::string &query_mthd,
-                 std::ifstream &idx_mat, const std::unordered_map<uint64_t, size_t> &code_pos_map,
-                 const size_t nb_smp, const size_t k_len, const bool stranded)
+void PrintHeader(const std::vector<std::string> &colname_vect)
+{
+    std::cout << colname_vect[0];
+    for (size_t i(1); i < colname_vect.size(); ++i)
+    {
+        std::cout << "\t" << colname_vect[i];
+    }
+    std::cout << std::endl;
+}
+
+void PrintQueryRes(const std::string &seq, const std::string &query_mthd,
+                   std::ifstream &idx_mat, const std::map<uint64_t, size_t> &code_pos_map,
+                   const size_t nb_smp, const size_t k_len, const bool stranded, const bool with_absent)
 {
     static std::vector<size_t> mem_pos_vect;
+    static std::vector<float> count_vect;
     const size_t seq_len = seq.size();
     mem_pos_vect.reserve(seq_len - k_len + 1);
-    std::unordered_map<uint64_t, size_t>::const_iterator iter;
+    std::map<uint64_t, size_t>::const_iterator iter;
     uint64_t kmer_code(Seq2Int(seq.substr(0, k_len), k_len, true));
     for (size_t start_pos(0); start_pos + k_len - 1 < seq_len; ++start_pos)
     {
@@ -45,34 +56,54 @@ void GetQueryRes(std::vector<float> &count_vect, const std::string &seq, const s
             kmer_code = NextCode(kmer_code, k_len, seq[start_pos + k_len]);
         }
     }
-    if (query_mthd == "mean")
+    if (mem_pos_vect.empty() && with_absent)
     {
-        GetMeanCountVect(count_vect, idx_mat, nb_smp, mem_pos_vect);
+        std::cout << seq;
+        for (size_t i(0); i < nb_smp; ++i)
+        {
+            std::cout << "\t0";
+        }
+        std::cout << std::endl;
     }
-    else
+    else if (!mem_pos_vect.empty())
     {
-        GetMedianCountVect(count_vect, idx_mat, nb_smp, mem_pos_vect);
+        if (query_mthd == "mean")
+        {
+            GetMeanCountVect(count_vect, idx_mat, nb_smp, mem_pos_vect);
+        }
+        else
+        {
+            GetMedianCountVect(count_vect, idx_mat, nb_smp, mem_pos_vect);
+        }
+        std::cout << seq;
+        for (const float x : count_vect)
+        {
+            std::cout << "\t" << x;
+        }
+        std::cout << std::endl;
     }
     mem_pos_vect.clear();
+    count_vect.clear();
 }
 
-int main(int argc, char **argv)
+int QueryMain(int argc, char **argv)
 {
     QueryWelcome();
 
     std::clock_t begin_time = clock(), inter_time;
     std::string idx_dir, seq_file_path, query_mtd, out_path;
-    size_t nb_smp, k_len, max_shift = std::numeric_limits<size_t>::max();
-    bool stranded(true), out_name(false);
+    size_t nb_smp, k_len;
+    bool stranded(true), with_absent(false);
     std::vector<std::string> colname_vect;
-    ParseOptions(argc, argv, idx_dir, seq_file_path, query_mtd, max_shift, out_name, out_path);
+    ParseOptions(argc, argv, idx_dir, seq_file_path, query_mtd, with_absent, out_path);
+    PrintRunInfo(idx_dir, seq_file_path, query_mtd, with_absent, out_path);
+
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
     if (k_len == 0)
     {
         throw std::invalid_argument("KaMRaT-query relies on the index in k-mer mode, please rerun KaMRaT-index with -klen option");
     }
-    PrintRunInfo(idx_dir, seq_file_path, query_mtd, max_shift, out_name, out_path);
-    std::unordered_map<uint64_t, size_t> code_pos_map;
+    std::map<uint64_t, size_t> code_pos_map;
     LoadCodePosMap(code_pos_map, idx_dir + "/idx-pos.bin");
     std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
     if (!idx_mat.is_open())
@@ -96,19 +127,14 @@ int main(int argc, char **argv)
     {
         std::cout.rdbuf(out_file.rdbuf());
     }
-    std::cout << colname_vect[0];
-    for (size_t i_col(1); i_col <= nb_smp; ++i_col)
-    {
-        std::cout << "\t" << colname_vect[i_col];
-    }
-    std::cout << std::endl;
+    PrintHeader(colname_vect);
 
     std::ifstream seq_list_file(seq_file_path);
     if (!seq_list_file.is_open())
     {
         throw std::invalid_argument("cannot open file: " + seq_file_path);
     }
-    std::string seq_name, seq, line;
+    std::string seq, line;
     bool is_first_line(true);
     size_t nb_seq(0);
     while (std::getline(seq_list_file, line))
@@ -117,11 +143,10 @@ int main(int argc, char **argv)
         {
             if (!is_first_line)
             {
-                PrintQueryRes(out_name ? seq_name : seq, idx_mat, code_pos_map, nb_smp, k_len, stranded, max_shift);
+                PrintQueryRes(seq, query_mtd, idx_mat, code_pos_map, nb_smp, k_len, stranded, with_absent);
                 seq.clear(); // prepare for the next sequence
                 nb_seq++;
             }
-            seq_name = line.substr(1); // record the next sequence name
             is_first_line = false;
         }
         else
@@ -129,7 +154,7 @@ int main(int argc, char **argv)
             seq += line;
         }
     }
-    PrintQueryRes(out_name ? seq_name : seq, idx_mat, code_pos_map, nb_smp, k_len, stranded, max_shift); // query the last sequence
+    PrintQueryRes(seq, query_mtd, idx_mat, code_pos_map, nb_smp, k_len, stranded, with_absent); // query the last sequence
     seq_list_file.close();
     std::cerr << "Number of sequence for evaluation: " << nb_seq << std::endl;
 
@@ -139,6 +164,8 @@ int main(int argc, char **argv)
     {
         out_file.close();
     }
+
+    std::cerr << "Query and print finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     return EXIT_SUCCESS;
 }
