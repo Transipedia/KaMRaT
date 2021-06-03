@@ -78,10 +78,7 @@ void PrintRunInfo(const std::string &idx_dir,
     }
 
     std::cerr << "Ranking with:                 " << (with_path.empty() ? "features in index" : "features in " + with_path) << std::endl;
-    if (!count_mode.empty())
-    {
-        std::cerr << "Feature counting mode:        " + count_mode << std::endl;
-    }
+    std::cerr << "Feature counting mode:        " + count_mode << std::endl;
     if (!dsgn_path.empty())
     {
         std::cerr << "Sample design:                " << dsgn_path << std::endl;
@@ -153,10 +150,6 @@ void ParseOptions(int argc, char *argv[],
             if (split_pos != std::string::npos)
             {
                 count_mode = arg.substr(split_pos + 1);
-            }
-            else
-            {
-                count_mode = "rep"; // by default, take representative count vector (works also for general feature mode)
             }
             with_path = arg.substr(0, split_pos);
         }

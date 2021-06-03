@@ -196,7 +196,7 @@ int RankMain(int argc, char *argv[])
     RankWelcome();
 
     std::clock_t begin_time = clock(), inter_time;
-    std::string idx_dir, rk_mthd, with_path, count_mode, dsgn_path, out_path;
+    std::string idx_dir, rk_mthd, with_path, count_mode("rep"), dsgn_path, out_path;
     float sel_top(-1); // negative value means without selection, print all features
     size_t nfold, nb_smp, k_len, max_to_sel;
     bool with_counts(false), after_merge(false), _stranded; // _stranded not needed in KaMRaT-rank
