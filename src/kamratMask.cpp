@@ -70,7 +70,8 @@ void ScanPrint(std::ifstream &idx_pos, std::ifstream &idx_mat, const std::unorde
             }
             else
             {
-                std::cout << "\t0";
+                std::cout << "\t1\t";
+                std::cout.write(reinterpret_cast<char *>(&pos), sizeof(size_t));
             }
             std::cout << std::endl;
         }
