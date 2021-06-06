@@ -102,7 +102,7 @@ void ScanPrint(std::ifstream &idx_mat, const std::vector<size_t> &ft_pos_vect, c
             }
             else
             {
-                std::cout << "\t1\t";
+                std::cout << "\t0\t1\t";
                 std::cout.write(reinterpret_cast<char *>(&ft_pos), sizeof(size_t));
             }
             std::cout << std::endl;
