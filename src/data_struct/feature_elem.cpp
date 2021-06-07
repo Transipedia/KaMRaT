@@ -3,9 +3,9 @@
 const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
                                        std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                           const std::vector<size_t> mem_pos_vect); // in utils/index_loading.cpp
+                                           const std::vector<size_t> &mem_pos_vect); // in utils/index_loading.cpp
 const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                             const std::vector<size_t> mem_pos_vect); // in utils/index_loading.cpp
+                                             const std::vector<size_t> &mem_pos_vect); // in utils/index_loading.cpp
 
 FeatureElem::FeatureElem(const std::string &feature, const size_t pos)
     : feature_(feature), mem_pos_vect_(1, pos)

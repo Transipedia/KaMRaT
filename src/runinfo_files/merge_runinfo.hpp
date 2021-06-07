@@ -4,8 +4,8 @@
 #include <unordered_set>
 
 const std::unordered_set<std::string> kIntervMethodUniv{"none", "pearson", "spearman", "mac"};
-const std::unordered_set<std::string> kRepMode{"min", "minabs", "max", "maxabs"};
-const std::unordered_set<std::string> kOutMode{"rep", "mean", "median"};
+const std::unordered_set<std::string> kRepModeUniv{"min", "minabs", "max", "maxabs"};
+const std::unordered_set<std::string> kOutModeUniv{"rep", "mean", "median"};
 
 void MergeWelcome()
 {
@@ -31,48 +31,37 @@ void PrintMergeHelper()
     std::cerr << "            -min-nbkmer INT        Minimal length of extended contigs [0]" << std::endl;
     std::cerr << "            -outpath STR           Path to extension results" << std::endl
               << "                                       if not provided, output to screen" << std::endl;
-    std::cerr << "            -withcounts STR        Output sample count vectors, STR can be one of [rep, mean, median]" << std::endl
+    std::cerr << "            -withcounts STR        Output sample count vectors, STR can be one of [mean, median]" << std::endl
               << "                                       if not provided, output without count vector" << std::endl
               << std::endl;
 }
 
-void PrintRunInfo(const std::string &idx_dir,
-                  const size_t k_len,
+void PrintRunInfo(const std::string &idx_dir, const size_t k_len, const bool stranded,
                   const size_t max_ovlp, const size_t min_ovlp,
-                  const bool stranded,
-                  const std::string &sel_path, const std::string &rep_mode,
+                  const std::string &with_path, const std::string &rep_mode,
                   const std::string &itv_mthd, const float itv_thres,
-                  const size_t min_nb_kmer,
-                  const std::string &out_path,
-                  const std::string &out_mode)
+                  const size_t min_nbkmer, const std::string &out_path, const std::string &out_mode)
 {
     std::cerr << std::endl;
     std::cerr << "KaMRaT index:                      " << idx_dir << std::endl;
     std::cerr << "k-mer length:                      " << k_len << std::endl;
-    std::cerr << "Overlap range:                     from " << max_ovlp << " to " << min_ovlp << std::endl;
     std::cerr << "Stranded extension:                " << (stranded ? "On" : "Off") << std::endl;
-    std::cerr << "Merge k-mers in file:              " << (sel_path.empty() ? "k-mers in index" : sel_path) << std::endl;
+    std::cerr << "Overlap range:                     from " << max_ovlp << " to " << min_ovlp << std::endl;
+    std::cerr << "Merge k-mers in file:              " << (with_path.empty() ? "k-mers in index" : with_path) << std::endl;
     std::cerr << "Representative mode:               " << rep_mode << std::endl;
-    std::cerr << "Intervention method:               " << itv_mthd;
-    if (itv_mthd != "none")
-    {
-        std::cerr << ", threshold = " << itv_thres << std::endl;
-    }
-    std::cerr << std::endl;
-    std::cerr << "Minimal component k-mer number:    " + std::to_string(min_nb_kmer) << std::endl;
-    std::cerr << "Output:                            " << (out_path.empty() ? "to screen" : out_path) << ", ";
-    std::cerr << (out_mode.empty() ? "without" : out_mode) + " count vectors" << std::endl
+    std::cerr << "Intervention method:               " << itv_mthd
+              << (itv_mthd != "none" ? (", threshold = " + std::to_string(itv_thres)) : "") << std::endl;
+    std::cerr << "Minimal component k-mer number:    " + std::to_string(min_nbkmer) << std::endl;
+    std::cerr << "Output:                            " << (out_path.empty() ? "to screen" : out_path) << ", "
+              << (out_mode.empty() ? "without" : out_mode) + " count vectors" << std::endl
               << std::endl;
 }
 
 void ParseOptions(int argc, char *argv[],
-                  std::string &idx_dir,
-                  size_t &max_ovlp, size_t &min_ovlp,
-                  std::string &sel_path, std::string &rep_mode,
+                  std::string &idx_dir, size_t &max_ovlp, size_t &min_ovlp,
+                  std::string &with_path, std::string &rep_mode,
                   std::string &itv_mthd, float &itv_thres,
-                  size_t &min_nb_kmer,
-                  std::string &out_path,
-                  std::string &out_mode)
+                  size_t &min_nbkmer, std::string &out_path, std::string &out_mode)
 {
     int i_opt(1);
     if (argc == 1)
@@ -124,7 +113,7 @@ void ParseOptions(int argc, char *argv[],
             {
                 rep_mode = arg.substr(split_pos + 1);
             }
-            sel_path = arg.substr(0, split_pos);
+            with_path = arg.substr(0, split_pos);
         }
         else if (arg == "-interv" && i_opt + 1 < argc)
         {
@@ -138,7 +127,7 @@ void ParseOptions(int argc, char *argv[],
         }
         else if (arg == "-min-nbkmer" && i_opt + 1 < argc)
         {
-            min_nb_kmer = std::stoul(argv[++i_opt]);
+            min_nbkmer = std::stoul(argv[++i_opt]);
         }
         else if (arg == "-outpath" && i_opt + 1 < argc)
         {
@@ -175,12 +164,12 @@ void ParseOptions(int argc, char *argv[],
         PrintMergeHelper();
         throw std::invalid_argument("unknown intervention method: " + itv_mthd);
     }
-    if (kRepMode.find(rep_mode) == kRepMode.cend())
+    if (kRepModeUniv.find(rep_mode) == kRepModeUniv.cend())
     {
         PrintMergeHelper();
         throw std::invalid_argument("unknown representative mode: " + rep_mode);
     }
-    if (!out_mode.empty() && kOutMode.find(out_mode) == kOutMode.cend())
+    if (!out_mode.empty() && kOutModeUniv.find(out_mode) == kOutModeUniv.cend())
     {
         PrintMergeHelper();
         throw std::invalid_argument("unknown output mode: " + out_mode);

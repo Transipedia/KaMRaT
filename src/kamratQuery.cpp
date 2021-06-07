@@ -20,9 +20,9 @@ void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
 void LoadCodePosMap(std::map<uint64_t, size_t> &code_pos_map, const std::string &idx_pos_path); // in utils/index_loading.cpp
 
 const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                           const std::vector<size_t> mem_pos_vect); // in utils/index_loading.cpp
+                                           const std::vector<size_t> &mem_pos_vect); // in utils/index_loading.cpp
 const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                             const std::vector<size_t> mem_pos_vect); // in utils/index_loading.cpp
+                                             const std::vector<size_t> &mem_pos_vect); // in utils/index_loading.cpp
 
 void PrintHeader(const std::vector<std::string> &colname_vect)
 {

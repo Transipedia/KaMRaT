@@ -19,16 +19,28 @@ void LoadFeaturePosMap(std::unordered_map<std::string, size_t> &ft_pos_map, std:
                        const bool need_skip_code, const size_t nb_smp);                                            // in utils/index_loading.cpp
 const std::string &GetTagSeq(std::string &tag_str, std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 
-void MakeFeatureVectFromIndex(featureVect_t &ft_vect, std::unordered_map<std::string, size_t> &ft_pos_map)
+const bool MakeFeatureVectFromIndex(featureVect_t &ft_vect, const std::string &idx_pos_path,
+                                    std::ifstream &idx_mat, const size_t nb_smp)
 {
-    for (auto it = ft_pos_map.cbegin(); it != ft_pos_map.cend(); it = ft_pos_map.erase(it))
+    std::ifstream idx_pos(idx_pos_path);
+    if (!idx_pos.is_open())
     {
-        ft_vect.emplace_back(std::make_unique<FeatureElem>(it->first, it->second));
+        throw std::invalid_argument("loading index-pos failed, KaMRaT index folder not found or may be corrupted");
     }
+    size_t pos;
+    std::string feature;
+    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(uint64_t)) && idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+    {
+        idx_mat.seekg(pos + nb_smp * sizeof(float)); // skip the indexed count vector
+        idx_mat >> feature;
+        ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, pos));
+    }
+    ft_vect.shrink_to_fit();
+    idx_pos.close();
+    return false;
 }
 
-const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, std::unordered_map<std::string, size_t> &ft_pos_map,
-                                   const std::string &with_path)
+const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &with_path)
 {
     bool after_merge(false);
     std::ifstream with_file(with_path);
@@ -36,31 +48,23 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, std::unordered_map<st
     {
         throw std::domain_error("error open feature list file: " + with_path);
     }
-    std::string line, feature;
+    std::string feature;
+    float _; // for "place-holder" column of feature scores
     size_t nb_mem_pos(1);
     std::vector<size_t> mem_pos_vect;
     std::unordered_map<std::string, size_t>::const_iterator it;
-    while (with_file >> feature >> nb_mem_pos)
+    while (with_file >> feature >> _ >> nb_mem_pos)
     {
+        mem_pos_vect.resize(nb_mem_pos);
+        with_file.ignore(1);
+        with_file.read(reinterpret_cast<char *>(&mem_pos_vect[0]), nb_mem_pos * sizeof(size_t));
         if (nb_mem_pos > 0)
         {
-            mem_pos_vect.resize(nb_mem_pos);
-            with_file.ignore(1);
-            with_file.read(reinterpret_cast<char *>(&mem_pos_vect[0]), nb_mem_pos * sizeof(size_t));
-            ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, mem_pos_vect));
             after_merge = true;
         }
-        else
-        {
-            it = ft_pos_map.find(feature);
-            if (it == ft_pos_map.cend())
-            {
-                throw std::invalid_argument("feature " + feature + " in the given list not contained in the index");
-            }
-            ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, it->second));
-        }
+        ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, mem_pos_vect));
     }
-    ft_pos_map.clear();
+    ft_vect.shrink_to_fit();
     with_file.close();
     return after_merge;
 }
@@ -187,7 +191,8 @@ void PrintAsIntermediate(const featureVect_t &ft_vect, const size_t max_to_sel)
 {
     for (size_t i_ft(0); i_ft < max_to_sel; ++i_ft)
     {
-        std::cout << ft_vect[i_ft]->GetFeature() << "\t" << ft_vect[i_ft]->GetScore() << std::endl;
+        std::cout << ft_vect[i_ft]->GetFeature() << "\t" << ft_vect[i_ft]->GetScore() << "\t"
+                  << ft_vect[i_ft]->GetNbMemPos() << "\t" << ft_vect[i_ft]->GetRepPos() << std::endl;
     }
 }
 
@@ -211,18 +216,11 @@ int RankMain(int argc, char *argv[])
         throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
     }
     featureVect_t ft_vect;
-    std::unordered_map<std::string, size_t> ft_pos_map;
-    LoadFeaturePosMap(ft_pos_map, idx_mat, idx_dir + "/idx-pos.bin", k_len != 0, nb_smp);
-    if (with_path.empty())
-    {
-        MakeFeatureVectFromIndex(ft_vect, ft_pos_map);
-    }
-    else
-    {
-        after_merge = MakeFeatureVectFromFile(ft_vect, ft_pos_map, with_path);
-    }
+    after_merge = (with_path.empty() ? MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp)
+                                     : MakeFeatureVectFromFile(ft_vect, with_path));
     std::cerr << "Option parsing and index loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
+
     if (sel_top <= 0)
     {
         max_to_sel = ft_vect.size();
