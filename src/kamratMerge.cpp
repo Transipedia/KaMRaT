@@ -305,7 +305,7 @@ void PrintAsIntermediate(const contigVect_t &ctg_vect, const size_t min_nbkmer)
         {
             continue;
         }
-        std::cout << elem->GetSeq() << "\t" << elem->GetNbMemKmer() << "\t";
+        std::cout << elem->GetSeq() << "\t0\t" << elem->GetNbMemKmer() << "\t";
         rep_pos = elem->GetRepPos();
         std::cout.write(reinterpret_cast<char *>(&rep_pos), sizeof(size_t));
         for (size_t p : elem->GetMemPosVect())
