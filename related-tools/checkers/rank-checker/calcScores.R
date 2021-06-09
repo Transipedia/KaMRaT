@@ -7,115 +7,46 @@ library(e1071) # Naive Bayes, SVM
 library(SVMMaj) # Hinge
 library(FSelectorRcpp) # Information Gain
 
-cmdArgs <- commandArgs(trailingOnly = T)
-count.path <- cmdArgs[1]
-# count.path <- gzfile("/home/haoliang.xue/media/ssfa/antoine.laine/singularityDKPL/run/CRorPR_vs_PD_kmer_counts/merged-diff-counts.tsv.gz", "rt")
 count.path <- "/home/haoliang.xue/development/new-kamrat-test/data/luad-diff-counts-up-samples.tsv"
-smp.info.path <- cmdArgs[2]
 smp.info.path <- "/home/haoliang.xue/development/new-kamrat-test/data/luad-sample-conditions.tsv"
-out.dir <- cmdArgs[3]
-out.dir <- "/home/haoliang.xue/development/new-kamrat-test/rank-res"
-
-# calcRelatSD <- function(count_tab) {
-#     row.mean <- apply(count_tab[, names(smp_nf)], MARGIN = 1, function(r) mean(r * smp_nf))
-#     row.sd <- apply(count_tab[, names(smp_nf)], MARGIN = 1, function(r) sd(r * smp_nf))
-#     row.rsd <- lapply(1 : nrow(count_tab), 
-#                       FUN = function(i) ifelse(row.mean[i] > 1, yes = row.sd[i] / row.mean[i], no = row.sd[i])) %>%
-#         unlist()
-#     return(row.rsd)
-# }
-
-calcTtestPvalue <- function(count_tab, smp_info) {
-    cond.list <- unique(smp_info[, 1]) %>% as.character()
-    cond1.cols <- names(count_tab)[smp_info[names(count_tab), 1] == cond.list[1]]
-    cond2.cols <- names(count_tab)[smp_info[names(count_tab), 1] == cond.list[2]]
-    pval.raw <- apply(count_tab, MARGIN = 1, 
-                      function(r) t.test(x = log(r[cond1.cols] + 1), y = log(r[cond2.cols] + 1), alternative = "two.sided")$p.value)
-    pval.adj <- p.adjust(pval.raw, method = "BH")
-    return(pval.adj)
-}
-
-calcSNR <- function(count_tab, smp_info) {
-    cond.list <- unique(smp_info[, 1]) %>% as.character()
-    cond1.cols <- names(count_tab)[smp_info[names(count_tab), 1] == cond.list[1]]
-    cond2.cols <- names(count_tab)[smp_info[names(count_tab), 1] == cond.list[2]]
-    row.meanA <- apply(count_tab[, cond1.cols], MARGIN = 1, function(r) mean(r))
-    row.meanB <- apply(count_tab[, cond2.cols], MARGIN = 1, function(r) mean(r))
-    row.sdA <- apply(count_tab[, cond1.cols], MARGIN = 1, function(r) sd(r))
-    row.sdB <- apply(count_tab[, cond2.cols], MARGIN = 1, function(r) sd(r))
-    row.snr <- (row.meanA - row.meanB) / (row.sdA + row.sdB)
-    return(row.snr)
-}
-
-# calcLRAcc <- function(count_tab, smp_info) {
-#     smp_info$label <- as.numeric(smp_info$V2) - 1
-#     tmp.df <- merge(x = t(count_tab), y = smp_info, by = "row.names")
-#     row.f1 <- lapply(rownames(count_tab),
-#                      function(r) glm(formula = tmp.df$label ~ tmp.df[, r], family = binomial(link = "logit"))$fitted.values %>%
-#                          Accuracy(y_true = tmp.df[, 1])) %>%
-#         unlist()
-#     return(row.f1)
-# }
-# 
-# calcNBCF1 <- function(count_tab, smp_info, smp_nf) {
-#     for (s in names(smp_nf)) {
-#         count_tab[, s] <- count_tab[, s] * smp_nf[s]
-#     }
-#     smp_info$label <- as.numeric(smp_info$V2) - 1
-#     tmp.df <- merge(x = t(count_tab), y = smp_info, by = "row.names")
-#     row.f1 <- lapply(rownames(count_tab),
-#                      function(r) naiveBayes(x = as.matrix(tmp.df[, r]), y = factor(tmp.df$label)) %>%
-#                          predict(newdata = as.matrix(tmp.df[, r]), type = "class") %>%
-#                          f1Score(actual = tmp.df$label, cutoff = 1)) %>%
-#         unlist()
-#     return(row.f1)
-# }
-# 
-# calcSVMHingeLoss <- function(count_tab, smp_info, smp_nf) {
-#     hingefunc <- getHinge(hinge = "absolute", delta = 1)
-#     for (s in names(smp_nf)) {
-#         count_tab[, s] <- count_tab[, s] * smp_nf[s]
-#         count_tab[, s] <- (count_tab[, s] - mean(count_tab[, s])) / sd(count_tab[, s])
-#     }
-#     smp_info$label <- ifelse(as.numeric(smp_info$V2) == 1, yes = -1, no = 1)
-#     tmp.df <- merge(x = t(count_tab), y = smp_info, by = "row.names")
-#     hingeloss.list <- lapply(rownames(count_tab),
-#                              function(r) svm(x = as.matrix(tmp.df[, r]), y = tmp.df$label, 
-#                                              kernel = "linear", cost = 1) %>%
-#                                  predict(newdata = as.matrix(tmp.df[, r])) %>%
-#                                  hingefunc(y = tmp.df$label))
-#     row.hingeloss <- lapply(hingeloss.list,  function(r) sum(r$loss)) %>%
-#         unlist()
-#     return(row.hingeloss)
-# }
-
-calcInfoGain <- function(count_tab, smp_info, smp_nf) {
-    for (s in names(smp_nf)) {
-        count_tab[, s] <- count_tab[, s] * smp_nf[s]
-    }
-    row.infogain <- apply(count_tab, MARGIN = 1,
-                          function(r) information_gain(x = as.data.frame(r), 
-                                                       y = as.vector(smp.info$V2), 
-                                                       type = "infogain")$importance) %>%
-        unlist()
-    return(row.infogain)
-}
+rank.dir <- "/home/haoliang.xue/development/new-kamrat-test/rank-res/"
+out.path <- "/home/haoliang.xue/development/new-kamrat-test/rank-res/feature-scores.byR.tsv"
 
 smp.info <- read.table(smp.info.path, header = F, row.names = 1)
 count.tab <- read.table(count.path, header = T, row.names = 1)[, rownames(smp.info)]
+smp.sum <- colSums(count.tab)
+for (x in names(smp.sum)) {
+    count.tab[, x] <- count.tab[, x] / smp.sum[x] * 1000000000
+}
 
-feature.score <- data.frame(row.names = rownames(count.tab), 
-                            "ttest.padj" = calcTtestPvalue(count.tab, smp.info),
-                            "ttest.snr" = calcSNR(count.tab, smp.info))
+evalRow <- function(X, y) {
+    d <- merge(data.frame("count" = X, "row.names" = names(X)), y, by = "row.names")
+    names(d) <- c("sample", "count", "condition")
+    d$label <- as.numeric(d$condition) - 1
+    # t-test non-adjusted p-value
+    row.praw <- t.test(x = log(d$count[d$label == 0] + 1), y = log(d$count[d$label == 1] + 1), 
+                       alternative = "two.sided")$p.value
+    # SNR
+    row.snr <- (mean(d$count[d$label == 0]) - mean(d$count[d$label == 1]))/(sd(d$count[d$label == 0]) + sd(d$count[d$label == 1]))
+    # F1 score and accuracy of naive Bayes classifier
+    row.nbc.acc <- naiveBayes(x = as.matrix(d$count), y = factor(d$label)) %>% 
+        predict(newdata = as.matrix(d$count), type = "class") %>%
+        Accuracy(y_true = d$label)
+    # F1 score and accuracy of logistic regression
+    lr.pred <- glm(formula = label ~ count, data = d, family = binomial) %>%
+        predict(newdata = d, type = "response")
+    row.lr.acc <- Accuracy(y_pred = factor(ifelse(lr.pred < 0.5, yes = 0, no = 1), levels = c(0, 1)), 
+                           y_true = d$label)
+    row.svm.acc <- svm(x = as.matrix(d$count), y = factor(d$label), kernel = "linear", cost = 1) %>%
+        predict(newdata = as.matrix(d$count)) %>%
+        Accuracy(y_true = d$label)
+    return(data.frame("ttest.praw" = row.praw,
+                      "snr" = row.snr,
+                      "nbc.acc" = row.nbc.acc,
+                      "lr.acc" = row.lr.acc,
+                      "svm.acc" = row.svm.acc))
+}
 
-# feature.score <- data.frame(row.names = rownames(count.tab), 
-#                             "relat_sd" = calcRelatSD(count.tab, smp.nf),
-#                             "ttest.padj" = calcTtestPvalue(count.tab, smp.info, smp.nf),
-#                             "snr" = calcSNR(count.tab, smp.info, smp.nf),
-#                             "lrc.f1" = calcLRCF1(count.tab, smp.info, smp.nf),
-#                             "nbc.f1" = calcNBCF1(count.tab, smp.info, smp.nf),
-#                             "svm.hingeloss" = calcSVMHingeLoss(count.tab, smp.info, smp.nf),
-#                             "info.gain" = calcInfoGain(count.tab, smp.info, smp.nf))
-
-write.table(feature.score, file = paste0(out.dir, "/feature-scores.byR.tsv"), 
+feature.score <- apply(count.tab, MARGIN = 1, FUN = function(r) evalRow(r, smp.info))
+write.table(feature.score, file = out.path, 
             col.names = T, row.names = T, quote = F, sep = "\t")
