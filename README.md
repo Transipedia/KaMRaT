@@ -19,7 +19,7 @@ The feature matrix contains features in row and samples in column. Features can 
 
 The *k*-mer feature matrix can be constructed with the following possibilities: 
 
--   The [Snakefile](./related-tools/prepare_kmer_table/Snakefile) provided with the project
+-   The [Snakefile](./related-tools/prepare_kmer_table/Snakefile) provided with the project + [DE-kupl joinCounts](https://github.com/Transipedia/dekupl-joinCounts)
 -   [Kmtricks](https://github.com/tlemane/kmtricks) software
 -   [DE-kupl](https://github.com/Transipedia/dekupl-run)'s raw-counts.tsv or masked-counts.tsv matrices
 
