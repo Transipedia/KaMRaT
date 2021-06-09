@@ -15,7 +15,7 @@ In the workflow shown, KaMRaT is used for reducing a count matrix produced from 
 
 ![workflow](./docs/workflow.png)
 
-The feature matrix contains feature as rows and samples as columns. Features can be *k*-mers (for all modules) as well as other general features such as genes/transcripts (only for KaMRaT-index, -filter, and -rank). The feature counts can be either normalized or non-normalized. 
+The feature matrix contains features in row and samples in column. Features can be *k*-mers (for all modules) as well as other general features such as genes/transcripts (only for KaMRaT-index, -filter, and -rank). The feature counts can be either normalized or non-normalized. 
 
 The *k*-mer feature matrix can be constructed with the following possibilities: 
 
