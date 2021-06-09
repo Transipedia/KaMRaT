@@ -6,17 +6,22 @@ Transcriptomics analysis based on k-mer counts allows to analyze RNA variation a
 
 KaMRaT provides a set of tools for k-mer matrix reduction, for reducing k-mer number and extending k-mers to longer contigs.
 
-The name KaMRaT means k-mer Matrix Reduction Toolkit, or k-mer Matrix, Really Tremendous !.
+The name KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really Tremendous !".
 
-## Typical Workflow built around KaMRaT
+## Typical Workflow of KaMRaT
 
 KaMRaT *per se* is shown at the center of the workflow. It is a C++ program that takes as input a count matrix and produces another matrix as output.
-In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and producing a reduced matrix with features of interest with respect to conditions in the input sample-info file. The resulting matrix is then used as input for building a predictor for those conditions. 
-The present archive contains Kamrat and the surrounding pipeline used for feeding the input matrix and model building/evaluation. Note that KaMRaT can also be used as a standalone application for treating any input matrix (*e.g.* a conventional gene expression matrix). 
+In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and producing a reduced matrix with features of interest with respect to conditions in the input sample-info file.
 
-![image](docs/KaMRaT_workflow.png)
+![workflow](D:\01_workbench\General_Research\Github\KaMRaT\docs\workflow.png)
 
-A set of auxiliary tools to be used for upstream and downstream of kamrat are also provided:
+The feature matrix contains feature as rows and samples as columns. Features can be *k*-mers (for all modules) as well as other general features such as genes/transcripts (only for KaMRaT-index, -filter, and -rank). The feature counts can be either normalized or non-normalized. The *k*-mer feature matrix can be constructed with the following possibilities: 
+
+-   The **Snakefile** provided with the project (related-tools/prepare_kmer_table/Snakefile)
+-   [Kmtricks](https://github.com/tlemane/kmtricks) software
+-   [DE-kupl](https://github.com/Transipedia/dekupl-run)'s raw-counts.tsv or masked-counts.tsv matrices
+
+A set of auxiliary tools to be used for upstream and downstream of kamrat are provided:
 + Upstream tools: 
   + A matrix generating module controlled by Snakemake which applying jellyfish and DE-kupl joinCounts module
   + A bash script for generating a submatrix by selecting from it a set of columns
@@ -92,7 +97,7 @@ The sample-info file is indicated by the option `-smp-info`. This file aims to i
 
 ### Input Count Matrix for KaMRaT
 
- 
+
 The input count matrix should be in .tsv or .tsv.gz format, in which fields are separated by tabulations. 
 In the matrix, features are presented as rows, and samples as columns. The first column in matrix should always be the feature column (sequences or feature names).  
 "Features" can be any quantified feature such as genes, k-mers or contigs. k-mers or contigs are represented by their own sequence.
@@ -154,103 +159,155 @@ singularity exec kamrat <CMD> -help
 ### KaMRaT Usage by Module
 
 <details>
-<summary>filter: Select expressed/silent features* that filter through given criteria</summary>
+<summary>index: index feature count table on disk</summary>
 
 ```text
-[USAGE]    singularity exec -B /bind_src:/bind_des kamrat filter -filter-info STR [-options] KMER_TAB_PATH
+[USAGE]    kamrat index -intab STR -outdir STR [-klen INT -unstrand -nfbase INT]
 
-[OPTION]   -h,-help               Print the helper
-           -filter-info STR       Filter-info path, should be a table of two columns WITHOUT header row, MANDATORY
-                                      the first column should be sample names
-                                      the second column should be either UP or DOWN (all capital letters)
-                                          samples with UP will be considered as up-regulated samples
-                                          samples with DOWN will be considered as down-regulated samples
-                                          samples not mentioned in the file will not taken into consideration (being neutral)
-                                          samples can also be all UP or all DOWN
-           -up-min INT1:INT2      Up feature lower bound, [by default 1:1 (no filter)]
-                                      print the feature if at least (>=) INT1 UP-samples have count >= INT2
-           -down-max INT1:INT2    Down feature upper bound [by default 1:inf (no filter)]
-                                      print the feature if at least (>=) INT1 DOWN-samples have count <= INT2
-           -out-path              Output table path [default: output to screen]
+[OPTION]         -h, -help      Print the helper
+                 -intab STR     Input table for index, mandatory
+                 -outdir STR    Output index directory, mandatory
+                 -klen          k-mer length, mandatory if features are k-mer
+                                    if present, indexation will be switched to k-mer mode
+                 -unstrand      Unstranded mode, indexation with canonical k-mers
+                                    if present, indexation will be switched to k-mer mode
+                 -nfbase INT    Base for calculating normalization factor
+                                    normCount_ij <- INT * rawCount_ij / sum_i{rawCount_ij}
+                                    if not provided, input counts will not be normalized
 ```
 
 </details>
 
 <details>
-<summary>mask: Keep or remove k-mers matching a given list of sequences</summary>
+<summary>filter: filter feature by expression level</summary>
+
 
 ```text
-[Usage]    singularity exec -B /bind_src:/bind_des kamrat mask -klen INT -fasta STR [-options] KMER_TAB_PATH
+[USAGE]    kamrat filter -idxdir STR -design STR [-upmin INT1:INT2 -downmax INT1:INT2 -reverse -outpath STR -withcounts]
 
-[Option]    -h,-help         Print the helper
-            -klen INT        Length of k-mers, mandatory
-            -fasta STR       Sequence fasta file as the mask, mandatory
-            -unstrand        If k-mers are generated from unstranded RNA-seq data
-            -reverse-mask    Reverse mask: keep the k-mers in fasta sequence file
-            -out-path        Output table path [default: output to screen]
+[OPTION]         -h,-help              Print the helper
+                 -idxdir STR           Indexing folder by KaMRaT index, mandatory
+                 -design STR           Path to filter design file, a table of two columns, mandatory
+                                           the first column indicate sample names
+                                           the second column should be either UP or DOWN (capital letters)
+                                               samples with UP will be considered as up-regulated samples
+                                               samples with DOWN will be considered as down-regulated samples
+                                               samples not given will be neutral (not considered for filter)
+                                               samples can also be all UP or all DOWN
+                 -upmin INT1:INT2      Up feature lower bound, [1:1, meaning no filter]
+                                           output features counting >= INT1 in >= INT2 UP-samples
+                 -downmax INT1:INT2    Down feature upper bound [inf:1, meaning no filter]
+                                           output features counting <= INT1 in >= INT2 DOWN-samples
+                 -reverse              Reverse filter, to remove eligible features [false]
+                 -outpath STR          Path to results after filter
+                                           if not provided, output to screen
+                 -withcounts           Output sample count vectors [false]
 ```
 
 </details>
 
 <details>
-<summary>merge: Extend k-mers into contigs according to their overlap</summary>
+<summary>mask: mask k-mers from matrix</summary>
+
 
 ```text
-[Usage]    singularity exec -B /bind_src:/bind_des kamrat merge -klen INT -idx-path STR [-options] KMER_TAB_PATH
-
-[Option]    -h,-help              Print the helper
-            -klen INT             k-mer length (max_value: 32)
-            -idx-path STR         Temporary file path for saving count index, mandatory
-            -unstrand             If the k-mers are generated from non-stranded RNA-seq data
-            -min-overlap INT      Min assembly overlap (max_value: k) [floor(k/2)]
-            -smp-info STR         Sample-info path, either list or table with sample names as the first column
-                                      if absent, all columns except the first one in k-mer count table are taken as samples
-            -interv-method STR    Intervention method (none, pearson, spearman, mac) [none]
-                                      the threshold can be precised after a ':' symbol
-            -quant-mode STR       Quantification mode (rep, mean) [rep]
-            -rep-name STR         Representative value column name, k-mer input order as rep-val by default
-            -out-path STR         Output contig count table path [default: output to screen]
+[USAGE]    kamrat mask -idxdir STR -fasta STR [-reverse -outpath STR -withcounts]
+              
+[OPTION]         -h,-help         Print the helper
+                 -idxdir STR      Indexing folder by KaMRaT index, mandatory
+                 -fasta STR       Sequence fasta file as the mask, mandatory;
+                 -reverse         Reverse mask, to select the k-mers in sequence fasta file [false];
+                 -outpath STR     Path to extension results
+                                      if not provided, output to screen
+                 -withcounts      Output sample count vectors [false]
 ```
 
 </details>
 
 <details>
-<summary>rank: Score and sort features* by count variability or association to sample conditions</summary>
+<summary>merge: extend k-mers into contigs</summary>
+
 
 ```text
-[USAGE]   singularity exec -B /bind_src:/bind_des kamrat rank -idx-path STR -nf-path STR [-options] FEATURE_TAB_PATH
+[USAGE]    kamrat merge -idxdir STR -overlap MAX-MIN [-with STR1[:STR2] -interv STR[:FLOAT] -min-nbkmer INT -outpath STR -withcounts STR]
 
-[OPTION]        -h,-help             Print the helper 
-                -idx-path STR        Temporary file path for saving count index [MANDATORY]
-                -nf-path             Output path for nomalization factor [MANDATORY]
-                -smp-info STR        Path to sample-condition or sample file, without header line
-                                         if absent, all columns except the first in the count table are regarded as sample
-                -score-method STR    Evaluation method to use and its parameter, seperated by ':' (cf. [EVAL. METHOD])
-                -top-num INT         Number of top features to select
-                -ln                  Apply ln(x + 1) transformation for score estimation [false]
-                -standardize         Standarize count vector for score estimation [false]
-                -no-norm             Estimate scores with raw count, do NOT apply normalization
-                -out-path STR        Output table path [default: output to screen]
-                                         the output counts are same as the input counts,
-                                         normalization, log transformation, and standardization affect score evaluation, but not output counts
+[Option]         -h,-help               Print the helper;
+                 -idxdir STR            Indexing folder by KaMRaT index, mandatory;
+                 -overlap MAX-MIN       Overlap range for extension, mandatory
+                                            MIN and MAX are integers, MIN <= MAX <= k-mer length;
+                 -with STR1[:STR2]      File indicating k-mers to be extended (STR1) and rep-mode (STR2)
+                                            if not provided, all indexed k-mers are used for extension
+                                            in the file STR1, a supplementary column of rep-value can be provided
+                                            STR2 can be one of {min, minabs, max, maxabs} [min];
+                 -interv STR[:FLOAT]    Intervention method for extension [spearman:0.25]
+                                            can be one of {none, pearson, spearman, mac}
+                                            the threshold may follow a ':' symbol;
+                 -min-nbkmer INT        Minimal length of extended contigs [0];
+                 -outpath STR           Path to extension results
+                                            if not provided, output to screen;
+                 -withcounts STR        Output sample count vectors, STR can be one of [mean, median]
+                                            if not provided, output without count vector
+```
 
-[EVAL. METHOD]  rsd                  Relative standard deviation
-                ttest                T-test between conditions (ln transformation is required)
-                snr                  Signal-to-noise ratio between conditions
-                lrc:n_fold           F1-score with regression classification [default n_fold = 1]
-                                         if n_fold = 0, leave-one-out cross-validation is applied
-                                         if n_fold = 1, evaluation without cross-validation, training and testing on the whole datset
-                                         if n_fold >= 2, n-fold cross-validation is applied
-                nbc:n_fold           F1-score with naive Bayes classification [default n_fold = 1]
-                                         if n_fold = 0, leave-one-out cross-validation is applied
-                                         if n_fold = 1, evaluation without cross-validation, training and testing on the whole datset
-                                         if n_fold >= 2, n-fold cross-validation is applied
-                svm                  Hinge-loss function on SVM classification (standardization is required)
-                colname:sort_mode    User-defined method, where name indicates a column in the k-mer count table
-                                         sore_mode can be:    dec        Sorting by decreasing order
-                                                              dec_abs    Sorting by decreasing order but on the absolute value
-                                                              inc        Sorting by increasing order
-                                                              inc_abs    Sorting by increasing order but on the absolute value
+</details>
+
+<details>
+<summary>rank: rank features according to their association with sample conditions</summary>
+
+
+```text
+[USAGE]    kamrat rank -idxdir STR -count-mode STR -rankby STR -design STR [-with STR1[:STR2] -seltop NUM -outpath STR -withcounts]
+
+[OPTION]         -h,-help             Print the helper
+                 -idxdir STR          Indexing folder by KaMRaT index, mandatory
+                 -rankby STR          Ranking method, mandatory, can be one of:
+                                          ttest.padj      adjusted p-value of t-test between conditions
+                                          ttest.pi        \u03C0-value of t-test between conditions
+                                          snr             signal-to-noise ratio between conditions
+                                          dids            DIDS score
+                                          lr:nfold        accuracy by logistic regression classifier
+                                          bayes:nfold     accuracy by naive Bayes classifier
+                                          svm:nfold       accuracy on SVM classifier
+                 -design STR          Path to file indicating sample-condition design
+                                          without header line, each row can be either:
+                                          sample name, sample condition
+                                          sample name, sample condition, sample batch (only for lrc, nbc, and svm)
+                 -with STR1[:STR2]    File indicating features to rank (STR1) and counting mode (STR2)
+                                          if not provided, all indexed features are used for ranking
+                                          STR2 can be one of [rep, mean, median]
+                 -seltop NUM          Select top ranked features
+                                          if NUM > 1, number of top features to select (should be integer)
+                                          if 0 < NUM <= 1, ratio of top features to select
+                                          if absent or NUM <= 0, output all features
+                 -outpath STR         Path to ranking result
+                                          if not provided, output to screen
+                 -withcounts          Output sample count vectors [false]
+
+[NOTE]     For ranking methods lrc, nbc, and svm, a univariate CV fold number (nfold) can be provided
+               if nfold = 0, leave-one-out cross-validation
+               if nfold = 1, without cross-validation, training and testing on the whole datset
+               if nfold > 1, n-fold cross-validation
+           For t-test ranking methods, a transformation log2(x + 1) is applied to sample counts
+           For SVM ranking, sample counts standardization is applied feature by feature
+```
+
+</details>
+
+<details>
+<summary>query: query sequences</summary>
+
+```text
+[USAGE]    kamrat query -idxdir STR -fasta STR -toquery STR [-withabsent -outpath STR]
+
+[OPTION]         -h,-help         Print the helper
+                 -idxdir STR      Indexing folder by KaMRaT index, mandatory
+                 -fasta STR       Sequence fasta file, mandatory
+                 -toquery STR     Query method, mandatory, can be one of:
+                                      mean        mean count among all composite k-mers for each sample
+                                      median      median count among all composite k-mers for each sample
+                 -withabsent      Output also absent queries (count vector all 0) [default: false]
+                 -outpath STR     Path to extension results
+                                      if not provided, output to screen
 ```
 
 </details>

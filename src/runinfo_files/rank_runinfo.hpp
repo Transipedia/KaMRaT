@@ -3,13 +3,13 @@
 
 void RankWelcome()
 {
-    std::cerr << "KaMRaT rank: univariate feature ranking" << std::endl
+    std::cerr << "KaMRaT rank: rank features according to their association with sample conditions" << std::endl
               << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintRankHelper()
 {
-    std::cerr << "[USAGE]    kamrat rank -idxdir STR -count-mode STR -rankby STR [-options]" << std::endl
+    std::cerr << "[USAGE]    kamrat rank -idxdir STR -count-mode STR -rankby STR -design STR [-with STR1[:STR2] -seltop NUM -outpath STR -withcounts]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help             Print the helper " << std::endl;
     std::cerr << "            -idxdir STR          Indexing folder by KaMRaT index, mandatory" << std::endl;

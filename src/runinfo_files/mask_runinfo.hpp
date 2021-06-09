@@ -3,15 +3,15 @@
 
 void MaskWelcome()
 {
-    std::cerr << "KaMRaT mask: k-mer sequence masking" << std::endl
+    std::cerr << "KaMRaT mask: mask k-mers from matrix" << std::endl
               << "----------------------------------------------------------------------------------------------" << std::endl;
 }
 
 inline void PrintMaskHelper()
 {
-    std::cerr << "[Usage]    kamrat mask -idxdir STR -fasta STR [-options]" << std::endl
+    std::cerr << "[USAGE]    kamrat mask -idxdir STR -fasta STR [-reverse -outpath STR -withcounts]" << std::endl
               << std::endl;
-    std::cerr << "[Option]    -h,-help         Print the helper" << std::endl;
+    std::cerr << "[OPTION]    -h,-help         Print the helper" << std::endl;
     std::cerr << "            -idxdir STR      Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -fasta STR       Sequence fasta file as the mask, mandatory" << std::endl;
     std::cerr << "            -reverse         Reverse mask, to select the k-mers in sequence fasta file [false]" << std::endl;

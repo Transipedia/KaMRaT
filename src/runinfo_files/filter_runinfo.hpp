@@ -3,13 +3,13 @@
 
 void FilterWelcome()
 {
-    std::cerr << "KaMRaT filter: feature filter by expression level" << std::endl
+    std::cerr << "KaMRaT filter: filter feature by expression level" << std::endl
               << "-----------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintFilterHelper()
 {
-    std::cerr << "[USAGE]    kamrat filter -filter-info STR [-options]" << std::endl
+    std::cerr << "[USAGE]    kamrat filter -idxdir STR -design STR [-upmin INT1:INT2 -downmax INT1:INT2 -reverse -outpath STR -withcounts]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help              Print the helper" << std::endl;
     std::cerr << "            -idxdir STR           Indexing folder by KaMRaT index, mandatory" << std::endl;

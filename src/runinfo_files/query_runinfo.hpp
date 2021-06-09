@@ -7,13 +7,13 @@ const std::unordered_set<std::string> kQueryMethodUniv{"mean", "median"};
 
 void QueryWelcome()
 {
-    std::cerr << "KaMRaT query: query sequences" << std::endl
+    std::cerr << "KaMRaT query: query sequences counts" << std::endl
               << "-------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintQueryHelper()
 {
-    std::cerr << "[USAGE]    kamrat query -fasta STR -toquery STR [-options]" << std::endl
+    std::cerr << "[USAGE]    kamrat query -idxdir STR -fasta STR -toquery STR [-withabsent -outpath STR]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help         Print the helper" << std::endl;
     std::cerr << "            -idxdir STR      Indexing folder by KaMRaT index, mandatory" << std::endl;

@@ -9,15 +9,15 @@ const std::unordered_set<std::string> kOutModeUniv{"rep", "mean", "median"};
 
 void MergeWelcome()
 {
-    std::cerr << "KaMRaT merge: k-mer sequence extension" << std::endl
+    std::cerr << "KaMRaT merge: extend k-mers into contigs" << std::endl
               << "------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintMergeHelper()
 {
-    std::cerr << "[Usage]    kamrat merge -overlap MAX-MIN -idx-dir STR [-options]" << std::endl
+    std::cerr << "[USAGE]    kamrat merge -idxdir STR -overlap MAX-MIN [-with STR1[:STR2] -interv STR[:FLOAT] -min-nbkmer INT -outpath STR -withcounts STR]" << std::endl
               << std::endl;
-    std::cerr << "[Option]    -h,-help               Print the helper" << std::endl;
+    std::cerr << "[OPTION]    -h,-help               Print the helper" << std::endl;
     std::cerr << "            -idxdir STR            Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -overlap MAX-MIN       Overlap range for extension, mandatory" << std::endl
               << "                                       MIN and MAX are integers, MIN <= MAX <= k-mer length" << std::endl;
