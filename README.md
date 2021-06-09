@@ -13,11 +13,11 @@ The name KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really
 KaMRaT *per se* is shown at the center of the workflow. It is a C++ program that takes as input a count matrix and produces another matrix as output.
 In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and producing a reduced matrix with features of interest with respect to conditions in the input sample-info file.
 
-![workflow](D:\01_workbench\General_Research\Github\KaMRaT\docs\workflow.png)
+![workflow](./docs/workflow.png)
 
 The feature matrix contains feature as rows and samples as columns. Features can be *k*-mers (for all modules) as well as other general features such as genes/transcripts (only for KaMRaT-index, -filter, and -rank). The feature counts can be either normalized or non-normalized. The *k*-mer feature matrix can be constructed with the following possibilities: 
 
--   The **Snakefile** provided with the project (related-tools/prepare_kmer_table/Snakefile)
+-   The [Snakefile](./related-tools/prepare_kmer_table/Snakefile) provided with the project
 -   [Kmtricks](https://github.com/tlemane/kmtricks) software
 -   [DE-kupl](https://github.com/Transipedia/dekupl-run)'s raw-counts.tsv or masked-counts.tsv matrices
 
