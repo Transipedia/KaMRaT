@@ -82,9 +82,6 @@ If using KaMRaT inside singularity, only by pulling from docker hub is enough:
 ```bash
 singularity build KaMRaT.sif docker://xuehl/kamrat:latest
 ```
-
-If you are using a cluster that does not support ```sudo```, you can build the image locally and copy the image to cluster for running.
-
 </details>
 
 ## General Information
