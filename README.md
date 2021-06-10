@@ -80,7 +80,7 @@ Finally, an executable binary file is available as `bin/kamrat`.
 If using KaMRaT inside singularity, only by pulling from docker hub is enough:
 
 ```bash
-sudo singularity build KaMRaT.img docker://xuehl/kamrat:latest
+singularity build KaMRaT.img docker://xuehl/kamrat:latest
 ```
 
 If you are using a cluster that does not support ```sudo```, you can build the image locally and copy the image to cluster for running.
