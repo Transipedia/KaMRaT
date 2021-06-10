@@ -230,7 +230,7 @@ singularity exec kamrat <CMD> -help
 ```text
 [USAGE]    kamrat merge -idxdir STR -overlap MAX-MIN [-with STR1[:STR2] -interv STR[:FLOAT] -min-nbkmer INT -outpath STR -withcounts STR]
 
-[Option]         -h,-help               Print the helper;
+[OPTION]         -h,-help               Print the helper;
                  -idxdir STR            Indexing folder by KaMRaT index, mandatory;
                  -overlap MAX-MIN       Overlap range for extension, mandatory
                                             MIN and MAX are integers, MIN <= MAX <= k-mer length;
