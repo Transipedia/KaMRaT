@@ -12,7 +12,7 @@ mkdir bin
 make -C src
 
 make -C related-tools/prepare_kmer_table/dekupl-joinCounts # dekupl-joinCounts in related-tools/
-mv related-tools/prepare_kmer_table/dekupl-joinCounts/joinCounts bin/
-mv related-tools/prepare_kmer_table/splitCV.bash bin/
-mv related-tools/prepare_kmer_table/revCompFastq.pl bin/
+cp related-tools/prepare_kmer_table/dekupl-joinCounts/joinCounts bin/
+cp related-tools/prepare_kmer_table/splitCV.bash bin/
+cp related-tools/prepare_kmer_table/revCompFastq.pl bin/
 chmod +x bin/*

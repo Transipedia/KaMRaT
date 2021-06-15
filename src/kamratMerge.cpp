@@ -62,8 +62,10 @@ const bool MakeContigListFromFile(contigVect_t &ctg_vect, const std::string &wit
     size_t nb_kmer, rep_pos;
     float rep_val(0);
     bool has_value(false);
-    while (with_file >> kmer_seq >> rep_val >> nb_kmer >> rep_pos)
+    while (with_file >> kmer_seq >> rep_val >> nb_kmer)
     {
+        with_file.ignore(1);
+        with_file.read(reinterpret_cast<char *>(&rep_pos), sizeof(size_t));
         if (nb_kmer > 1)
         {
             throw std::domain_error("find a feature with k-mer number > 1: " + kmer_seq);

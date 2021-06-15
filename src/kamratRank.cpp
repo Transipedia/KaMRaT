@@ -189,10 +189,14 @@ void PrintWithCounts(const bool after_merge, const featureVect_t &ft_vect, std::
 
 void PrintAsIntermediate(const featureVect_t &ft_vect, const size_t max_to_sel)
 {
+    size_t p;
     for (size_t i_ft(0); i_ft < max_to_sel; ++i_ft)
     {
         std::cout << ft_vect[i_ft]->GetFeature() << "\t" << ft_vect[i_ft]->GetScore() << "\t"
-                  << ft_vect[i_ft]->GetNbMemPos() << "\t" << ft_vect[i_ft]->GetRepPos() << std::endl;
+                  << ft_vect[i_ft]->GetNbMemPos() << "\t";
+        p = ft_vect[i_ft]->GetRepPos();
+        std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
+        std::cout << std::endl;
     }
 }
 
