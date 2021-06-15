@@ -20,7 +20,7 @@ void LoadFeaturePosMap(std::unordered_map<std::string, size_t> &ft_pos_map, std:
 const std::string &GetTagSeq(std::string &tag_str, std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 
 const bool MakeFeatureVectFromIndex(featureVect_t &ft_vect, const std::string &idx_pos_path,
-                                    std::ifstream &idx_mat, const size_t nb_smp)
+                                    std::ifstream &idx_mat, const size_t nb_smp, const size_t k_len)
 {
     std::ifstream idx_pos(idx_pos_path);
     if (!idx_pos.is_open())
@@ -29,8 +29,12 @@ const bool MakeFeatureVectFromIndex(featureVect_t &ft_vect, const std::string &i
     }
     size_t pos;
     std::string feature;
-    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(uint64_t)) && idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
+    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(uint64_t)))
     {
+        if (k_len > 0)
+        {
+            idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t));
+        }
         idx_mat.seekg(pos + nb_smp * sizeof(float)); // skip the indexed count vector
         idx_mat >> feature;
         ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, pos));
@@ -220,7 +224,7 @@ int RankMain(int argc, char *argv[])
         throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
     }
     featureVect_t ft_vect;
-    after_merge = (with_path.empty() ? MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp)
+    after_merge = (with_path.empty() ? MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp, k_len)
                                      : MakeFeatureVectFromFile(ft_vect, with_path));
     std::cerr << "Option parsing and index loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
