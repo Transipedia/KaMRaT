@@ -90,7 +90,7 @@ void PrintRunInfo(const std::string &idx_dir,
     }
     else if (sel_top < 1)
     {
-        std::cerr << static_cast<int>(sel_top * 100 + 0.5) << "%" << std::endl;
+        std::cerr << sel_top * 100 << "%" << std::endl;
     }
     else
     {

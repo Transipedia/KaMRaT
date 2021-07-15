@@ -233,13 +233,13 @@ int RankMain(int argc, char *argv[])
     {
         max_to_sel = ft_vect.size();
     }
-    else if (sel_top < 1)
+    else if (sel_top < 0.999999) // for avoiding when sel_top == 0.999999999999
     {
         max_to_sel = static_cast<size_t>(ft_vect.size() * sel_top + 0.5);
     }
     else if (sel_top <= ft_vect.size())
     {
-        max_to_sel = static_cast<size_t>(sel_top + 0.00005);
+        max_to_sel = static_cast<size_t>(sel_top + 0.00005); // for avoiding when sel_top == 0.999999999999
     }
     else
     {
@@ -300,6 +300,7 @@ int RankMain(int argc, char *argv[])
     {
         out_file.close();
     }
+    std::cerr << max_to_sel << " features have been written." << std::endl;
     std::cerr << "Output finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     std::cerr << "Executing time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
 

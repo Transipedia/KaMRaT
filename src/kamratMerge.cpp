@@ -80,18 +80,6 @@ const bool MakeContigListFromFile(contigVect_t &ctg_vect, const std::string &wit
     return has_value;
 }
 
-void InitializeContigList(contigVect_t &ctg_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                          std::map<uint64_t, std::pair<size_t, float>> &code_posval_map)
-{
-    std::string seq;
-    for (auto it = code_posval_map.cbegin(); it != code_posval_map.cend(); it = code_posval_map.erase(it))
-    {
-        idx_mat.seekg(it->second.first + nb_smp * sizeof(float)); // skip the indexed count vector
-        idx_mat >> seq;
-        ctg_vect.emplace_back(std::make_unique<ContigElem>(seq, it->second.first, it->second.second));
-    }
-}
-
 void MakeOverlapKnots(fix2knot_t &hashed_merge_knots, const contigVect_t &ctg_vect, const bool stranded, const size_t i_ovlp)
 {
     for (size_t i_ctg(0); i_ctg < ctg_vect.size(); ++i_ctg)
