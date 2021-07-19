@@ -233,12 +233,12 @@ singularity exec kamrat <CMD> -help
 [OPTION]         -h,-help               Print the helper;
                  -idxdir STR            Indexing folder by KaMRaT index, mandatory;
                  -overlap MAX-MIN       Overlap range for extension, mandatory
-                                            MIN and MAX are integers, MIN <= MAX <= k-mer length;
+                                            MIN and MAX are integers, MIN <= MAX < k-mer length;
                  -with STR1[:STR2]      File indicating k-mers to be extended (STR1) and rep-mode (STR2)
                                             if not provided, all indexed k-mers are used for extension
                                             in the file STR1, a supplementary column of rep-value can be provided
                                             STR2 can be one of {min, minabs, max, maxabs} [min];
-                 -interv STR[:FLOAT]    Intervention method for extension [spearman:0.25]
+                 -interv STR[:FLOAT]    Intervention method for extension [pearson:0.20]
                                             can be one of {none, pearson, spearman, mac}
                                             the threshold may follow a ':' symbol;
                  -min-nbkmer INT        Minimal length of extended contigs [0];
