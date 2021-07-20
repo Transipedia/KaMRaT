@@ -20,12 +20,12 @@ void PrintMergeHelper()
     std::cerr << "[OPTION]    -h,-help               Print the helper" << std::endl;
     std::cerr << "            -idxdir STR            Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -overlap MAX-MIN       Overlap range for extension, mandatory" << std::endl
-              << "                                       MIN and MAX are integers, MIN <= MAX <= k-mer length" << std::endl;
+              << "                                       MIN and MAX are integers, MIN <= MAX < k-mer length" << std::endl;
     std::cerr << "            -with STR1[:STR2]      File indicating k-mers to be extended (STR1) and rep-mode (STR2)" << std::endl
               << "                                       if not provided, all indexed k-mers are used for extension" << std::endl
               << "                                       in the file STR1, a supplementary column of rep-value can be provided" << std::endl
               << "                                       STR2 can be one of {min, minabs, max, maxabs} [min]" << std::endl;
-    std::cerr << "            -interv STR[:FLOAT]    Intervention method for extension [spearman:0.25]" << std::endl
+    std::cerr << "            -interv STR[:FLOAT]    Intervention method for extension [pearson:0.20]" << std::endl
               << "                                       can be one of {none, pearson, spearman, mac}" << std::endl
               << "                                       the threshold may follow a ':' symbol" << std::endl;
     std::cerr << "            -min-nbkmer INT        Minimal length of extended contigs [0]" << std::endl;
