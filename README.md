@@ -10,7 +10,7 @@ The name KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really
 
 ## Quick Start: Demos
 
-### Variables
+**Variables**
 
 ```bash
 indir="demo-data/inputs"
@@ -20,7 +20,7 @@ dsgnfile=$indir/rank-design.txt
 kmer_tab_path=$outdir/kmer-counts.tsv.gz
 ```
 
-### *k*-mer matrix preparation
+***k*-mer matrix preparation**
 
 ```bash
 mkdir $outdir
@@ -41,7 +41,7 @@ echo "" | gzip -c >> $kmer_tab_path
 singularity exec --bind /src:/des kamrat.sif joinCounts -r 1 -a 1 $outdir/*.txt | gzip -c >> $kmer_tab_path # no filter of recurrence
 ```
 
-### KaMRaT index
+**KaMRaT index**
 
 ```bash
 mkdir $outdir/kamrat.idx
@@ -49,7 +49,7 @@ mkdir $outdir/kamrat.idx
 singularity exec --bind /src:/des kamrat.sif kamrat index -intab $kmer_tab_path -outdir $outdir/kamrat.idx -klen 31 -unstrand -nfbase 1000000000
 ```
 
-### KaMRaT rank-merge approach
+**KaMRaT rank-merge approach**
 
 ```bash
 # Select top 50% of relevant k-mers using ttest pi-value
@@ -58,7 +58,7 @@ singularity exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.
 singularity exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -with $outdir/top-ranked-kmers.ttest-pi.bin -interv pearson:0.20 -outpath $outdir/contig-counts.ttest-pi.pearson20.tsv -withcounts mean
 ```
 
-### KaMRaT merge-rank approach
+**KaMRaT merge-rank approach**
 
 ```bash
 # Extend k-mers by tolerating overlap from 30nc to 15nc, intervened by Pearson distance <= 0.20, and with mean contig count
