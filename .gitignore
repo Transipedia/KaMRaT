@@ -14,3 +14,4 @@ notes.txt
 src/Makefile
 .Rhistory
 *.[oe][0-9][0-9]*
+*.old/
