@@ -8,6 +8,65 @@ KaMRaT provides a set of tools for k-mer matrix reduction, for reducing k-mer nu
 
 The name KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really Tremendous !".
 
+## Quick Start: Demos
+
+### Variables
+
+```bash
+indir="demo-data/inputs"
+outdir="demo-data/outputs"
+sample_list=(sample1 sample2)
+dsgnfile=$indir/rank-design.txt
+kmer_tab_path=$outdir/kmer-counts.tsv.gz
+```
+
+### *k*-mer matrix preparation
+
+```bash
+mkdir $outdir
+
+# Step 1: jellyfish count & dump
+for s in ${sample_list[@]} # $sample_list contains list of considered sample names
+do
+	jellyfish count -m 31 -s 1000000 -C -o $outdir/$s.jf -F 2 <(zcat $indir/$s.R1.fastq.gz) <(zcat $indir/$s.R2.fastq.gz)
+	jellyfish dump -c $outdir/$s.jf | sort -k 1 > $outdir/$s.txt
+done
+# Step 2: joinCounts
+echo -n "tag" | gzip -c > $kmer_tab_path
+for s in ${sample_list[@]} # $sample_list contains list of considered sample names
+do
+	echo -ne "\t"$s | gzip -c >> $kmer_tab_path
+done
+echo "" | gzip -c >> $kmer_tab_path
+singularity exec --bind /src:/des kamrat.sif joinCounts -r 1 -a 1 $outdir/*.txt | gzip -c >> $kmer_tab_path # no filter of recurrence
+```
+
+### KaMRaT index
+
+```bash
+mkdir $outdir/kamrat.idx
+# Make index for k-mer matrix with k=31, unstranded mode, and with a count per billion normalization
+singularity exec --bind /src:/des kamrat.sif kamrat index -intab $kmer_tab_path -outdir $outdir/kamrat.idx -klen 31 -unstrand -nfbase 1000000000
+```
+
+### KaMRaT rank-merge approach
+
+```bash
+# Select top 50% of relevant k-mers using ttest pi-value
+singularity exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -rankby ttest.pi -design $indir/rank-design.txt -outpath $outdir/top-ranked-kmers.ttest-pi.bin -seltop 0.5
+# Extend k-mers by tolerating overlap from 30nc to 15nc, intervened by Pearson distance <= 0.20, and with mean contig count
+singularity exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -with $outdir/top-ranked-kmers.ttest-pi.bin -interv pearson:0.20 -outpath $outdir/contig-counts.ttest-pi.pearson20.tsv -withcounts mean
+```
+
+### KaMRaT merge-rank approach
+
+```bash
+# Extend k-mers by tolerating overlap from 30nc to 15nc, intervened by Pearson distance <= 0.20, and with mean contig count
+singularity exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -interv pearson:0.20 -outpath $outdir/contigs.pearson20.bin
+# Select top 50% of relevant contigs using ttest pi-value
+singularity exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -rankby ttest.pi -design $indir/rank-design.txt -seltop 0.5 -with $outdir/contigs.pearson20.bin -outpath $outdir/top-ranked-contigs.pearson20.ttest-pi.tsv -withcounts
+```
+
 ## Typical Workflow of KaMRaT
 
 KaMRaT *per se* is shown at the center of the workflow. It is a C++ program that takes as input a count matrix and produces another matrix as output.
