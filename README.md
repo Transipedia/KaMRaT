@@ -7,14 +7,14 @@ KaMRaT requires a k-mer count matrix extracted from the NGS files (e.g. with Jel
 
 KaMRaT then provides a set of tools for reducing the k-mer matrix and extending k-mers to longer contigs. The main subfunctions are:
 
-(Here features = k-mers or k-mer contigs)
-
-- kamrat index: index count table on disk
+- kamrat index: index feature* count table on disk
 - kamrat merge: merge k-mers into contigs, produces a contig count table
-- kamrat filter: exclude/retain features by expression level 
-- kamrat mask: exclude/retain features matching given fasta sequences
-- kamrat rank: rank features according to labels and statistical test
+- kamrat filter: exclude/retain features* by expression level 
+- kamrat mask: exclude/retain *k*-mers matching given fasta sequences
+- kamrat rank: rank features* according to labels and statistical test
 - kamrat query: estimate count vectors of given list of contigs
+
+Note: \*	features can be not only *k*-mers or *k*-mer contigs, but also general features such as genes or transcripts.
 
 KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really Tremendous !".
 
