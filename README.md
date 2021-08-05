@@ -1,7 +1,7 @@
 # KaMRaT
 
 -----
-KaMRaT is a C++ tool for finding subsequences with interesting properties in large NGS datasets. 
+KaMRaT is a C++ tool for finding substrings with interesting properties in large NGS datasets. 
 
 KaMRaT requires a k-mer count matrix extracted from the NGS files (e.g. with Jellyfish), and labels for each sample. 
 
