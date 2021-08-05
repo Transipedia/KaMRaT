@@ -1,12 +1,24 @@
 # KaMRaT
 
-k-mers are substrings of a fixed length *k* extracted from biological sequences. 
+-----
+KaMRaT is a C++ tool for finding subsequences with interesting properties in large NGS datasets. 
 
-Transcriptomics analysis based on k-mer counts allows to analyze RNA variation at nucleotide resolution, unlimited by a reference genome or transcriptome. Therefore, in principle, all changes in RNA sequences (splice variants, SNPs, novel transcripts) can be captured by k-mer analysis. However a challenge with k-mers is that there are too many of them. A typical bulk RNA-seq sample has in the order of 1e7 to 1e8 unique k-mers, producing a huge matrix when many samples are combined. 
+KaMRaT requires a k-mer count matrix extracted from the NGS files (e.g. with Jellyfish), and labels for each sample. 
 
-KaMRaT provides a set of tools for k-mer matrix reduction, for reducing k-mer number and extending k-mers to longer contigs.
+KaMRaT then provides a set of tools for reducing the k-mer matrix and extending k-mers to longer contigs. The main subfunctions are:
 
-The name KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really Tremendous !".
+(Here features = k-mers or k-mer contigs)
+
+- kamrat index: index count table on disk
+- kamrat merge: merge k-mers into contigs, produces a contig count table
+- kamrat filter: exclude/retain features by expression level 
+- kamrat mask: exclude/retain features matching given fasta sequences
+- kamrat rank: rank features according to labels and statistical test
+- kamrat query: estimate count vectors of given list of contigs
+
+KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really Tremendous !".
+
+-----
 
 ## Quick Start: Demos
 
