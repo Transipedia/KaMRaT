@@ -4,8 +4,8 @@
 .DS_Store
 .vscode/
 bin/
-toy-room/output/
-toy-room/tmp/
+*.bin
+toyroom/tmp/
 test*/
 kamrat-simg/
 notes.txt
