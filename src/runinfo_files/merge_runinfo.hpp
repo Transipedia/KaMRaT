@@ -154,11 +154,11 @@ void ParseOptions(int argc, char *argv[],
         PrintMergeHelper();
         throw std::invalid_argument("-idxdir STR is mandatory");
     }
-    if (max_ovlp == 0 || min_ovlp == 0)
-    {
-        PrintMergeHelper();
-        throw std::invalid_argument("-overlap MAX-MIN is mandatory");
-    }
+    // if (max_ovlp == 0 || min_ovlp == 0)
+    // {
+    //     PrintMergeHelper();
+    //     throw std::invalid_argument("-overlap MAX-MIN is mandatory");
+    // }
     if (kIntervMethodUniv.find(itv_mthd) == kIntervMethodUniv.cend())
     {
         PrintMergeHelper();

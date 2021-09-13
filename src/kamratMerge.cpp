@@ -325,6 +325,11 @@ int MergeMain(int argc, char **argv)
     {
         throw std::invalid_argument("KaMRaT-merge relies on the index in k-mer mode, please rerun KaMRaT-index with -klen option");
     }
+    if (max_ovlp == 0 && min_ovlp == 0) 
+    {
+        max_ovlp = k_len - 1;
+        min_ovlp = static_cast<size_t>(k_len / 2);
+    }
     if (k_len <= max_ovlp)
     {
         throw std::invalid_argument("max overlap (" + std::to_string(max_ovlp) + ") should not exceed k-mer length (" + std::to_string(k_len) + ")");
