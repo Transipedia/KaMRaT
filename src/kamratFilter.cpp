@@ -139,15 +139,6 @@ int FilterMain(int argc, char *argv[])
                   << dsgn_info.second << "<" << down_min_rec << std::endl
                   << std::endl;
     }
-    if (with_counts)
-    {
-        std::cout << colname_vect[0];
-        for (size_t i_col(1); i_col <= nb_smp; ++i_col)
-        {
-            std::cout << "\t" << colname_vect[i_col];
-        }
-        std::cout << std::endl;
-    }
     std::vector<size_t> ft_pos_vect;
     LoadPosVect(ft_pos_vect, idx_dir + "/idx-pos.bin", k_len != 0);
     std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
@@ -168,6 +159,15 @@ int FilterMain(int argc, char *argv[])
     if (!out_path.empty()) // output to file if a path is given, to screen if not
     {
         std::cout.rdbuf(out_file.rdbuf());
+    }
+    if (with_counts)
+    {
+        std::cout << colname_vect[0];
+        for (size_t i_col(1); i_col <= nb_smp; ++i_col)
+        {
+            std::cout << "\t" << colname_vect[i_col];
+        }
+        std::cout << std::endl;
     }
     ScanPrint(idx_mat, ft_pos_vect, filter_stat_vect, up_min_abd, up_min_rec, down_max_abd, down_min_rec, nb_smp, reverse_filter, with_counts);
     idx_mat.close();
