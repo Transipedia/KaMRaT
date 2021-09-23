@@ -126,23 +126,20 @@ void SortScore(featureVect_t &ft_vect, const ScorerCode scorer_code)
     if (scorer_code == ScorerCode::kSNR) // decabs
     {
         auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-            -> bool
-        { return fabs(ft1->GetScore()) > fabs(ft2->GetScore()); };
+            -> bool { return fabs(ft1->GetScore()) > fabs(ft2->GetScore()); };
         std::sort(ft_vect.begin(), ft_vect.end(), comp);
     }
     else if (scorer_code == ScorerCode::kTtestPi || scorer_code == ScorerCode::kDIDS || scorer_code == ScorerCode::kLR ||
-             scorer_code == ScorerCode::kBayes || scorer_code == ScorerCode::kSVM) // dec
+             scorer_code == ScorerCode::kBayes || scorer_code == ScorerCode::kSVM || scorer_code == ScorerCode::kSD) // dec
     {
         auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-            -> bool
-        { return ft1->GetScore() > ft2->GetScore(); };
+            -> bool { return ft1->GetScore() > ft2->GetScore(); };
         std::sort(ft_vect.begin(), ft_vect.end(), comp);
     }
     else if (scorer_code == ScorerCode::kTtestPadj) // inc
     {
         auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-            -> bool
-        { return ft1->GetScore() < ft2->GetScore(); };
+            -> bool { return ft1->GetScore() < ft2->GetScore(); };
         std::sort(ft_vect.begin(), ft_vect.end(), comp);
     }
     // else if (...) // incabs, useless
@@ -247,7 +244,10 @@ int RankMain(int argc, char *argv[])
                                     std::to_string(static_cast<size_t>(sel_top + 0.00005)) + ">" + std::to_string(ft_vect.size()));
     }
     std::vector<size_t> condi_label_vect, batch_label_vect;
-    ParseDesign(condi_label_vect, batch_label_vect, dsgn_path, colname_vect, nb_smp);
+    if (rk_mthd != "sd")
+    {
+        ParseDesign(condi_label_vect, batch_label_vect, dsgn_path, colname_vect, nb_smp);
+    }
     Scorer scorer(rk_mthd, nfold, condi_label_vect, batch_label_vect);
     std::vector<float> count_vect;
     for (const auto &ft : ft_vect)

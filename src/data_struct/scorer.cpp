@@ -16,6 +16,7 @@
  * lr            logistic regression                                       *
  * nbc           naive Bayes classifier                                    *
  * svm           support vector machine                                    *
+ * sd            standard deviation (non-supervised)                       *
 \* ======================================================================= */
 
 const ScorerCode ParseScorerCode(const std::string &scorer_str)
@@ -47,6 +48,10 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     else if (scorer_str == "svm")
     {
         return ScorerCode::kSVM;
+    }
+    else if (scorer_str == "sd")
+    {
+        return ScorerCode::kSD;
     }
     else
     {
@@ -161,13 +166,21 @@ const double CalcSVMScore(const size_t nfold, const arma::Row<size_t> &arma_labe
     }
 }
 
+const double CalcSDScore(const arma::Mat<double> &arma_count_vect)
+{
+    return arma::mean(arma::stddev(arma_count_vect, 0, 1)); // unlike in ttest, here arma_count_vect is not processed by .elem(), so still row vectors
+}
+
 Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
                const std::vector<size_t> &condi_label_vect, const std::vector<size_t> &batch_label_vect)
     : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? condi_label_vect.size() : nfold))
 {
-    arma_condi_vect_ = arma::conv_to<arma::Row<size_t>>::from(condi_label_vect);
-    // arma_condi_vect_.print("Label vector:");
-    nclass_ = arma_condi_vect_.max() + 1;
+    if (!condi_label_vect.empty())
+    {
+        arma_condi_vect_ = arma::conv_to<arma::Row<size_t>>::from(condi_label_vect);
+        // arma_condi_vect_.print("Label vector:");
+        nclass_ = arma_condi_vect_.max() + 1;
+    }
     if (nclass_ != 2 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
                          scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kLR))
     {
@@ -177,11 +190,14 @@ Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
     {
         throw std::domain_error("scoring by DIDS, Bayes or SVM only accepts condition number >= 2");
     }
-    arma_batch_vect_ = arma::conv_to<arma::Row<double>>::from(batch_label_vect);
-    // arma_batch_vect_.print("Batch vector:");
-    nbatch_ = arma_batch_vect_.max() + 1;
+    if (!batch_label_vect.empty())
+    {
+        arma_batch_vect_ = arma::conv_to<arma::Row<double>>::from(batch_label_vect);
+        // arma_batch_vect_.print("Batch vector:");
+        nbatch_ = arma_batch_vect_.max() + 1;
+    }
     if (nbatch_ > 1 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
-                        scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kDIDS))
+                        scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kDIDS || scorer_code_ == ScorerCode::kSD))
     {
         throw std::invalid_argument("T-test, SNR and DIDS do not support batch effect correction");
     }
@@ -234,6 +250,8 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
         return CalcBayesScore(nfold_, arma_condi_vect_, arma_count_vect, nclass_);
     case ScorerCode::kSVM:
         return CalcSVMScore(nfold_, arma_condi_vect_, arma_count_vect, nclass_);
+    case ScorerCode::kSD:
+        return CalcSDScore(arma_count_vect);
     default:
         return std::nan("");
     }
