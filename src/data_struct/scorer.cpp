@@ -173,7 +173,7 @@ const double CalcSDScore(const arma::Mat<double> &arma_count_vect)
 
 Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
                const std::vector<size_t> &condi_label_vect, const std::vector<size_t> &batch_label_vect)
-    : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? condi_label_vect.size() : nfold))
+    : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? condi_label_vect.size() : nfold)), nbatch_(0)
 {
     if (!condi_label_vect.empty())
     {
