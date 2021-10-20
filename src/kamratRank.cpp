@@ -130,7 +130,7 @@ void SortScore(featureVect_t &ft_vect, const ScorerCode scorer_code)
         std::sort(ft_vect.begin(), ft_vect.end(), comp);
     }
     else if (scorer_code == ScorerCode::kTtestPi || scorer_code == ScorerCode::kDIDS || scorer_code == ScorerCode::kLR ||
-             scorer_code == ScorerCode::kBayes || scorer_code == ScorerCode::kSVM || scorer_code == ScorerCode::kSD) // dec
+             scorer_code == ScorerCode::kBayes || scorer_code == ScorerCode::kSVM || scorer_code == ScorerCode::kSD || scorer_code == ScorerCode::kRSD) // dec
     {
         auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
             -> bool { return ft1->GetScore() > ft2->GetScore(); };
@@ -244,7 +244,7 @@ int RankMain(int argc, char *argv[])
                                     std::to_string(static_cast<size_t>(sel_top + 0.00005)) + ">" + std::to_string(ft_vect.size()));
     }
     std::vector<size_t> condi_label_vect, batch_label_vect;
-    if (rk_mthd != "sd")
+    if (rk_mthd != "sd" && rk_mthd != "rsd")
     {
         ParseDesign(condi_label_vect, batch_label_vect, dsgn_path, colname_vect, nb_smp);
     }

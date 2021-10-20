@@ -17,6 +17,7 @@
  * nbc           naive Bayes classifier                                    *
  * svm           support vector machine                                    *
  * sd            standard deviation (non-supervised)                       *
+ * rsd           relative standard deviation (non-supervised)              *
 \* ======================================================================= */
 
 const ScorerCode ParseScorerCode(const std::string &scorer_str)
@@ -52,6 +53,10 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     else if (scorer_str == "sd")
     {
         return ScorerCode::kSD;
+    }
+    else if (scorer_str == "rsd")
+    {
+        return ScorerCode::kRSD;
     }
     else
     {
@@ -168,7 +173,14 @@ const double CalcSVMScore(const size_t nfold, const arma::Row<size_t> &arma_labe
 
 const double CalcSDScore(const arma::Mat<double> &arma_count_vect)
 {
-    return arma::mean(arma::stddev(arma_count_vect, 0, 1)); // unlike in ttest, here arma_count_vect is not processed by .elem(), so still row vectors
+    return arma::mean(arma::stddev(arma_count_vect, 0, 1)); // arma_count_vect is not processed by .elem(), so still row vectors
+}
+
+const double CalcRSDScore(const arma::Mat<double> &arma_count_vect)
+{
+    double sd = arma::mean(arma::stddev(arma_count_vect, 0, 1)),
+           mean = arma::mean(arma::mean(arma_count_vect, 1)); // arma_count_vect is not processed by .elem(), so still row vectors
+    return (mean == 0 ? 0 : (sd / mean));
 }
 
 Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
@@ -252,6 +264,8 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
         return CalcSVMScore(nfold_, arma_condi_vect_, arma_count_vect, nclass_);
     case ScorerCode::kSD:
         return CalcSDScore(arma_count_vect);
+    case ScorerCode::kRSD:
+        return CalcRSDScore(arma_count_vect);
     default:
         return std::nan("");
     }
