@@ -58,6 +58,10 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     {
         return ScorerCode::kRSD;
     }
+    else if (scorer_str == "entropy")
+    {
+        return ScorerCode::kEntropy;
+    }
     else
     {
         throw std::invalid_argument("unknown ranking method: " + scorer_str);
@@ -183,6 +187,16 @@ const double CalcRSDScore(const arma::Mat<double> &arma_count_vect)
     return (mean == 0 ? 0 : (sd / mean));
 }
 
+const double CalcEntropyScore(const arma::Mat<double> &arma_count_vect)
+{
+    double tot = arma::accu(arma_count_vect + 1), entropy = 0;
+    for (const double x : arma_count_vect)
+    {
+        entropy += ((x + 1) / tot * log2((x + 1) / tot));
+    }
+    return (-entropy);
+}
+
 Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
                const std::vector<size_t> &condi_label_vect, const std::vector<size_t> &batch_label_vect)
     : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? condi_label_vect.size() : nfold)), nbatch_(0)
@@ -266,6 +280,8 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
         return CalcSDScore(arma_count_vect);
     case ScorerCode::kRSD:
         return CalcRSDScore(arma_count_vect);
+    case ScorerCode::kEntropy:
+        return CalcEntropyScore(arma_count_vect);
     default:
         return std::nan("");
     }

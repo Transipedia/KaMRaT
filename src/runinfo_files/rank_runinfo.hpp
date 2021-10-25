@@ -21,8 +21,9 @@ void PrintRankHelper()
               << "                                     lr:nfold        accuracy by logistic regression classifier" << std::endl
               << "                                     bayes:nfold     accuracy by naive Bayes classifier" << std::endl
               << "                                     sd              standard deviation (does not require sample labels)" << std::endl
-              << "                                     rsd             relative standard deviation (does not require sample labels)" << std::endl;
-    std::cerr << "            -design STR          Path to file indicating sample-condition design, mandatory unless using -rankby sd" << std::endl
+              << "                                     rsd             relative standard deviation (does not require sample labels)" << std::endl
+              << "                                     entropy         entropy of sample counts (does not require sample labels)" << std::endl;
+    std::cerr << "            -design STR          Path to file indicating sample-condition design, mandatory unless using -rankby sd | rsd | entropy" << std::endl
               << "                                     without header line, each row can be either: " << std::endl
               << "                                         sample name, sample condition" << std::endl
               << "                                         sample name, sample condition, sample batch (only for lrc, nbc, and svm)" << std::endl;
@@ -192,7 +193,7 @@ void ParseOptions(int argc, char *argv[],
         PrintRankHelper();
         throw std::invalid_argument("-rankby STR is mandatory");
     }
-    if (rk_mthd != "sd" && rk_mthd != "rsd" && dsgn_path.empty())
+    if (rk_mthd != "sd" && rk_mthd != "rsd" && rk_mthd != "entropy" && dsgn_path.empty())
     {
         PrintRankHelper();
         throw std::invalid_argument("-design STR is mandatory");
