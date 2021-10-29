@@ -37,7 +37,7 @@ void CalcVectRank(std::vector<float> &x_rk, const std::vector<float> &x)
     s.clear();
 }
 
-const double CalcPearsonDist(const std::vector<float> &x, const std::vector<float> &y)
+const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y)
 {
     const double mean_x = CalcVectMean(x), mean_y = CalcVectMean(y);
     double prod_sum(0), t1_sqsum(0), t2_sqsum(0);
@@ -47,18 +47,28 @@ const double CalcPearsonDist(const std::vector<float> &x, const std::vector<floa
         t1_sqsum += ((x[i] - mean_x) * (x[i] - mean_x));
         t2_sqsum += ((y[i] - mean_y) * (y[i] - mean_y));
     }
-    return (0.5 * (1 - (prod_sum / sqrt(t1_sqsum * t2_sqsum))));
+    return (prod_sum / sqrt(t1_sqsum * t2_sqsum));
 }
 
-const double CalcSpearmanDist(const std::vector<float> &x, const std::vector<float> &y)
+const double CalcPearsonDist(const std::vector<float> &x, const std::vector<float> &y)
+{
+    return (0.5 * (1 - CalcPearsonCorr(x, y)));
+}
+
+const double CalcSpearmanCorr(const std::vector<float> &x, const std::vector<float> &y)
 {
     static std::vector<float> x_rk, y_rk;
     CalcVectRank(x_rk, x);
     CalcVectRank(y_rk, y);
-    const double spearman_dist = CalcPearsonDist(x_rk, y_rk);
+    const double spearman_corr = CalcPearsonCorr(x_rk, y_rk);
     x_rk.clear();
     y_rk.clear();
-    return spearman_dist;
+    return spearman_corr;
+}
+
+const double CalcSpearmanDist(const std::vector<float> &x, const std::vector<float> &y)
+{
+    return (0.5 * (1 - CalcSpearmanCorr(x, y)));
 }
 
 const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &y)

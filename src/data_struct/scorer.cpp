@@ -1,3 +1,4 @@
+#include <map>
 #include <cmath>
 #include <boost/math/distributions/students_t.hpp>
 #include <mlpack/core/cv/k_fold_cv.hpp>
@@ -8,17 +9,24 @@
 
 #include "scorer.hpp" // armadillo library need be included after mlpack
 
-/* ============================== Scoring Method ========================= *\
- * ttest.padj    p-adj of t-test, adjusted by Benjamini-Hochberg procedure *
- * ttest.pi      pi-value of t-test                                        *
- * snr           signal-to-noise ratio                                     *
- * dids          DIDS score                                                *
- * lr            logistic regression                                       *
- * nbc           naive Bayes classifier                                    *
- * svm           support vector machine                                    *
- * sd            standard deviation (non-supervised)                       *
- * rsd           relative standard deviation (non-supervised)              *
-\* ======================================================================= */
+/* ================================== Scoring Method ================================== *\
+ * ttest.padj    p-adj of t-test, adjusted by B-H procedure    [categorical supervised] *
+ * ttest.pi      pi-value of t-test                            [categorical supervised] *
+ * snr           signal-to-noise ratio                         [categorical supervised] *
+ * dids          DIDS score                                    [categorical supervised] *
+ * lr            accuracy of logistic regression               [categorical supervised] *
+ * nbc           accuracy of naive Bayes classifier            [categorical supervised] *
+ * svm           accuracy of support vector machine            [categorical supervised] *
+ * ------------------------------------------------------------------------------------ *
+ * pearson       pearson correlation                            [continuous supervised] *
+ * spearman      spearman correlation                           [continuous supervised] *
+ * ------------------------------------------------------------------------------------ *
+ * sd            standard deviation                                    [non-supervised] *
+ * rsd           relative standard deviation                           [non-supervised] *
+\* ==================================================================================== */
+
+const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y);  // in utils/vect_opera.cpp
+const double CalcSpearmanCorr(const std::vector<float> &x, const std::vector<float> &y); // in utils/vect_opera.cpp
 
 const ScorerCode ParseScorerCode(const std::string &scorer_str)
 {
@@ -50,6 +58,14 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     {
         return ScorerCode::kSVM;
     }
+    else if (scorer_str == "pearson")
+    {
+        return ScorerCode::kPearson;
+    }
+    else if (scorer_str == "spearman")
+    {
+        return ScorerCode::kSpearman;
+    }
     else if (scorer_str == "sd")
     {
         return ScorerCode::kSD;
@@ -65,6 +81,37 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     else
     {
         throw std::invalid_argument("unknown ranking method: " + scorer_str);
+    }
+}
+
+const size_t ParseCategoricalVector(arma::Row<size_t> &arma_target_vect, const std::vector<std::string> &categorical_vect)
+{
+    static std::map<std::string, size_t> str2label;
+
+    const size_t nb_smp = categorical_vect.size();
+    arma_target_vect.set_size(nb_smp);
+    size_t nb_label(0);
+    for (size_t i(0); i < nb_smp; ++i)
+    {
+        const auto &ins_condi = str2label.insert({categorical_vect[i], nb_label});
+        if (ins_condi.second)
+        {
+            nb_label++;
+        }
+        arma_target_vect[i] = ins_condi.first->second;
+    }
+
+    str2label.clear();
+    return (nb_label + 1);
+}
+
+void ParseContinuousVector(std::vector<float> &target_vect, const std::vector<std::string> &continuous_vect)
+{
+    const size_t nb_smp = continuous_vect.size();
+    target_vect.resize(nb_smp);
+    for (size_t i(0); i < nb_smp; ++i)
+    {
+        target_vect[i] = std::stof(continuous_vect[i]);
     }
 }
 
@@ -111,14 +158,14 @@ const double CalcSNRScore(const arma::Mat<double> &&arma_count_vect1, const arma
     }
 }
 
-const double CalcDIDSScore(const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
+const double CalcDIDSScore(const arma::Row<size_t> &arma_categ_target_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
 {
     double max_score(0), sqrt_sum, ref_max;
     for (size_t i_condi(0); i_condi < nclass; ++i_condi)
     {
-        ref_max = arma_count_vect.elem(arma::find(arma_label_vect == i_condi)).max();
+        ref_max = arma_count_vect.elem(arma::find(arma_categ_target_vect == i_condi)).max();
         sqrt_sum = 0;
-        for (double x : arma::conv_to<std::vector<double>>::from(arma_count_vect.elem(arma::find(arma_label_vect != i_condi))))
+        for (double x : arma::conv_to<std::vector<double>>::from(arma_count_vect.elem(arma::find(arma_categ_target_vect != i_condi))))
         {
             sqrt_sum += (x > ref_max ? sqrt(x - ref_max) : 0); // alternatively, sqrt((x - ref_max) / ref_max)
         }
@@ -127,52 +174,62 @@ const double CalcDIDSScore(const arma::Row<size_t> &arma_label_vect, const arma:
     return max_score;
 }
 
-const double CalcLRScore(const size_t nfold, const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect)
+const double CalcLRScore(const size_t nfold, const arma::Row<size_t> &arma_categ_target_vect, const arma::Mat<double> &arma_count_vect)
 {
     if (nfold == 1) // without cross-validation, train and test on the whole set
     {
-        mlpack::regression::LogisticRegression<> lr(arma_count_vect, arma_label_vect);
+        mlpack::regression::LogisticRegression<> lr(arma_count_vect, arma_categ_target_vect);
         mlpack::cv::Accuracy acc;
-        return acc.Evaluate(lr, arma_count_vect, arma_label_vect);
+        return acc.Evaluate(lr, arma_count_vect, arma_categ_target_vect);
     }
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
         mlpack::cv::KFoldCV<mlpack::regression::LogisticRegression<>, mlpack::cv::Accuracy>
-            score_data(nfold, arma_count_vect, arma_label_vect);
+            score_data(nfold, arma_count_vect, arma_categ_target_vect);
         return score_data.Evaluate();
     }
 }
 
-const double CalcBayesScore(const size_t nfold, const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
+const double CalcBayesScore(const size_t nfold, const arma::Row<size_t> &arma_categ_target_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
 {
     if (nfold == 1) // without cross-validation, train and test on the whole set
     {
-        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_count_vect, arma_label_vect, nclass);
+        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_count_vect, arma_categ_target_vect, nclass);
         mlpack::cv::Accuracy acc;
-        return acc.Evaluate(nbc, arma_count_vect, arma_label_vect);
+        return acc.Evaluate(nbc, arma_count_vect, arma_categ_target_vect);
     }
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
         mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::Accuracy>
-            score_data(nfold, arma_count_vect, arma_label_vect, nclass);
+            score_data(nfold, arma_count_vect, arma_categ_target_vect, nclass);
         return score_data.Evaluate();
     }
 }
 
-const double CalcSVMScore(const size_t nfold, const arma::Row<size_t> &arma_label_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
+const double CalcSVMScore(const size_t nfold, const arma::Row<size_t> &arma_categ_target_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
 {
     if (nfold == 1) // without cross-validation, train and test on the whole set
     {
-        mlpack::svm::LinearSVM<> lsvm(arma_count_vect, arma_label_vect, nclass);
+        mlpack::svm::LinearSVM<> lsvm(arma_count_vect, arma_categ_target_vect, nclass);
         mlpack::cv::Accuracy acc;
-        return acc.Evaluate(lsvm, arma_count_vect, arma_label_vect);
+        return acc.Evaluate(lsvm, arma_count_vect, arma_categ_target_vect);
     }
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
         mlpack::cv::KFoldCV<mlpack::svm::LinearSVM<>, mlpack::cv::Accuracy>
-            score_data(nfold, arma_count_vect, arma_label_vect, nclass);
+            score_data(nfold, arma_count_vect, arma_categ_target_vect, nclass);
         return score_data.Evaluate();
     }
+}
+
+const double CalcPearsonScore(const std::vector<float> &cntnu_target_vect, const std::vector<float> &count_vect)
+{
+    return CalcPearsonCorr(cntnu_target_vect, count_vect);
+}
+
+const double CalcSpearmanScore(const std::vector<float> &cntnu_target_vect, const std::vector<float> &count_vect)
+{
+    return CalcSpearmanCorr(cntnu_target_vect, count_vect);
 }
 
 const double CalcSDScore(const arma::Mat<double> &arma_count_vect)
@@ -197,15 +254,19 @@ const double CalcEntropyScore(const arma::Mat<double> &arma_count_vect)
     return (-entropy);
 }
 
-Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
-               const std::vector<size_t> &condi_label_vect, const std::vector<size_t> &batch_label_vect)
-    : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? condi_label_vect.size() : nfold)), nbatch_(0)
+Scorer::Scorer(const std::string &scorer_str, size_t nfold, const std::vector<std::string> &col_target_vect, const std::vector<std::string> &col_batch_vect)
+    : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? col_target_vect.size() : nfold)), nclass_(0), nbatch_(0)
 {
-    if (!condi_label_vect.empty())
+    nbatch_ = ParseCategoricalVector(arma_batch_vect_, col_batch_vect);
+    if (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
+        scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kDIDS ||
+        scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // feature selection with categorical output
     {
-        arma_condi_vect_ = arma::conv_to<arma::Row<size_t>>::from(condi_label_vect);
-        // arma_condi_vect_.print("Label vector:");
-        nclass_ = arma_condi_vect_.max() + 1;
+        nclass_ = ParseCategoricalVector(arma_categ_target_vect_, col_target_vect);
+    }
+    else if (scorer_code_ == ScorerCode::kPearson || scorer_code_ == ScorerCode::kSpearman) // feature selection with continous output
+    {
+        ParseContinuousVector(cntnu_target_vect_, col_target_vect);
     }
     if (nclass_ != 2 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
                          scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kLR))
@@ -216,18 +277,43 @@ Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
     {
         throw std::domain_error("scoring by DIDS, Bayes or SVM only accepts condition number >= 2");
     }
-    if (!batch_label_vect.empty())
+    if (nbatch_ > 1 && scorer_code_ != ScorerCode::kLR && scorer_code_ != ScorerCode::kBayes && scorer_code_ != ScorerCode::kSVM)
     {
-        arma_batch_vect_ = arma::conv_to<arma::Row<double>>::from(batch_label_vect);
-        // arma_batch_vect_.print("Batch vector:");
-        nbatch_ = arma_batch_vect_.max() + 1;
-    }
-    if (nbatch_ > 1 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
-                        scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kDIDS || scorer_code_ == ScorerCode::kSD))
-    {
-        throw std::invalid_argument("T-test, SNR and DIDS do not support batch effect correction");
+        throw std::invalid_argument("Currently, only machine-learning based feature selection support batch effect removal.");
     }
 }
+
+// Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
+//                const std::vector<size_t> &condi_label_vect, const std::vector<size_t> &batch_label_vect)
+//     : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? condi_label_vect.size() : nfold)), nbatch_(0)
+// {
+//     if (!condi_label_vect.empty())
+//     {
+//         arma_categ_target_vect_ = arma::conv_to<arma::Row<size_t>>::from(condi_label_vect);
+//         // arma_categ_target_vect_.print("Label vector:");
+//         nclass_ = arma_categ_target_vect_.max() + 1;
+//     }
+//     if (nclass_ != 2 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
+//                          scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kLR))
+//     {
+//         throw std::domain_error("scoring by t-test, SNR, and LR only accept binary sample condition: " + std::to_string(nclass_));
+//     }
+//     if (nclass_ < 2 && (scorer_code_ == ScorerCode::kDIDS || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM))
+//     {
+//         throw std::domain_error("scoring by DIDS, Bayes or SVM only accepts condition number >= 2");
+//     }
+//     if (!batch_label_vect.empty())
+//     {
+//         arma_batch_vect_ = arma::conv_to<arma::Row<double>>::from(batch_label_vect);
+//         // arma_batch_vect_.print("Batch vector:");
+//         nbatch_ = arma_batch_vect_.max() + 1;
+//     }
+//     if (nbatch_ > 1 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
+//                         scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kDIDS || scorer_code_ == ScorerCode::kSD))
+//     {
+//         throw std::invalid_argument("T-test, SNR and DIDS do not support batch effect correction");
+//     }
+// }
 
 const ScorerCode Scorer::GetScorerCode() const
 {
@@ -262,20 +348,24 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
     {
     case ScorerCode::kTtestPadj:
     case ScorerCode::kTtestPi:
-        return CalcTtestScore(arma_count_vect.elem(arma::find(arma_condi_vect_ == 0)),
-                              arma_count_vect.elem(arma::find(arma_condi_vect_ == 1)),
+        return CalcTtestScore(arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 0)),
+                              arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 1)),
                               scorer_code_ == ScorerCode::kTtestPi);
     case ScorerCode::kSNR:
-        return CalcSNRScore(arma_count_vect.elem(arma::find(arma_condi_vect_ == 0)),
-                            arma_count_vect.elem(arma::find(arma_condi_vect_ == 1)));
+        return CalcSNRScore(arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 0)),
+                            arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 1)));
     case ScorerCode::kDIDS:
-        return CalcDIDSScore(arma_condi_vect_, arma_count_vect, nclass_);
+        return CalcDIDSScore(arma_categ_target_vect_, arma_count_vect, nclass_);
     case ScorerCode::kLR:
-        return CalcLRScore(nfold_, arma_condi_vect_, arma_count_vect);
+        return CalcLRScore(nfold_, arma_categ_target_vect_, arma_count_vect);
     case ScorerCode::kBayes:
-        return CalcBayesScore(nfold_, arma_condi_vect_, arma_count_vect, nclass_);
+        return CalcBayesScore(nfold_, arma_categ_target_vect_, arma_count_vect, nclass_);
     case ScorerCode::kSVM:
-        return CalcSVMScore(nfold_, arma_condi_vect_, arma_count_vect, nclass_);
+        return CalcSVMScore(nfold_, arma_categ_target_vect_, arma_count_vect, nclass_);
+    case ScorerCode::kPearson:
+        return CalcPearsonScore(cntnu_target_vect_, count_vect);
+    case ScorerCode::kSpearman:
+        return CalcSpearmanScore(cntnu_target_vect_, count_vect);
     case ScorerCode::kSD:
         return CalcSDScore(arma_count_vect);
     case ScorerCode::kRSD:
