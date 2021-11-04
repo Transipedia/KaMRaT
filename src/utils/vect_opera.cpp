@@ -1,6 +1,6 @@
 #include <vector>
 #include <numeric> // std::accumulate
-#include <cmath> // sqrt
+#include <cmath>   // sqrt
 
 const double CalcVectMean(const std::vector<float> &x)
 {
@@ -47,7 +47,14 @@ const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<floa
         t1_sqsum += ((x[i] - mean_x) * (x[i] - mean_x));
         t2_sqsum += ((y[i] - mean_y) * (y[i] - mean_y));
     }
-    return (prod_sum / sqrt(t1_sqsum * t2_sqsum));
+    if (t1_sqsum == 0 || t2_sqsum == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return (prod_sum / sqrt(t1_sqsum * t2_sqsum));
+    }
 }
 
 const double CalcPearsonDist(const std::vector<float> &x, const std::vector<float> &y)

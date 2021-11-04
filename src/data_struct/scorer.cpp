@@ -102,7 +102,7 @@ const size_t ParseCategoricalVector(arma::Row<size_t> &arma_target_vect, const s
     }
 
     str2label.clear();
-    return (nb_label + 1);
+    return (arma_target_vect.max() + 1);
 }
 
 void ParseContinuousVector(std::vector<float> &target_vect, const std::vector<std::string> &continuous_vect)
@@ -254,10 +254,9 @@ const double CalcEntropyScore(const arma::Mat<double> &arma_count_vect)
     return (-entropy);
 }
 
-Scorer::Scorer(const std::string &scorer_str, size_t nfold, const std::vector<std::string> &col_target_vect, const std::vector<std::string> &col_batch_vect)
-    : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? col_target_vect.size() : nfold)), nclass_(0), nbatch_(0)
+Scorer::Scorer(const std::string &scorer_str, size_t nfold, const std::vector<std::string> &col_target_vect)
+    : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? col_target_vect.size() : nfold)), nclass_(0)
 {
-    nbatch_ = ParseCategoricalVector(arma_batch_vect_, col_batch_vect);
     if (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
         scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kDIDS ||
         scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // feature selection with categorical output
@@ -277,43 +276,7 @@ Scorer::Scorer(const std::string &scorer_str, size_t nfold, const std::vector<st
     {
         throw std::domain_error("scoring by DIDS, Bayes or SVM only accepts condition number >= 2");
     }
-    if (nbatch_ > 1 && scorer_code_ != ScorerCode::kLR && scorer_code_ != ScorerCode::kBayes && scorer_code_ != ScorerCode::kSVM)
-    {
-        throw std::invalid_argument("Currently, only machine-learning based feature selection support batch effect removal.");
-    }
 }
-
-// Scorer::Scorer(const std::string &scorer_str, const size_t nfold,
-//                const std::vector<size_t> &condi_label_vect, const std::vector<size_t> &batch_label_vect)
-//     : scorer_code_(ParseScorerCode(scorer_str)), nfold_((nfold == 0 ? condi_label_vect.size() : nfold)), nbatch_(0)
-// {
-//     if (!condi_label_vect.empty())
-//     {
-//         arma_categ_target_vect_ = arma::conv_to<arma::Row<size_t>>::from(condi_label_vect);
-//         // arma_categ_target_vect_.print("Label vector:");
-//         nclass_ = arma_categ_target_vect_.max() + 1;
-//     }
-//     if (nclass_ != 2 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
-//                          scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kLR))
-//     {
-//         throw std::domain_error("scoring by t-test, SNR, and LR only accept binary sample condition: " + std::to_string(nclass_));
-//     }
-//     if (nclass_ < 2 && (scorer_code_ == ScorerCode::kDIDS || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM))
-//     {
-//         throw std::domain_error("scoring by DIDS, Bayes or SVM only accepts condition number >= 2");
-//     }
-//     if (!batch_label_vect.empty())
-//     {
-//         arma_batch_vect_ = arma::conv_to<arma::Row<double>>::from(batch_label_vect);
-//         // arma_batch_vect_.print("Batch vector:");
-//         nbatch_ = arma_batch_vect_.max() + 1;
-//     }
-//     if (nbatch_ > 1 && (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi ||
-//                         scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kDIDS || scorer_code_ == ScorerCode::kSD))
-//     {
-//         throw std::invalid_argument("T-test, SNR and DIDS do not support batch effect correction");
-//     }
-// }
 
 const ScorerCode Scorer::GetScorerCode() const
 {
@@ -337,10 +300,6 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
     else if (scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // if ML, apply standarization
     {
         arma_count_vect = (arma_count_vect - arma::mean(arma::mean(arma_count_vect, 1))) / arma::mean(arma::stddev(arma_count_vect, 0, 1));
-    }
-    if (scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // add batch rows for LR, Bayes, SVM
-    {
-        arma_count_vect = arma::join_cols(arma_count_vect, arma_batch_vect_);
     }
     // arma_count_vect.print("Count vector after transformation:");
 

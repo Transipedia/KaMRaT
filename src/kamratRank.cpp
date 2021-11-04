@@ -73,11 +73,10 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &wi
     return after_merge;
 }
 
-void ParseDesign(std::vector<std::string> &col_target_vect, std::vector<std::string> &col_batch_vect,
-                 const std::string &dsgn_path, const std::vector<std::string> &colname_vect)
+void ParseDesign(std::vector<std::string> &col_target_vect, const std::string &dsgn_path, const std::vector<std::string> &colname_vect)
 {
-    bool has_batch(false);
-    const size_t nb_smp = colname_vect.size() - 1; // except the first column representing features
+    const size_t nb_smp = colname_vect.size() - 1; // set aside the first column representing features
+    
     std::ifstream dsgn_file(dsgn_path);
     if (!dsgn_file.is_open())
     {
@@ -88,88 +87,38 @@ void ParseDesign(std::vector<std::string> &col_target_vect, std::vector<std::str
     {
         if (!col_name2num.insert({colname_vect[i], i - 1}).second)
         {
-            throw std::invalid_argument("duplicate column name in the matrix:" + colname_vect[i]);
+            throw std::invalid_argument("duplicate column name in the matrix: " + colname_vect[i]);
         }
     }
 
-    col_target_vect.resize(nb_smp, ""), col_batch_vect.resize(nb_smp, "");
-    std::string line, smp_name, condi(""), batch("");
+    col_target_vect.resize(nb_smp, "");
+    std::string line, smp_name, condi("");
     std::istringstream line_conv;
     while (std::getline(dsgn_file, line))
     {
         line_conv.str(line);
-        line_conv >> smp_name >> condi >> batch;
-        if (!has_batch && !line_conv.fail())
+        if (!(line_conv >> smp_name >> condi))
         {
-            has_batch = true;
+            throw std::domain_error("failed in design file parsing: line " + line);
         }
         auto iter = col_name2num.find(smp_name);
         if (iter == col_name2num.cend())
         {
-            std::cerr << "[info] a sample in the design file not found in the matrix: " + smp_name << std::endl;
+            std::cerr << "[info] a sample in the design file not found in the matrix header line: " + smp_name << std::endl;
         }
         col_target_vect[iter->second] = condi;
-        col_batch_vect[iter->second] = batch;
         line_conv.clear();
     }
     for (size_t i(0); i < nb_smp; ++i)
     {
-        if (col_target_vect[i].empty() || (has_batch && col_batch_vect[i].empty()))
+        if (col_target_vect[i].empty())
         {
             throw std::invalid_argument("a column in the matrix was not well annotated by the design file: " + colname_vect[i + 1]);
         }
-        std::cerr << colname_vect[i + 1] << "\t" << col_target_vect[i] << "\t" << col_batch_vect[i] << std::endl; // for check
+        // std::cerr << colname_vect[i + 1] << "\t" << col_target_vect[i] << std::endl; // for check
     }
     dsgn_file.close();
 }
-
-// void ParseDesign(std::vector<size_t> &condi_label_vect, std::vector<size_t> &batch_label_vect,
-//                  const std::string &dsgn_path, const std::vector<std::string> &colname_vect, const size_t nb_smp)
-// {
-//     std::ifstream dsgn_file(dsgn_path);
-//     if (!dsgn_file.is_open())
-//     {
-//         throw std::invalid_argument("error open design file: " + dsgn_path);
-//     }
-//     condi_label_vect.resize(nb_smp), batch_label_vect.resize(nb_smp);
-//     std::string line, smp_name, condi, batch;
-//     std::istringstream line_conv;
-//     size_t nb_condi(0), nb_batch(0);
-//     std::unordered_map<std::string, size_t> condi2label, batch2label;
-//     std::unordered_map<std::string, std::pair<size_t, size_t>> smp_condi_batch_map;
-//     while (std::getline(dsgn_file, line))
-//     {
-//         line_conv.str(line);
-//         line_conv >> smp_name >> condi >> batch;
-//         const auto &ins_condi = condi2label.insert({condi, nb_condi});
-//         if (ins_condi.second)
-//         {
-//             nb_condi++;
-//         }
-//         const auto &ins_batch = batch2label.insert({batch, nb_batch});
-//         if (ins_batch.second)
-//         {
-//             nb_batch++;
-//         }
-//         smp_condi_batch_map.insert({smp_name, std::make_pair(ins_condi.first->second, ins_batch.first->second)});
-//         line_conv.clear();
-//     }
-//     for (size_t i(1); i <= nb_smp; ++i)
-//     {
-//         const auto &it = smp_condi_batch_map.find(colname_vect[i]);
-//         if (it == smp_condi_batch_map.cend())
-//         {
-//             throw std::invalid_argument("column name in index not found in design file: " + colname_vect[i]);
-//         }
-//         condi_label_vect[i - 1] = it->second.first;
-//         batch_label_vect[i - 1] = it->second.second;
-//     }
-//     // for (size_t i(0); i < nb_smp; ++i)
-//     // {
-//     //     std::cout << colname_vect[i + 1] << "\t" << condi_label_vect[i] << "\t" << batch_label_vect[i] << std::endl;
-//     // }
-//     dsgn_file.close();
-// }
 
 void SortScore(featureVect_t &ft_vect, const ScorerCode scorer_code)
 {
@@ -294,12 +243,12 @@ int RankMain(int argc, char *argv[])
         throw std::invalid_argument("number of top feature selection exceeds total feature number: " +
                                     std::to_string(static_cast<size_t>(sel_top + 0.00005)) + ">" + std::to_string(ft_vect.size()));
     }
-    std::vector<std::string> col_target_vect, col_batch_vect;
+    std::vector<std::string> col_target_vect;
     if (rk_mthd != "sd" && rk_mthd != "rsd" && rk_mthd != "entropy")
     {
-        ParseDesign(col_target_vect, col_batch_vect, dsgn_path, colname_vect);
+        ParseDesign(col_target_vect, dsgn_path, colname_vect);
     }
-    Scorer scorer(rk_mthd, nfold, col_target_vect, col_batch_vect);
+    Scorer scorer(rk_mthd, nfold, col_target_vect);
     std::vector<float> count_vect;
     for (const auto &ft : ft_vect)
     {

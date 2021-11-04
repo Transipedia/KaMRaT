@@ -28,8 +28,7 @@ const std::vector<std::string> kScorerNameVect{"ttest.padj", "ttest.pi", "SNR", 
 class Scorer
 {
 public:
-    Scorer(const std::string &scorer_str, size_t nfold, const std::vector<std::string> &col_target_vect, const std::vector<std::string> &col_batch_vect);
-    // Scorer(const std::string &scorer_str, size_t nfold, const std::vector<size_t> &condi_vect, const std::vector<size_t> &batch_vect);
+    Scorer(const std::string &scorer_str, size_t nfold, const std::vector<std::string> &col_target_vect);
 
     const ScorerCode GetScorerCode() const;
     const std::string &GetScorerName() const;
@@ -40,8 +39,7 @@ private:
     const size_t nfold_;                       // prediction class number
     arma::Row<size_t> arma_categ_target_vect_; // armadillo categorical target vector
     std::vector<float> cntnu_target_vect_;     // continuous target vector
-    size_t nclass_, nbatch_;                   // classification fold number
-    arma::Mat<double> arma_batch_vect_;        // batch label vector
+    size_t nclass_;                            // classification fold number
 };
 
 #endif //KAMRAT_DATASTRUCT_SCORER_HPP

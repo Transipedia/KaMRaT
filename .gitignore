@@ -8,6 +8,7 @@ bin/
 toyroom/tmp/
 test*/
 kamrat-simg/
+toyroom/output/
 notes.txt
 .snakemake/
 .runinfo/
