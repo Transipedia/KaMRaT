@@ -101,13 +101,14 @@ void ParseDesign(std::vector<std::string> &col_target_vect, const std::string &d
         {
             throw std::domain_error("failed in design file parsing: line " + line);
         }
+        line_conv.clear();
         auto iter = col_name2num.find(smp_name);
         if (iter == col_name2num.cend())
         {
             std::cerr << "[info] a sample in the design file not found in the matrix header line: " + smp_name << std::endl;
+            continue;
         }
         col_target_vect[iter->second] = condi;
-        line_conv.clear();
     }
     for (size_t i(0); i < nb_smp; ++i)
     {
