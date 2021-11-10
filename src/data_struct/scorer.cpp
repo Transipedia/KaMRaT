@@ -240,8 +240,8 @@ const double CalcSDScore(const arma::Mat<double> &arma_count_vect)
 const double CalcRSDScore(const arma::Mat<double> &arma_count_vect)
 {
     double sd = arma::mean(arma::stddev(arma_count_vect, 0, 1)),
-           mean = arma::mean(arma::mean(arma_count_vect, 1)); // arma_count_vect is not processed by .elem(), so still row vectors
-    return (mean == 0 ? 0 : (sd / mean));
+           min = arma_count_vect.min();
+    return (min <= 1 ? sd : (sd / min));
 }
 
 const double CalcEntropyScore(const arma::Mat<double> &arma_count_vect)

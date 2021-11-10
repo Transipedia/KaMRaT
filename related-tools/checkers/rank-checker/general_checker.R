@@ -32,8 +32,8 @@ evalRow <- function(X) {
     
     X.df <- data.frame("sample" = names(X), "count" = as.numeric(X))
     s <- sd(X.df$count) # sd
-    m <- mean(X.df$count)
-    rsd <- ifelse(m > 0, no = 0, yes = s / m) # rsd
+    m <- min(X.df$count)
+    rsd <- s / max(c(1, m)) # rsd
     etp <- Entropy(X.df$count + 1) # entropy
     
     df.categ <- merge(x = X.df, y = smp.condi.categ, by = "sample")
@@ -123,4 +123,4 @@ kamrat.res.long <- pivot_longer(kamrat.res, cols = -tag, names_to = "method", va
 
 cmp.res <- merge(kamrat.res.long, eval.res.long, by = c("tag", "method"))
 cmp.res$diff <- abs(cmp.res$score.kamrat - cmp.res$score.R)
-cmp.res$relat.diff <- cmp.res$diff / cmp.res$score.R
+cmp.res$relat.diff <- abs(cmp.res$diff / cmp.res$score.R)
