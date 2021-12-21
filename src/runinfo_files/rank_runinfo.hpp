@@ -11,17 +11,25 @@ void PrintRankHelper()
 {
     std::cerr << "[USAGE]    kamrat rank -idxdir STR -count-mode STR -rankby STR -design STR [-with STR1[:STR2] -seltop NUM -outpath STR -withcounts]" << std::endl
               << std::endl;
-    std::cerr << "[OPTION]    -h,-help             Print the helper " << std::endl;
+    std::cerr << "[OPTION]    -h,-help             Print the helper" << std::endl;
     std::cerr << "            -idxdir STR          Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -rankby STR          Ranking method, mandatory, can be one of: " << std::endl
-              << "                                     ttest.padj      adjusted p-value of t-test between conditions" << std::endl
-              << "                                     ttest.pi        \u03C0-value of t-test between conditions" << std::endl
-              << "                                     snr             signal-to-noise ratio between conditions" << std::endl
-              << "                                     dids            DIDS score" << std::endl
-              << "                                     lr:nfold        accuracy by logistic regression classifier" << std::endl
-              << "                                     bayes:nfold     accuracy by naive Bayes classifier" << std::endl
-              << "                                     sd              standard deviation (does not require sample labels)" << std::endl;
-    std::cerr << "            -design STR          Path to file indicating sample-condition design, mandatory unless using -rankby sd" << std::endl
+              << "                                     classification (binary sample labels given by design file)" << std::endl
+              << "                                         ttest.padj      adjusted p-value of t-test between conditions" << std::endl
+              << "                                         ttest.pi        \u03C0-value of t-test between conditions" << std::endl
+              << "                                         snr             signal-to-noise ratio between conditions" << std::endl
+              << "                                         lr:nfold        accuracy by logistic regression classifier" << std::endl
+              << "                                     classification (binary or multiple sample labels given by design file)" << std::endl
+              << "                                         dids            DIDS score" << std::endl
+              << "                                         bayes:nfold     accuracy by naive Bayes classifier" << std::endl
+              << "                                     correlation evaluation (continuous sample labels given by design file)" << std::endl
+              << "                                         pearson         Pearson correlation with the continunous sample condition" << std::endl
+              << "                                         spearman        Spearman correlation with the continuous sample condition" << std::endl
+              << "                                     unsupervised evaluation (no design file required)" << std::endl
+              << "                                         sd              standard deviation" << std::endl
+              << "                                         rsd             relative standard deviation" << std::endl
+              << "                                         entropy         entropy of sample counts + 1" << std::endl;
+    std::cerr << "            -design STR          Path to file indicating sample-condition design, mandatory unless using -rankby sd | rsd | entropy" << std::endl
               << "                                     without header line, each row can be either: " << std::endl
               << "                                         sample name, sample condition" << std::endl
               << "                                         sample name, sample condition, sample batch (only for lrc, nbc, and svm)" << std::endl;
@@ -191,7 +199,7 @@ void ParseOptions(int argc, char *argv[],
         PrintRankHelper();
         throw std::invalid_argument("-rankby STR is mandatory");
     }
-    if (rk_mthd != "sd" && dsgn_path.empty())
+    if (rk_mthd != "sd" && rk_mthd != "rsd" && rk_mthd != "entropy" && dsgn_path.empty())
     {
         PrintRankHelper();
         throw std::invalid_argument("-design STR is mandatory");

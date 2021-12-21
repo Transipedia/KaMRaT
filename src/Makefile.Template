@@ -11,8 +11,8 @@ kamratIndex : kamratIndex.cpp utils
 kamratMerge : kamratMerge.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp utils
 	g++ -c kamratMerge.cpp data_struct/contig_elem.cpp data_struct/merge_knot.cpp utils/seq_coding.cpp utils/index_loading.cpp utils/vect_opera.cpp
 
-kamratRank : kamratRank.cpp data_struct/scorer.cpp data_struct/feature_elem.cpp
-	g++ -c kamratRank.cpp data_struct/scorer.cpp data_struct/feature_elem.cpp -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include $(CPPFLAGS)
+kamratRank : kamratRank.cpp data_struct/scorer.cpp data_struct/feature_elem.cpp utils/vect_opera.cpp
+	g++ -c kamratRank.cpp data_struct/scorer.cpp data_struct/feature_elem.cpp utils/vect_opera.cpp -fopenmp -lmlpack -larmadillo -I/path_to_conda_mlpack_env/include $(CPPFLAGS)
 
 kamratFilter : kamratFilter.cpp utils
 	g++ -c kamratFilter.cpp utils/index_loading.cpp $(CPPFLAGS)
