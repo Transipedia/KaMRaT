@@ -9,7 +9,10 @@ toyroom/tmp/
 test*/
 kamrat-simg/
 notes.txt
+.snakejobs/
+snakejobs*
 .snakemake/
+workflow*.txt
 .runinfo/
 src/Makefile
 .Rhistory

@@ -1,0 +1,9 @@
+  
+{
+    "fastq_dir": "/store/EQUIPES/SSFA/MEMBERS/thi-ngoc-ha.nguyen/Prostate_TCGA/data/",
+    "smp_condi_file": "sample-conditions/PRADtcga.tsv",
+    "res_dir": "/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/KaMRaT-paper/PRADtcga/",
+    "tmp_dir": "/data/work/I2BC/haoliang.xue/kamrat.idx/PRADtcga/",
+    "top_num": 1500,
+    "top_perc": 0.00005
+}

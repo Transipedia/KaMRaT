@@ -1,0 +1,13 @@
+{
+  "input_file": "/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/KaMRaT-paper/LUADseo/kamrat_res/all-samples/corr-rank-merge/top-contig-counts-pearson.tsv.gz",
+  "sequence_col": "contig",
+  "id_col": "tag",
+  "map_to" : ["human"],
+  "supp_map_to" : ["RDP"],
+  "RDP_fasta" : "/store/EQUIPES/SSFA/antoine.laine/General_Annot_Tool/bacteria_index/RDP.fasta",
+  "human_index" : "/store/EQUIPES/SSFA/antoine.laine/General_Annot_Tool/human_index",
+  "output_dir": "/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/KaMRaT-paper/LUADseo/kamrat_res/all-samples/corr-rank-merge/",
+  "threads": 4,
+  "library_type": "unstranded"
+}
+

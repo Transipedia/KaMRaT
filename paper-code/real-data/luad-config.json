@@ -1,0 +1,9 @@
+  
+{
+    "fastq_dir": "/store/EQUIPES/SSFA/Data/LUAD/LUADseo/rawfq/",
+    "smp_condi_file": "sample-conditions/LUADseo.tsv",
+    "res_dir": "/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/KaMRaT-paper/LUADseo/",
+    "tmp_dir": "/data/work/I2BC/haoliang.xue/kamrat.idx/LUADseo/",
+    "top_num": 200000,
+    "top_perc": 0.02
+}
