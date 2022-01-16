@@ -20,11 +20,11 @@ evalRow <- function(X) {
     library(e1071) # NBC, LR
     library(DescTools) # Entropy
     
-    work.dir <- "/home/haoliang.xue/Documents/development/KaMRaT/toyroom"
+    work.dir <- "../"
     
     smp.condi.categ <- read.table(paste0(work.dir, "/data/sample-condition.toy.tsv"))
     names(smp.condi.categ) <- c("sample", "condition")
-    smp.condi.categ$condition <- as.numeric(smp.condi.categ$condition) - 1
+    smp.condi.categ$condition <- as.numeric(smp.condi.categ$condition == unique(smp.condi.categ$condition)[2])
     
     smp.condi.cntnu <- read.table(paste0(work.dir, "/data/sample-condition.toy2.tsv"))
     names(smp.condi.cntnu) <- c("sample", "condition")
@@ -95,11 +95,11 @@ evalRow <- function(X) {
                       "spearman" = sp.cor,
                       "sd" = s,
                       "rsd1" = rsd1,
-		      "rsd2" = rsd2,
+                      "rsd2" = rsd2,
                       "entropy" = etp))
 }
 
-cl <- makeCluster(10)
+cl <- makeCluster(4)
 eval.res <- parApply(cl = cl, tab.in, MARGIN = 1, FUN = evalRow) %>%
     do.call(what = rbind)
 stopCluster(cl)
