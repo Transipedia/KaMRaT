@@ -4,7 +4,7 @@
 void RankWelcome()
 {
     std::cerr << "KaMRaT rank: rank features according to their association with sample conditions" << std::endl
-              << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
+              << "-----------------------------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintRankHelper()
@@ -27,9 +27,10 @@ void PrintRankHelper()
               << "                                         spearman        Spearman correlation with the continuous sample condition" << std::endl
               << "                                     unsupervised evaluation (no design file required)" << std::endl
               << "                                         sd              standard deviation" << std::endl
-              << "                                         rsd             relative standard deviation" << std::endl
+              << "                                         rsd1            standard deviation adjusted by mean" << std::endl
+              << "                                         rsd2            standard deviation adjusted by min" << std::endl
               << "                                         entropy         entropy of sample counts + 1" << std::endl;
-    std::cerr << "            -design STR          Path to file indicating sample-condition design, mandatory unless using -rankby sd | rsd | entropy" << std::endl
+    std::cerr << "            -design STR          Path to file indicating sample-condition design, mandatory unless using sd, rsd1, rsd2, entropy" << std::endl
               << "                                     without header line, each row can be either: " << std::endl
               << "                                         sample name, sample condition" << std::endl
               << "                                         sample name, sample condition, sample batch (only for lrc, nbc, and svm)" << std::endl;
@@ -199,7 +200,7 @@ void ParseOptions(int argc, char *argv[],
         PrintRankHelper();
         throw std::invalid_argument("-rankby STR is mandatory");
     }
-    if (rk_mthd != "sd" && rk_mthd != "rsd" && rk_mthd != "entropy" && dsgn_path.empty())
+    if (rk_mthd != "sd" && rk_mthd != "rsd1" && rk_mthd != "rsd2" && rk_mthd != "entropy" && dsgn_path.empty())
     {
         PrintRankHelper();
         throw std::invalid_argument("-design STR is mandatory");

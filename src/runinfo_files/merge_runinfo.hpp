@@ -19,7 +19,7 @@ void PrintMergeHelper()
               << std::endl;
     std::cerr << "[OPTION]    -h,-help               Print the helper" << std::endl;
     std::cerr << "            -idxdir STR            Indexing folder by KaMRaT index, mandatory" << std::endl;
-    std::cerr << "            -overlap MAX-MIN       Overlap range for extension, mandatory" << std::endl
+    std::cerr << "            -overlap MAX-MIN       Overlap range for extension, by default: from (k-1) to \u230Ak/2\u230B" << std::endl
               << "                                       MIN and MAX are integers, MIN <= MAX < k-mer length" << std::endl;
     std::cerr << "            -with STR1[:STR2]      File indicating k-mers to be extended (STR1) and rep-mode (STR2)" << std::endl
               << "                                       if not provided, all indexed k-mers are used for extension" << std::endl

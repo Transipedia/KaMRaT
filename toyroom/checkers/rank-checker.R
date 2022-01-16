@@ -6,7 +6,7 @@ library(parallel)
 library(foreach)
 library(tidyr)
 
-work.dir <- "/home/haoliang.xue/Documents/development/KaMRaT/toyroom"
+work.dir <- "../"
 
 tab.in <- read.table(gzfile(paste0(work.dir, "/data/kmer-counts.subset4toy.tsv.gz")), 
                      header = T, row.names = 1)
@@ -32,8 +32,8 @@ evalRow <- function(X) {
     
     X.df <- data.frame("sample" = names(X), "count" = as.numeric(X))
     s <- sd(X.df$count) # sd
-    m <- min(X.df$count)
-    rsd <- s / max(c(1, m)) # rsd
+    rsd1 <- s / max(c(1, mean(X.df$count))) # sd/mean
+    rsd2 <- s / max(c(1, min(X.df$count))) # sd/min
     etp <- Entropy(X.df$count + 1) # entropy
     
     df.categ <- merge(x = X.df, y = smp.condi.categ, by = "sample")
@@ -93,8 +93,9 @@ evalRow <- function(X) {
                       "Bayes.acc" = nbc.acc,
                       "pearson" = ps.cor,
                       "spearman" = sp.cor,
-                      "stddev" = s,
-                      "relat.stddev" = rsd,
+                      "sd" = s,
+                      "rsd1" = rsd1,
+		      "rsd2" = rsd2,
                       "entropy" = etp))
 }
 

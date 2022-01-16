@@ -22,7 +22,8 @@
  * spearman      spearman correlation                           [continuous supervised] *
  * ------------------------------------------------------------------------------------ *
  * sd            standard deviation                                    [non-supervised] *
- * rsd           relative standard deviation                           [non-supervised] *
+ * rsd1          standard deviation adjusted by mean                   [non-supervised] *
+ * rsd2          standard deviation adjusted by min                    [non-supervised] *
 \* ==================================================================================== */
 
 const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y);  // in utils/vect_opera.cpp
@@ -70,9 +71,13 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     {
         return ScorerCode::kSD;
     }
-    else if (scorer_str == "rsd")
+    else if (scorer_str == "rsd1")
     {
-        return ScorerCode::kRSD;
+        return ScorerCode::kRSD1;
+    }
+    else if (scorer_str == "rsd2")
+    {
+        return ScorerCode::kRSD2;
     }
     else if (scorer_str == "entropy")
     {
@@ -237,7 +242,14 @@ const double CalcSDScore(const arma::Mat<double> &arma_count_vect)
     return arma::mean(arma::stddev(arma_count_vect, 0, 1)); // arma_count_vect is not processed by .elem(), so still row vectors
 }
 
-const double CalcRSDScore(const arma::Mat<double> &arma_count_vect)
+const double CalcRSD1Score(const arma::Mat<double> &arma_count_vect)
+{
+    double sd = arma::mean(arma::stddev(arma_count_vect, 0, 1)),
+           mean = arma::mean(arma::mean(arma_count_vect, 1));
+    return (mean <= 1 ? sd : (sd / mean));
+}
+
+const double CalcRSD2Score(const arma::Mat<double> &arma_count_vect)
 {
     double sd = arma::mean(arma::stddev(arma_count_vect, 0, 1)),
            min = arma_count_vect.min();
@@ -327,8 +339,10 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
         return CalcSpearmanScore(cntnu_target_vect_, count_vect);
     case ScorerCode::kSD:
         return CalcSDScore(arma_count_vect);
-    case ScorerCode::kRSD:
-        return CalcRSDScore(arma_count_vect);
+    case ScorerCode::kRSD1:
+        return CalcRSD1Score(arma_count_vect);
+    case ScorerCode::kRSD2:
+        return CalcRSD2Score(arma_count_vect);
     case ScorerCode::kEntropy:
         return CalcEntropyScore(arma_count_vect);
     default:
