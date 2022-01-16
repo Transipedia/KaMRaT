@@ -104,6 +104,7 @@ eval.res <- parApply(cl = cl, tab.in, MARGIN = 1, FUN = evalRow) %>%
     do.call(what = rbind)
 stopCluster(cl)
 eval.res$ttest.padj <- p.adjust(eval.res$ttest.praw, method = "BH") # ttest.padj
+eval.res <- eval.res[, -1]
 
 eval.res$tag <- rownames(eval.res)
 eval.res.long <- pivot_longer(eval.res, cols = -tag, names_to = "method", values_to = "score.R")
@@ -122,6 +123,6 @@ for (f in dir(paste0(work.dir, "/output/kamrat-rank/"))) {
 
 kamrat.res.long <- pivot_longer(kamrat.res, cols = -tag, names_to = "method", values_to = "score.kamrat")
 
-cmp.res <- merge(kamrat.res.long, eval.res.long, by = c("tag", "method"))
+cmp.res <- merge(kamrat.res.long, eval.res.long, by = c("tag", "method"), all = T)
 cmp.res$diff <- abs(cmp.res$score.kamrat - cmp.res$score.R)
 cmp.res$relat.diff <- abs(cmp.res$diff / cmp.res$score.R)
