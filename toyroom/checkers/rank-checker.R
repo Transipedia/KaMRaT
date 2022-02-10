@@ -34,6 +34,7 @@ evalRow <- function(X) {
     s <- sd(X.df$count) # sd
     rsd1 <- s / max(c(1, mean(X.df$count))) # sd/mean
     rsd2 <- s / max(c(1, min(X.df$count))) # sd/min
+    rsd3 <- s / max(c(1, median(X.df$count))) # sd/median
     etp <- Entropy(X.df$count + 1) # entropy
     
     df.categ <- merge(x = X.df, y = smp.condi.categ, by = "sample")
@@ -96,6 +97,7 @@ evalRow <- function(X) {
                       "sd" = s,
                       "rsd1" = rsd1,
                       "rsd2" = rsd2,
+                      "rsd3" = rsd3,
                       "entropy" = etp))
 }
 
@@ -104,7 +106,7 @@ eval.res <- parApply(cl = cl, tab.in, MARGIN = 1, FUN = evalRow) %>%
     do.call(what = rbind)
 stopCluster(cl)
 eval.res$ttest.padj <- p.adjust(eval.res$ttest.praw, method = "BH") # ttest.padj
-eval.res <- eval.res[, -1]
+eval.res <- eval.res[, -1] # remove the ttest.praw column
 
 eval.res$tag <- rownames(eval.res)
 eval.res.long <- pivot_longer(eval.res, cols = -tag, names_to = "method", values_to = "score.R")
@@ -125,4 +127,7 @@ kamrat.res.long <- pivot_longer(kamrat.res, cols = -tag, names_to = "method", va
 
 cmp.res <- merge(kamrat.res.long, eval.res.long, by = c("tag", "method"), all = T)
 cmp.res$diff <- abs(cmp.res$score.kamrat - cmp.res$score.R)
-cmp.res$relat.diff <- abs(cmp.res$diff / cmp.res$score.R)
+cmp.res$relat.diff <- ifelse(cmp.res$score.R == 0, 
+                             yes = cmp.res$diff, no = abs(cmp.res$diff / cmp.res$score.R))
+
+cmp.prob <- cmp.res[cmp.res$relat.diff >= 1E-5, ]

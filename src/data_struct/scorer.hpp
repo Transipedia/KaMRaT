@@ -20,11 +20,12 @@ enum ScorerCode
     kSD,
     kRSD1,
     kRSD2,
+    kRSD3,
     kEntropy
 };
 const std::vector<std::string> kScorerNameVect{"ttest.padj", "ttest.pi", "SNR", "DIDS.score", "LR.acc", "Bayes.acc", "SVM.acc",
                                                "pearson", "spearman",
-                                               "sd", "rsd1", "rsd2", "entropy"};
+                                               "sd", "rsd1", "rsd2", "rsd3", "entropy"};
 
 class Scorer
 {

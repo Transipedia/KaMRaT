@@ -24,6 +24,7 @@
  * sd            standard deviation                                    [non-supervised] *
  * rsd1          standard deviation adjusted by mean                   [non-supervised] *
  * rsd2          standard deviation adjusted by min                    [non-supervised] *
+ * rsd3          standard deviation adjusted by median                 [non-supervised] *
 \* ==================================================================================== */
 
 const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y);  // in utils/vect_opera.cpp
@@ -78,6 +79,10 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     else if (scorer_str == "rsd2")
     {
         return ScorerCode::kRSD2;
+    }
+    else if (scorer_str == "rsd3")
+    {
+        return ScorerCode::kRSD3;
     }
     else if (scorer_str == "entropy")
     {
@@ -256,6 +261,13 @@ const double CalcRSD2Score(const arma::Mat<double> &arma_count_vect)
     return (min <= 1 ? sd : (sd / min));
 }
 
+const double CalcRSD3Score(const arma::Mat<double> &arma_count_vect)
+{
+    double sd = arma::mean(arma::stddev(arma_count_vect, 0, 1)),
+           mdn = arma::mean(arma::median(arma_count_vect, 1));
+    return (mdn <= 1 ? sd : (sd / mdn));
+}
+
 const double CalcEntropyScore(const arma::Mat<double> &arma_count_vect)
 {
     double tot = arma::accu(arma_count_vect + 1), entropy = 0;
@@ -343,6 +355,8 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
         return CalcRSD1Score(arma_count_vect);
     case ScorerCode::kRSD2:
         return CalcRSD2Score(arma_count_vect);
+    case ScorerCode::kRSD3:
+        return CalcRSD3Score(arma_count_vect);
     case ScorerCode::kEntropy:
         return CalcEntropyScore(arma_count_vect);
     default:
