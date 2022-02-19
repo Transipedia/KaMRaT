@@ -41,7 +41,7 @@ mkdir $outdir
 for s in ${sample_list[@]} # $sample_list contains list of considered sample names
 do
 	jellyfish count -m 31 -s 1000000 -C -o $outdir/$s.jf -F 2 <(zcat $indir/$s.R1.fastq.gz) <(zcat $indir/$s.R2.fastq.gz)
-	jellyfish dump -c $outdir/$s.jf | sort -k 1 > $outdir/$s.txt
+	jellyfish dump -c $outdir/$s.jf | sort -k 1 > $outdir/$s.txt # <= here sort is important !
 done
 # Step 2: joinCounts
 echo -n "tag" | gzip -c > $kmer_tab_path
@@ -52,6 +52,8 @@ done
 echo "" | gzip -c >> $kmer_tab_path
 singularity exec --bind /src:/des kamrat.sif joinCounts -r 1 -a 1 $outdir/*.txt | gzip -c >> $kmer_tab_path # no filter of recurrence
 ```
+
+Note: please keep in mind that the ```sort``` after ```jellyfish dump``` is important for joinCounts.
 
 **KaMRaT index**
 
