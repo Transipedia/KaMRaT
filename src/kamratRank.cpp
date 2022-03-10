@@ -46,7 +46,7 @@ const bool MakeFeatureVectFromIndex(featureVect_t &ft_vect, const std::string &i
 
 const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &with_path)
 {
-    bool after_merge(false);
+    bool after_merge(false), read_succ(false);
     std::ifstream with_file(with_path);
     if (!with_file.is_open())
     {
@@ -59,6 +59,7 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &wi
     std::unordered_map<std::string, size_t>::const_iterator it;
     while (with_file >> feature >> _ >> nb_mem_pos)
     {
+        read_succ = true;
         mem_pos_vect.resize(nb_mem_pos);
         with_file.ignore(1);
         with_file.read(reinterpret_cast<char *>(&mem_pos_vect[0]), nb_mem_pos * sizeof(size_t));
@@ -70,6 +71,10 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &wi
     }
     ft_vect.shrink_to_fit();
     with_file.close();
+    if (!read_succ)
+    {
+        throw std::invalid_argument("not valid file for input sequences: " + with_path);
+    }
     return after_merge;
 }
 

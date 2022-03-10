@@ -61,9 +61,10 @@ const bool MakeContigListFromFile(contigVect_t &ctg_vect, const std::string &wit
     std::string kmer_seq;
     size_t nb_kmer, rep_pos;
     float rep_val(0);
-    bool has_value(false);
+    bool has_value(false), read_succ(false);
     while (with_file >> kmer_seq >> rep_val >> nb_kmer)
     {
+        read_succ = true;
         with_file.ignore(1);
         with_file.read(reinterpret_cast<char *>(&rep_pos), sizeof(size_t));
         if (nb_kmer > 1)
@@ -77,6 +78,10 @@ const bool MakeContigListFromFile(contigVect_t &ctg_vect, const std::string &wit
         ctg_vect.emplace_back(std::make_unique<ContigElem>(kmer_seq, rep_pos, rep_val));
     }
     with_file.close();
+    if (!read_succ)
+    {
+        throw std::invalid_argument("not valid file for input sequences: " + with_path);
+    }
     return has_value;
 }
 
