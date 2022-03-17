@@ -17,7 +17,7 @@ do
 	bin/kamrat rank -idxdir toyroom/output/index/ -rankby $m -design toyroom/data/sample-condition.toy2.tsv -outpath toyroom/output/kamrat-rank/kamrat-rank-$m.txt -withcounts
 done
 
-for m in `echo sd rsd1 rsd2 entropy`
+for m in `echo sd rsd1 rsd2 rsd3 entropy`
 do
 	bin/kamrat rank -idxdir toyroom/output/index/ -rankby $m -outpath toyroom/output/kamrat-rank/kamrat-rank-$m.txt -withcounts
 done

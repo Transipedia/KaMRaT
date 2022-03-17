@@ -20,11 +20,11 @@ evalRow <- function(X) {
     library(e1071) # NBC, LR
     library(DescTools) # Entropy
     
-    work.dir <- "/home/haoliang.xue/Documents/development/KaMRaT/toyroom"
+    work.dir <- "../"
     
     smp.condi.categ <- read.table(paste0(work.dir, "/data/sample-condition.toy.tsv"))
     names(smp.condi.categ) <- c("sample", "condition")
-    smp.condi.categ$condition <- as.numeric(smp.condi.categ$condition) - 1
+    smp.condi.categ$condition <- as.numeric(smp.condi.categ$condition == unique(smp.condi.categ$condition)[2])
     
     smp.condi.cntnu <- read.table(paste0(work.dir, "/data/sample-condition.toy2.tsv"))
     names(smp.condi.cntnu) <- c("sample", "condition")
@@ -34,6 +34,7 @@ evalRow <- function(X) {
     s <- sd(X.df$count) # sd
     rsd1 <- s / max(c(1, mean(X.df$count))) # sd/mean
     rsd2 <- s / max(c(1, min(X.df$count))) # sd/min
+    rsd3 <- s / max(c(1, median(X.df$count))) # sd/median
     etp <- Entropy(X.df$count + 1) # entropy
     
     df.categ <- merge(x = X.df, y = smp.condi.categ, by = "sample")
@@ -95,15 +96,17 @@ evalRow <- function(X) {
                       "spearman" = sp.cor,
                       "sd" = s,
                       "rsd1" = rsd1,
-		      "rsd2" = rsd2,
+                      "rsd2" = rsd2,
+                      "rsd3" = rsd3,
                       "entropy" = etp))
 }
 
-cl <- makeCluster(10)
+cl <- makeCluster(4)
 eval.res <- parApply(cl = cl, tab.in, MARGIN = 1, FUN = evalRow) %>%
     do.call(what = rbind)
 stopCluster(cl)
 eval.res$ttest.padj <- p.adjust(eval.res$ttest.praw, method = "BH") # ttest.padj
+eval.res <- eval.res[, -1] # remove the ttest.praw column
 
 eval.res$tag <- rownames(eval.res)
 eval.res.long <- pivot_longer(eval.res, cols = -tag, names_to = "method", values_to = "score.R")
@@ -122,6 +125,9 @@ for (f in dir(paste0(work.dir, "/output/kamrat-rank/"))) {
 
 kamrat.res.long <- pivot_longer(kamrat.res, cols = -tag, names_to = "method", values_to = "score.kamrat")
 
-cmp.res <- merge(kamrat.res.long, eval.res.long, by = c("tag", "method"))
+cmp.res <- merge(kamrat.res.long, eval.res.long, by = c("tag", "method"), all = T)
 cmp.res$diff <- abs(cmp.res$score.kamrat - cmp.res$score.R)
-cmp.res$relat.diff <- abs(cmp.res$diff / cmp.res$score.R)
+cmp.res$relat.diff <- ifelse(cmp.res$score.R == 0, 
+                             yes = cmp.res$diff, no = abs(cmp.res$diff / cmp.res$score.R))
+
+cmp.prob <- cmp.res[cmp.res$relat.diff >= 1E-5, ]

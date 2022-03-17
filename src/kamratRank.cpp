@@ -46,7 +46,7 @@ const bool MakeFeatureVectFromIndex(featureVect_t &ft_vect, const std::string &i
 
 const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &with_path)
 {
-    bool after_merge(false);
+    bool after_merge(false), read_succ(false);
     std::ifstream with_file(with_path);
     if (!with_file.is_open())
     {
@@ -59,6 +59,7 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &wi
     std::unordered_map<std::string, size_t>::const_iterator it;
     while (with_file >> feature >> _ >> nb_mem_pos)
     {
+        read_succ = true;
         mem_pos_vect.resize(nb_mem_pos);
         with_file.ignore(1);
         with_file.read(reinterpret_cast<char *>(&mem_pos_vect[0]), nb_mem_pos * sizeof(size_t));
@@ -70,6 +71,10 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &wi
     }
     ft_vect.shrink_to_fit();
     with_file.close();
+    if (!read_succ)
+    {
+        throw std::invalid_argument("not valid file for input sequences: " + with_path);
+    }
     return after_merge;
 }
 
@@ -131,7 +136,8 @@ void SortScore(featureVect_t &ft_vect, const ScorerCode scorer_code)
     }
     else if (scorer_code == ScorerCode::kTtestPi || scorer_code == ScorerCode::kDIDS || scorer_code == ScorerCode::kLR ||
              scorer_code == ScorerCode::kBayes || scorer_code == ScorerCode::kSVM ||
-             scorer_code == ScorerCode::kSD || scorer_code == ScorerCode::kRSD1 || scorer_code == ScorerCode::kRSD2) // dec
+             scorer_code == ScorerCode::kSD || 
+             scorer_code == ScorerCode::kRSD1 || scorer_code == ScorerCode::kRSD2 || scorer_code == ScorerCode::kRSD3) // dec
     {
         auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
             -> bool { return ft1->GetScore() > ft2->GetScore(); };
@@ -245,7 +251,7 @@ int RankMain(int argc, char *argv[])
                                     std::to_string(static_cast<size_t>(sel_top + 0.00005)) + ">" + std::to_string(ft_vect.size()));
     }
     std::vector<std::string> col_target_vect;
-    if (rk_mthd != "sd" && rk_mthd != "rsd1" && rk_mthd != "rsd2" && rk_mthd != "entropy")
+    if (rk_mthd != "sd" && rk_mthd != "rsd1" && rk_mthd != "rsd2" && rk_mthd != "rsd3" && rk_mthd != "entropy")
     {
         ParseDesign(col_target_vect, dsgn_path, colname_vect);
     }
