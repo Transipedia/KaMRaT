@@ -5,7 +5,9 @@
 #       nohup snakemake --snakefile f_unsupv-rk-merge.smk --cluster "qsub -q common -l nodes=node27:ppn=1 -m ea -M haoliang.xue@i2bc.paris-saclay.fr" --jobs 1 -p --latency-wait 60 --rerun-incomplete >> workflow_f_unsuperv-rk-merge_luad.txt &
 
 # Involved programs
-KAMRAT_IMG = "/home/haoliang.xue/tools/KaMRaT-2b3cf6e.sif"
+# KAMRAT_IMG = "/home/haoliang.xue/tools/KaMRaT-2b3cf6e.sif"
+# KAMRAT_IMG = "/home/haoliang.xue/tools/KaMRaT-v1.0.1.sif"
+KAMRAT_IMG = "/home/haoliang.xue/tools/KaMRaT.sif"
 
 configfile: "luad-config.json"
 
@@ -15,7 +17,7 @@ MAT_DIR = RES_DIR + "matrices/"
 UNSUPV_DIR = RES_DIR + "kamrat_res/all-samples/unsupv-rank-merge/"
 IDX_DIR = "/data/work/I2BC/haoliang.xue/kamrat.idx/LUADseo/all-samples/index-norm/"
 
-MTHD_LIST = ["sd", "rsd", "entropy"]
+MTHD_LIST = ["sd", "rsd1", "rsd2", "rsd3", "entropy"]
 
 rule all:
     input:
