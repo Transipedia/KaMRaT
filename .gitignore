@@ -5,8 +5,8 @@
 .vscode/
 bin/
 *.bin
+**/__pycache__/
 toyroom/tmp/
-test*/
 kamrat-simg/
 toyroom/output/
 notes.txt
