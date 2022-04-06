@@ -165,5 +165,46 @@ class TestCommands(unittest.TestCase):
 
         rmtree(test_dir)
 
+
+    def test_rank(self):
+        test_dir = "filter_tmp_test"
+        data = path.join("toyroom", "data")
+
+        # Remove previous test remainings
+        if path.exists(test_dir):
+            rmtree(test_dir)
+        mkdir(test_dir)
+
+        # Define inputs and outputs for index
+        intab = path.join(data, "kmer-counts.subset4toy.tsv.gz")
+        idx_dir = path.join(test_dir, "kamrat.idx")
+        mkdir(idx_dir)
+        index_stdout = path.join(test_dir, "index.stdout")
+
+        # Index
+        cmd = f"{kamrat} index -intab {intab} -outdir {idx_dir} -klen 31 -unstrand -nfbase 1000000000"
+        process = None
+        with open(index_stdout, "w") as idx_out:
+            process = subprocess.run(cmd.split(" "), stdout=idx_out, stderr=idx_out)
+        self.assertEqual(0, process.returncode)
+
+        # Define rank i/o
+        condition = path.join(data, "sample-condition.toy.tsv")
+        ranked = path.join(test_dir, "top-kmers.bin")
+        rank_out = path.join(test_dir, "rank.stdout")
+        
+        # Rank
+        cmd = f"{kamrat} rank -idxdir {idx_dir} -rankby ttest.padj -design {condition} -seltop 0.1 -outpath {ranked}"
+        with open(rank_out, "w") as rk_out:
+            process = subprocess.run(cmd.split(" "), stdout=rk_out, stderr=rk_out)
+        self.assertEqual(0, process.returncode)
+
+        self.assertTrue(path.exists(ranked))
+        stream = os.popen(f"md5sum {ranked}")
+        self.assertTrue(stream.read().startswith("05eccafdaa7836ed2efe59821ef72289"))
+        stream.close()
+
+        rmtree(test_dir)
+
 if __name__ == '__main__':
   unittest.main()
