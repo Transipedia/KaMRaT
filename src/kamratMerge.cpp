@@ -85,6 +85,8 @@ const bool MakeContigListFromFile(contigVect_t &ctg_vect, const std::string &wit
     return has_value;
 }
 
+/**
+ */
 void MakeOverlapKnots(fix2knot_t &hashed_merge_knots, const contigVect_t &ctg_vect, const bool stranded, const size_t i_ovlp)
 {
     for (size_t i_ctg(0); i_ctg < ctg_vect.size(); ++i_ctg)
@@ -325,6 +327,8 @@ int MergeMain(int argc, char **argv)
     bool stranded(false);
     std::vector<std::string> colname_vect;
     ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, with_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_mode);
+
+    // --- Loading ---
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
     if (k_len == 0)
     {

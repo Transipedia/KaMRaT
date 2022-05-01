@@ -37,8 +37,10 @@ void CalcVectRank(std::vector<float> &x_rk, const std::vector<float> &x)
     s.clear();
 }
 
-const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y)
+//#include <iostream>
+const double CalcPearsonCorr_old(const std::vector<float> &x, const std::vector<float> &y)
 {
+    //std::cout << "vec size: " << x.size() << std::endl;
     const double mean_x = CalcVectMean(x), mean_y = CalcVectMean(y);
     double prod_sum(0), t1_sqsum(0), t2_sqsum(0);
     for (size_t i(0); i < x.size(); ++i)
@@ -47,6 +49,39 @@ const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<floa
         t1_sqsum += ((x[i] - mean_x) * (x[i] - mean_x));
         t2_sqsum += ((y[i] - mean_y) * (y[i] - mean_y));
     }
+    if (t1_sqsum == 0 || t2_sqsum == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return (prod_sum / sqrt(t1_sqsum * t2_sqsum));
+    }
+}
+
+const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y)
+{
+    // Compute prerequire for pearson
+    double sum_x(0), sum_y(0), sum_x2(0), sum_y2(0), sum_xy(0);
+    for (size_t i(0); i < x.size(); ++i)
+    {
+        double xi = static_cast<double>(x[i]);
+        double yi = static_cast<double>(y[i]);
+
+        sum_x += xi;
+        sum_x2 += xi * xi;
+        sum_y += yi;
+        sum_y2 += yi * yi;
+        sum_xy += xi * yi;
+    }
+    
+    // Compute Pearson
+    double prod_sum(0), t1_sqsum(0), t2_sqsum(0);
+    prod_sum = sum_xy - sum_x * sum_y / x.size();
+    t1_sqsum = sum_x2 - sum_x * sum_x / x.size();
+    t2_sqsum = sum_y2 - sum_y * sum_y / x.size();
+
+    // Conclude
     if (t1_sqsum == 0 || t2_sqsum == 0)
     {
         return 0;

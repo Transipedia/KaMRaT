@@ -39,9 +39,8 @@ const size_t CountColumn(const std::string &line_str)
     size_t nb_smp(0);
     std::istringstream conv(line_str);
     std::string term;
-    for (conv >> term; conv >> term; ++nb_smp) // count sample number, skipping the first column
-    {
-    }
+    // count sample number, skipping the first column
+    for (conv >> term; conv >> term; ++nb_smp){}
     if (nb_smp == 0)
     {
         throw std::domain_error("input table parsing failed: sample number equals to 0");
@@ -61,10 +60,10 @@ void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, 
     while (std::getline(kmer_count_instream, line_str))
     {
         conv.str(line_str);
-        for (conv >> term; conv >> term; count_vect.push_back(std::stof(term))) // parse feature name and following count columns
-        {
-        }
-        if (count_vect.size() != nb_smp) // check if all rows have same number of columns as the header row
+        // parse feature name and following count columns
+        for (conv >> term; conv >> term; count_vect.push_back(std::stof(term))) {}
+        // check if all rows have same number of columns as the header row
+        if (count_vect.size() != nb_smp) 
         {
             throw std::length_error("sample numbers are not consistent: " + std::to_string(nb_smp) + " vs " + std::to_string(count_vect.size()));
         }
@@ -207,6 +206,7 @@ int IndexMain(int argc, char **argv)
                   << std::endl;
     }
 
+    // Create and open outfiles
     std::ofstream idx_meta(out_dir + "/idx-meta.bin"), idx_pos(out_dir + "/idx-pos.bin"), idx_mat(out_dir + "/idx-mat.bin");
     if (!idx_meta.is_open() || !idx_pos.is_open() || !idx_mat.is_open())
     {
@@ -244,6 +244,7 @@ int IndexMain(int argc, char **argv)
     }
     inbuf.push(count_tab);
     std::istream kmer_count_instream(&inbuf);
+    // Load and index the matrix
     ScanIndex(idx_meta, idx_pos, idx_mat, kmer_count_instream, nf_vect, k_len, stranded, nf_base);
     count_tab.close();
     idx_mat.close(), idx_pos.close(), idx_meta.close();
