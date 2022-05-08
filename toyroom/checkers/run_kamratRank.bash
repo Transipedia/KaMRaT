@@ -22,4 +22,4 @@ do
 	bin/kamrat rank -idxdir toyroom/output/index/ -rankby $m -outpath toyroom/output/kamrat-rank/kamrat-rank-$m.txt -withcounts
 done
 
-rm -rf toyroom/output/index/
+# rm -rf toyroom/output/index/
