@@ -94,12 +94,13 @@ const ScorerCode ParseScorerCode(const std::string &scorer_str)
     }
 }
 
-const size_t ParseCategoricalVector(arma::Row<size_t> &arma_target_vect, const std::vector<std::string> &categorical_vect)
+const size_t ParseCategoricalVector(arma::Row<size_t> &arma_target_vect, std::vector<size_t> &target_vect, const std::vector<std::string> &categorical_vect)
 {
     static std::map<std::string, size_t> str2label;
 
     const size_t nb_smp = categorical_vect.size();
     arma_target_vect.set_size(nb_smp);
+    target_vect.reserve(nb_smp);
     size_t nb_label(0);
     for (size_t i(0); i < nb_smp; ++i)
     {
@@ -109,6 +110,7 @@ const size_t ParseCategoricalVector(arma::Row<size_t> &arma_target_vect, const s
             nb_label++;
         }
         arma_target_vect[i] = ins_condi.first->second;
+        target_vect.push_back(ins_condi.first->second);
     }
 
     str2label.clear();
@@ -125,7 +127,90 @@ void ParseContinuousVector(std::vector<float> &target_vect, const std::vector<st
     }
 }
 
-const double CalcTtestScore(const arma::Mat<double> &&arma_count_vect1, const arma::Mat<double> &&arma_count_vect2, const bool return_pi)
+const double MixedCalcTtestScore(const std::vector<float> &values, const std::vector<size_t> categories, const bool return_pi)
+{
+   // Mean and std dev serie 1
+    double sum1(0), sq_sum1(0), nb1(0);
+    double sum2(0), sq_sum2(0), nb2(0);
+    uint idx = 0;
+    for (float fvalue : values) {
+        double value = log2(static_cast<double>(fvalue) + 1);
+        double sq = value * value;
+        if (categories[idx++] == 0) {
+            sum1 += value;
+            sq_sum1 += sq;
+            nb1 += 1;
+        } else {
+            sum2 += value;
+            sq_sum2 += sq;
+            nb2 += 1;
+        }
+    }
+    double mean1 = sum1 / nb1;
+    double mean2 = sum2 / nb2;
+    double stddev1 = (sq_sum1 - (sum1 * sum1) / nb1) / nb1;
+    double stddev2 = (sq_sum2 - (sum2 * sum2) / nb2) / nb2;
+
+    // Test
+    double praw;
+    if (stddev1 == 0 && stddev2 == 0)
+        praw = 1;
+    else {
+        double t1 = stddev1 * stddev1 / nb1,
+               t2 = stddev2 * stddev2 / nb2,
+               df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (nb1 - 1) + t2 * t2 / (nb2 - 1)),
+               t_stat = (mean1 - mean2) / sqrt(t1 + t2);
+        boost::math::students_t dist(df);
+        praw = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
+    }
+    
+    if (return_pi)
+        return (-log10(praw) * fabs(mean2 - mean1));
+    else
+        return praw;
+}
+
+const double CalcTtestScore(const std::vector<double> &values1, const std::vector<double> &values2, const bool return_pi)
+{
+   // Mean and std dev serie 1
+    double sum(0), sq_sum(0), nb1(values1.size()), nb2(values2.size());
+    for (double value : values1) {
+        sum += value;
+        sq_sum += value * value;
+    }
+    double mean1 = sum / values1.size();
+    double stddev1 = (sq_sum - (sum * sum) / nb1) / nb1;
+
+    // Mean and std dev serie 2
+    sum = 0; sq_sum = 0;
+    for (double value : values2) {
+        sum += value;
+        sq_sum += value * value;
+    }
+    double mean2 = sum / values2.size();
+    double stddev2 = (sq_sum - (sum * sum) / nb2) / nb2;
+
+    // Test
+    double praw;
+    if (stddev1 == 0 && stddev2 == 0)
+        praw = 1;
+    else {
+        double t1 = stddev1 * stddev1 / nb1,
+               t2 = stddev2 * stddev2 / nb2,
+               df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (nb1 - 1) + t2 * t2 / (nb2 - 1)),
+               t_stat = (mean1 - mean2) / sqrt(t1 + t2);
+        boost::math::students_t dist(df);
+        praw = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
+    }
+    
+    if (return_pi)
+        return (-log10(praw) * fabs(mean2 - mean1));
+    else
+        return praw;
+}
+
+
+const double CalcTtestScore_old(const arma::Mat<double> &&arma_count_vect1, const arma::Mat<double> &&arma_count_vect2, const bool return_pi)
 {
     double mean1 = arma::mean(arma::mean(arma_count_vect1)), mean2 = arma::mean(arma::mean(arma_count_vect2)),
            stddev1 = arma::mean(arma::stddev(arma_count_vect1)), stddev2 = arma::mean(arma::stddev(arma_count_vect2)),
@@ -285,7 +370,7 @@ Scorer::Scorer(const std::string &scorer_str, size_t nfold, const std::vector<st
         scorer_code_ == ScorerCode::kSNR || scorer_code_ == ScorerCode::kDIDS ||
         scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // feature selection with categorical output
     {
-        nclass_ = ParseCategoricalVector(arma_categ_target_vect_, col_target_vect);
+        nclass_ = ParseCategoricalVector(arma_categ_target_vect_, categ_target_vect_, col_target_vect);
     }
     else if (scorer_code_ == ScorerCode::kPearson || scorer_code_ == ScorerCode::kSpearman) // feature selection with continous output
     {
@@ -312,8 +397,46 @@ const std::string &Scorer::GetScorerName() const
     return kScorerNameVect[scorer_code_];
 }
 
+using namespace std;
+
+
 const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
 {
+    // // Create used vector
+    // vector<double> cat1_values, cat2_values;
+    // cat1_values.reserve(count_vect.size());
+    // cat2_values.reserve(count_vect.size());
+
+    // if (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi) // if t-test, apply log2(x + 1) transformation
+    // {
+    //     uint idx = 0;
+    //     for (float f : count_vect) {
+    //         if (categ_target_vect_[idx++] == 0)
+    //             cat1_values.push_back(log2(static_cast<double>(f) + 1));
+    //         else
+    //             cat2_values.push_back(log2(static_cast<double>(f) + 1));
+    //     }
+    // }
+    // else if (scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // if ML, apply standarization
+    // {
+    //     // arma_count_vect = (arma_count_vect - arma::mean(arma::mean(arma_count_vect, 1))) / arma::mean(arma::stddev(arma_count_vect, 0, 1));
+    // }
+    // // arma_count_vect.print("Count vector after transformation:");
+
+    switch (scorer_code_)
+    {
+    case ScorerCode::kTtestPadj:
+    case ScorerCode::kTtestPi:
+        return MixedCalcTtestScore(count_vect, categ_target_vect_, scorer_code_ == ScorerCode::kTtestPi);
+    default:
+        return std::nan("");
+    }
+}
+
+
+const double Scorer::EstimateScore_old(const std::vector<float> &count_vect) const
+{
+    std::cout << count_vect.size() << std::endl;
     static arma::Mat<double> arma_count_vect;
     arma_count_vect = arma::conv_to<arma::Row<double>>::from(count_vect);
     // arma_count_vect.print("Count vector before transformation: ");
@@ -331,7 +454,7 @@ const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
     {
     case ScorerCode::kTtestPadj:
     case ScorerCode::kTtestPi:
-        return CalcTtestScore(arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 0)),
+        return CalcTtestScore_old(arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 0)),
                               arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 1)),
                               scorer_code_ == ScorerCode::kTtestPi);
     case ScorerCode::kSNR:

@@ -35,11 +35,13 @@ public:
     const ScorerCode GetScorerCode() const;
     const std::string &GetScorerName() const;
     const double EstimateScore(const std::vector<float> &count_vect) const;
+    const double EstimateScore_old(const std::vector<float> &count_vect) const;
 
 private:
     const ScorerCode scorer_code_;             // scoring method code
     const size_t nfold_;                       // prediction class number
     arma::Row<size_t> arma_categ_target_vect_; // armadillo categorical target vector
+    std::vector<size_t> categ_target_vect_;
     std::vector<float> cntnu_target_vect_;     // continuous target vector
     size_t nclass_;                            // classification fold number
 };
