@@ -125,6 +125,24 @@ void ParseContinuousVector(std::vector<float> &target_vect, const std::vector<st
     }
 }
 
+/** Perform one Ttest per row using category 0 as one class and all other categories as the 
+ * second class.
+ * @param matrix The matrix to test
+ * @param return_pi ?
+ * @return A vector containing one Ttest score per row. 
+ */
+using namespace std;
+using namespace arma;
+const std::vector<double> Scorer::CalcTtestScores(const arma::Mat<double> matrix, const bool return_pi) const {
+    std::vector<double> scores;
+    scores.resize(matrix.n_cols);
+
+    arma::Mat<double> means = arma::mean(matrix, 1); // Mean by row
+    cout << means.n_rows << " " << means.n_cols << endl;
+    
+    return scores;
+}
+
 const double CalcTtestScore(const arma::Mat<double> &&arma_count_vect1, const arma::Mat<double> &&arma_count_vect2, const bool return_pi)
 {
     double mean1 = arma::mean(arma::mean(arma_count_vect1)), mean2 = arma::mean(arma::mean(arma_count_vect2)),
@@ -310,6 +328,46 @@ const ScorerCode Scorer::GetScorerCode() const
 const std::string &Scorer::GetScorerName() const
 {
     return kScorerNameVect[scorer_code_];
+}
+
+std::vector<double> Scorer::EstimateScores(const std::vector<std::vector<float> > &count_vects) const {
+    std::vector<double> scores;
+    scores.resize(count_vects.size());
+
+    // Construct arma matrix
+    size_t num_row = count_vects.size();
+    size_t num_col = count_vects[0].size();
+    arma::Mat<double> matrix(num_row, num_col);
+    for (size_t rx=0 ; rx<num_row ; rx++) {
+        for (size_t cx=0 ; cx<num_col ; cx++) {
+            matrix(rx, cx) = static_cast<double>(count_vects[rx][cx]);
+        }
+    }
+
+    // arma_count_vect.print("Count vector before transformation: ");
+    if (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi) // if t-test, apply log2(x + 1) transformation
+    {
+        matrix = log2(matrix + 1);
+    }
+    else if (scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // if ML, apply standarization
+    {
+        std::cerr << "Not implemented: scorer parallel EstimateScore" << std::endl;
+        exit(1);
+        // arma_count_vect = (arma_count_vect - arma::mean(arma::mean(arma_count_vect, 1))) / arma::mean(arma::stddev(arma_count_vect, 0, 1));
+    }
+
+    switch (scorer_code_)
+    {
+    case ScorerCode::kTtestPadj:
+    case ScorerCode::kTtestPi:
+
+        return this->CalcTtestScores(matrix, scorer_code_ == ScorerCode::kTtestPi);
+    default:
+        std::cerr << "Not implemented yet (scorer)" << std::endl;
+        exit(1);
+    }
+
+    return scores;
 }
 
 const double Scorer::EstimateScore(const std::vector<float> &count_vect) const

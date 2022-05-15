@@ -35,6 +35,7 @@ public:
     const ScorerCode GetScorerCode() const;
     const std::string &GetScorerName() const;
     const double EstimateScore(const std::vector<float> &count_vect) const;
+    std::vector<double> EstimateScores(const std::vector<std::vector<float> > &count_vects) const;
 
 private:
     const ScorerCode scorer_code_;             // scoring method code
@@ -42,6 +43,14 @@ private:
     arma::Row<size_t> arma_categ_target_vect_; // armadillo categorical target vector
     std::vector<float> cntnu_target_vect_;     // continuous target vector
     size_t nclass_;                            // classification fold number
+
+    /** Perform one Ttest per row using category 0 as one class and all other categories as the 
+     * second class.
+     * @param matrix The matrix to test
+     * @param return_pi ?
+     * @return A vector containing one Ttest score per row. 
+     */
+    const std::vector<double> CalcTtestScores(const arma::Mat<double> matrix, const bool return_pi) const;
 };
 
 #endif //KAMRAT_DATASTRUCT_SCORER_HPP

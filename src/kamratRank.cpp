@@ -208,6 +208,8 @@ void PrintAsIntermediate(const featureVect_t &ft_vect, const size_t max_to_sel)
     }
 }
 
+using namespace std;
+
 int RankMain(int argc, char *argv[])
 {
     RankWelcome();
@@ -255,13 +257,34 @@ int RankMain(int argc, char *argv[])
     {
         ParseDesign(col_target_vect, dsgn_path, colname_vect);
     }
+
+    // --- Score the vectors ---
+    cout << "--------------------------------------------------------------" << endl;
     Scorer scorer(rk_mthd, nfold, col_target_vect);
-    std::vector<float> count_vect;
-    for (const auto &ft : ft_vect)
-    {
-        ft->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
-        ft->SetScore(scorer.EstimateScore(count_vect));
+    cout << "ft vect size " << ft_vect.size() << endl;
+    
+    std::vector<std::vector<float> > count_vects; // Used to load multiple features
+    uint ftx_step = 100; // Number of feature to read at onece
+    for (uint ftx=0 ; ftx<ft_vect.size() ; ftx += ftx_step) {
+        // 1 - Loading data (sequencial)
+        for (uint offset=0 ; offset<ftx_step ; offset++) {
+            ft_vect[ftx + offset]->EstimateCountVect(count_vects[offset], idx_mat, nb_smp, count_mode);    
+        }
+        // 2 - Estimate score (parallel)
+        std::vector<double> scores = scorer.EstimateScores(count_vects);
+        // 3 - Set the score (sequencial)
+        for (uint offset=0 ; offset<ftx_step ; offset++) {
+            ft_vect[ftx + offset]->SetScore(scores[offset]);
+        }
     }
+    cout << "//////////////////////////////////////////////////////////////" << endl;
+
+    // std::vector<float> count_vect;
+    // for (const auto &ft : ft_vect)
+    // {
+    //     ft->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
+    //     ft->SetScore(scorer.EstimateScore(count_vect));
+    // }
     SortScore(ft_vect, scorer.GetScorerCode());
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
