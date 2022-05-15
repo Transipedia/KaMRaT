@@ -125,21 +125,50 @@ void ParseContinuousVector(std::vector<float> &target_vect, const std::vector<st
     }
 }
 
+using namespace std;
 /** Perform one Ttest per row using category 0 as one class and all other categories as the 
  * second class.
  * @param matrix The matrix to test
  * @param return_pi ?
  * @return A vector containing one Ttest score per row. 
  */
-using namespace std;
-using namespace arma;
 const std::vector<double> Scorer::CalcTtestScores(const arma::Mat<double> matrix, const bool return_pi) const {
     std::vector<double> scores;
-    scores.resize(matrix.n_cols);
+    scores.resize(matrix.n_rows);
 
-    arma::Mat<double> means = arma::mean(matrix, 1); // Mean by row
-    cout << means.n_rows << " " << means.n_cols << endl;
+    // Mask matrix
+    const auto &class0 = matrix.cols(arma::find(arma_categ_target_vect_ == 0));
+    const auto &class1 = matrix.cols(arma::find(arma_categ_target_vect_ != 0));
+
+    arma::Mat<double> means0_m = arma::mean(class0, 1); // Mean by row
+    arma::Mat<double> means1_m = arma::mean(class1, 1); // Mean by row
+
+    arma::Mat<double> stddev0_m = arma::stddev(class0, 0, 1); // stddev by row
+    arma::Mat<double> stddev1_m = arma::stddev(class1, 0, 1); // stddev by row
+
+    uint nb0 = arma::size(arma::find(arma_categ_target_vect_ != 0)).n_rows;
+    uint nb1 = matrix.n_cols - nb0;
     
+    for (uint rx=0 ; rx<matrix.n_rows ; rx++) {
+        double praw, stddev0 = stddev0_m(rx, 0), stddev1 = stddev1_m(rx, 0);
+        double mean0 = means0_m(rx, 0), mean1 = means1_m(rx, 0);
+        if (stddev0 == 0 && stddev1 == 0) {
+            praw = 1;
+        } else {
+            double t0 = stddev0 * stddev0 / nb1,
+                   t1 = stddev1 * stddev1 / nb1,
+                   df = (t0 + t1) * (t0 + t1) / (t0 * t0 / (nb0 - 1) + t1 * t1 / (nb1 - 1)),
+                   t_stat = (mean0 - mean1) / sqrt(t0 + t1);
+            boost::math::students_t dist(df);
+            praw = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
+        }
+        if (return_pi) {
+            scores[rx] = (-log10(praw) * fabs(mean1 - mean0));
+        } else {
+            scores[rx] = praw;
+        }
+    }
+
     return scores;
 }
 

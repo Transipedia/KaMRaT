@@ -208,6 +208,7 @@ void PrintAsIntermediate(const featureVect_t &ft_vect, const size_t max_to_sel)
     }
 }
 
+#include <boost/type_index.hpp>
 using namespace std;
 
 int RankMain(int argc, char *argv[])
@@ -259,25 +260,30 @@ int RankMain(int argc, char *argv[])
     }
 
     // --- Score the vectors ---
-    cout << "--------------------------------------------------------------" << endl;
+    // cout << "--------------------------------------------------------------" << endl;
     Scorer scorer(rk_mthd, nfold, col_target_vect);
-    cout << "ft vect size " << ft_vect.size() << endl;
     
-    std::vector<std::vector<float> > count_vects; // Used to load multiple features
-    uint ftx_step = 100; // Number of feature to read at onece
+    uint ftx_step = 10000; // Number of feature to read at onece
+    std::vector<std::vector<float> > count_vects(ftx_step); // Used to load multiple features
     for (uint ftx=0 ; ftx<ft_vect.size() ; ftx += ftx_step) {
+        // cout << boost::typeindex::type_id_with_cvr<decltype(ft_vect[ftx])>().pretty_name() << endl;
+        // 0 - Resize the offset and vector
+        uint max_offset = std::min(ftx_step, static_cast<uint>(ft_vect.size()) - ftx);
+        if (max_offset < ftx_step)
+            count_vects.resize(max_offset);
         // 1 - Loading data (sequencial)
-        for (uint offset=0 ; offset<ftx_step ; offset++) {
+        for (uint offset=0 ; offset<max_offset ; offset++) {
             ft_vect[ftx + offset]->EstimateCountVect(count_vects[offset], idx_mat, nb_smp, count_mode);    
         }
         // 2 - Estimate score (parallel)
         std::vector<double> scores = scorer.EstimateScores(count_vects);
+        
         // 3 - Set the score (sequencial)
-        for (uint offset=0 ; offset<ftx_step ; offset++) {
+        for (uint offset=0 ; offset<max_offset ; offset++) {
             ft_vect[ftx + offset]->SetScore(scores[offset]);
         }
     }
-    cout << "//////////////////////////////////////////////////////////////" << endl;
+    // cout << "//////////////////////////////////////////////////////////////" << endl;
 
     // std::vector<float> count_vect;
     // for (const auto &ft : ft_vect)
