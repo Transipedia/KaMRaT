@@ -1,6 +1,6 @@
-This folder collects the scripts that validates KaMRaT's functionality. These scripts reproduce the results in the demonstrating article (to add a link), and can be referred to as well for example usage.
+This folder collects the scripts that validate KaMRaT's functionality. These scripts reproduce the results in the demonstrating article (link to be added), and can be referred to as well for example usage.
 
-The different goals for each script is listed below:
+The different goals for each script are listed below:
 
 ```bash
 bench-merge		                     # KaMRaT merge validation
