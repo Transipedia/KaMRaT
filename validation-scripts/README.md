@@ -1,0 +1,31 @@
+This folder collects the scripts that validates KaMRaT's functionality. These scripts reproduce the results in the demonstrating article (to add a link), and can be referred to as well for example usage.
+
+The different goals for each script is listed below:
+
+```bash
+bench-merge		                        # KaMRaT merge validation
+|----- a_dataPrepare.smk                        #   Polyester simulation, k-mer count table preparation
+|----- b_kamrat.smk                             #   KaMRaT index-merge, blastn for aligning KaMRaT contigs
+|----- c_rnaspades.smk                          #   rnaSPAdes assembling, blastn for aligning rnaSPAdes contigs
+|----- d1_misextension_ratio.R                  #   fig 2A
+|----- d2_threshold-tuning.R                    #   fig 2B
+|----- d3_cmp2spades.R                          #   fig 2C
+bench-rank	                                # KaMRaT rank validation
+|----- a_rankEvaluate.smk                       #   compcodeR simulation, KaMRaT index-rank
+|----- b1_prcurves.R                            #   fig 3B
+|----- b2_hclust.R                              #   fig 3C
+|----- b3_upset.R                               #   fig S1
+other-applications                              # KaMRaT application on LUADseo and PRADtcga datasets
+|----- a_dataPrepare.smk                        #   adapter trimming, QC, and k-mer table preparation
+|----- b_iMOKA.smk                              #   iMOKA application
+|----- c_merge-rank.smk                         #   KaMRaT index-merge-rank application (supervised)
+|----- d_rank-merge.smk                         #   KaMRaT index-rank-merge application (supervised)
+|----- e_filter-merge.smk                       #   KaMRaT index-filter-merge application
+|----- e1_specctg-heatmap.R                     #   fig S5
+|----- f_unsupv-rk-merge.smk                    #   KaMRaT index-rank-merge application (unsupervised)
+|----- g_corr-rk-merge.smk                      #   KaMRaT index-rank-merge application (correlated features)
+|----- g1_corr-heatmaps.R                       #   fig S4
+|----- h1_barplots-efficiency-effectiveness.R   #   fig 4B, 4C, 4D
+|----- h2_cmp_kamrat_imoka.R                    #   fig S2
+|----- h3_cmp_kamrat-rank.R                     #   fig S3
+```
