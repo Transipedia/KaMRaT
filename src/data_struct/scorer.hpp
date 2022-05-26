@@ -34,7 +34,7 @@ public:
 
     const ScorerCode GetScorerCode() const;
     const std::string &GetScorerName() const;
-    const double EstimateScore(const std::vector<float> &count_vect) const;
+    const double EstimateScore(std::vector<float> &count_vect) const;
     const double EstimateScore_old(const std::vector<float> &count_vect) const;
 
 private:
@@ -44,6 +44,14 @@ private:
     std::vector<size_t> categ_target_vect_;
     std::vector<float> cntnu_target_vect_;     // continuous target vector
     size_t nclass_;                            // classification fold number
+
+    const double LogTtestScore(const std::vector<float> &values) const;
+    const double CalcSNRScore(const std::vector<float> & count_vect) const;
+    const double CalcPearsonScore(const std::vector<float> &count_vect) const;
+    const double CalcSDScore(const std::vector<float> & count_vect) const;
+    const double CalcRSD1Score(const std::vector<float> &count_vect) const;
+    const double CalcRSD2Score(const std::vector<float> &count_vect) const;
+    const double CalcRSD3Score(std::vector<float> &count_vect) const;
 };
 
 #endif //KAMRAT_DATASTRUCT_SCORER_HPP

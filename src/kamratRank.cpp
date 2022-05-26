@@ -99,6 +99,7 @@ void ParseDesign(std::vector<std::string> &col_target_vect, const std::string &d
     col_target_vect.resize(nb_smp, "");
     std::string line, smp_name, condi("");
     std::istringstream line_conv;
+
     while (std::getline(dsgn_file, line))
     {
         line_conv.str(line);
@@ -207,6 +208,8 @@ void PrintAsIntermediate(const featureVect_t &ft_vect, const size_t max_to_sel)
         std::cout << std::endl;
     }
 }
+
+using namespace std;
 
 int RankMain(int argc, char *argv[])
 {

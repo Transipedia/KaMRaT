@@ -27,8 +27,12 @@
  * rsd3          standard deviation adjusted by median                 [non-supervised] *
 \* ==================================================================================== */
 
-const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y);  // in utils/vect_opera.cpp
-const double CalcSpearmanCorr(const std::vector<float> &x, const std::vector<float> &y); // in utils/vect_opera.cpp
+// functions in utils/vect_opera.cpp
+const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y);
+const double CalcSpearmanCorr(const std::vector<float> &x, const std::vector<float> &y);
+const void mean_stddev(const std::vector<float> &vect, double &mean, double &stddev);
+const void mean_stddev_min(const std::vector<float> &vect, double &mean, double &stddev, double &min);
+const void dual_mean_stddev(const std::vector<float> &vect, const std::vector<size_t> &categ, double &mean1, double &mean2, double &stddev1, double &stddev2);
 
 const ScorerCode ParseScorerCode(const std::string &scorer_str)
 {
@@ -127,7 +131,7 @@ void ParseContinuousVector(std::vector<float> &target_vect, const std::vector<st
     }
 }
 
-const double MixedCalcTtestScore(const std::vector<float> &values, const std::vector<size_t> categories, const bool return_pi)
+const double Scorer::LogTtestScore(const std::vector<float> &values) const
 {
    // Mean and std dev serie 1
     double sum1(0), sq_sum1(0), nb1(0);
@@ -136,7 +140,7 @@ const double MixedCalcTtestScore(const std::vector<float> &values, const std::ve
     for (float fvalue : values) {
         double value = log2(static_cast<double>(fvalue) + 1);
         double sq = value * value;
-        if (categories[idx++] == 0) {
+        if (this->categ_target_vect_[idx++] == 0) {
             sum1 += value;
             sq_sum1 += sq;
             nb1 += 1;
@@ -164,7 +168,7 @@ const double MixedCalcTtestScore(const std::vector<float> &values, const std::ve
         praw = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
     }
     
-    if (return_pi)
+    if (this->scorer_code_ == ScorerCode::kTtestPi)
         return (-log10(praw) * fabs(mean2 - mean1));
     else
         return praw;
@@ -239,7 +243,22 @@ const double CalcTtestScore_old(const arma::Mat<double> &&arma_count_vect1, cons
     }
 }
 
-const double CalcSNRScore(const arma::Mat<double> &&arma_count_vect1, const arma::Mat<double> &&arma_count_vect2)
+const double Scorer::CalcSNRScore(const std::vector<float> & count_vect) const
+{
+    double mean1(0), mean2(0), stddev1(0), stddev2(0);
+    dual_mean_stddev(count_vect, this->categ_target_vect_, mean1, mean2, stddev1, stddev2);
+
+    if (stddev1 == 0 && stddev2 == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return ((mean1 - mean2) / (stddev1 + stddev2));
+    }
+}
+
+const double CalcSNRScore_old(const arma::Mat<double> &&arma_count_vect1, const arma::Mat<double> &&arma_count_vect2)
 {
     double mean1 = arma::mean(arma::mean(arma_count_vect1)), mean2 = arma::mean(arma::mean(arma_count_vect2)),
            stddev1 = arma::mean(arma::stddev(arma_count_vect1)), stddev2 = arma::mean(arma::stddev(arma_count_vect2));
@@ -317,9 +336,9 @@ const double CalcSVMScore(const size_t nfold, const arma::Row<size_t> &arma_cate
     }
 }
 
-const double CalcPearsonScore(const std::vector<float> &cntnu_target_vect, const std::vector<float> &count_vect)
+const double Scorer::CalcPearsonScore(const std::vector<float> &count_vect) const
 {
-    return CalcPearsonCorr(cntnu_target_vect, count_vect);
+    return CalcPearsonCorr(this->cntnu_target_vect_, count_vect);
 }
 
 const double CalcSpearmanScore(const std::vector<float> &cntnu_target_vect, const std::vector<float> &count_vect)
@@ -327,26 +346,72 @@ const double CalcSpearmanScore(const std::vector<float> &cntnu_target_vect, cons
     return CalcSpearmanCorr(cntnu_target_vect, count_vect);
 }
 
-const double CalcSDScore(const arma::Mat<double> &arma_count_vect)
+const double Scorer::CalcSDScore(const std::vector<float> & count_vect) const
+{
+    // Compute sums for mean & stddev
+    double mean(0), stddev(0);
+    mean_stddev(count_vect, mean, stddev);
+
+    // SD score
+    return stddev;
+}
+
+const double CalcSDScore_old(const arma::Mat<double> &arma_count_vect)
 {
     return arma::mean(arma::stddev(arma_count_vect, 0, 1)); // arma_count_vect is not processed by .elem(), so still row vectors
 }
 
-const double CalcRSD1Score(const arma::Mat<double> &arma_count_vect)
+const double Scorer::CalcRSD1Score(const std::vector<float> &count_vect) const
+{
+    // Compute sums for mean & stddev
+    double mean(0), stddev(0);
+    mean_stddev(count_vect, mean, stddev);
+
+    // Score
+    return (mean <= 1 ? stddev : (stddev / mean));
+}
+
+const double CalcRSD1Score_old(const arma::Mat<double> &arma_count_vect)
 {
     double sd = arma::mean(arma::stddev(arma_count_vect, 0, 1)),
            mean = arma::mean(arma::mean(arma_count_vect, 1));
     return (mean <= 1 ? sd : (sd / mean));
 }
 
-const double CalcRSD2Score(const arma::Mat<double> &arma_count_vect)
+const double Scorer::CalcRSD2Score(const std::vector<float> &count_vect) const
+{
+    // Compute sums for mean & stddev
+    double mean(0), stddev(0), min(0);
+    mean_stddev_min(count_vect, mean, stddev, min);
+
+    // Score
+    return (min <= 1 ? stddev : (stddev / min));
+}
+
+const double CalcRSD2Score_old(const arma::Mat<double> &arma_count_vect)
 {
     double sd = arma::mean(arma::stddev(arma_count_vect, 0, 1)),
            min = arma_count_vect.min();
     return (min <= 1 ? sd : (sd / min));
 }
 
-const double CalcRSD3Score(const arma::Mat<double> &arma_count_vect)
+
+const double Scorer::CalcRSD3Score(std::vector<float> &count_vect) const
+{
+    // Compute sums for mean & stddev
+    double mean(0), stddev(0);
+    mean_stddev(count_vect, mean, stddev);
+    // Compute the median
+    auto m = count_vect.begin() + count_vect.size() / 2;
+    std::nth_element(count_vect.begin(), m, count_vect.end());
+    double median = static_cast<double>(count_vect[count_vect.size() / 2]);
+
+    // Score
+    return (median <= 1 ? stddev : (stddev / median));
+}
+
+
+const double CalcRSD3Score_old(const arma::Mat<double> &arma_count_vect)
 {
     double sd = arma::mean(arma::stddev(arma_count_vect, 0, 1)),
            mdn = arma::mean(arma::median(arma_count_vect, 1));
@@ -400,43 +465,34 @@ const std::string &Scorer::GetScorerName() const
 using namespace std;
 
 
-const double Scorer::EstimateScore(const std::vector<float> &count_vect) const
+const double Scorer::EstimateScore(std::vector<float> &count_vect) const
 {
-    // // Create used vector
-    // vector<double> cat1_values, cat2_values;
-    // cat1_values.reserve(count_vect.size());
-    // cat2_values.reserve(count_vect.size());
-
-    // if (scorer_code_ == ScorerCode::kTtestPadj || scorer_code_ == ScorerCode::kTtestPi) // if t-test, apply log2(x + 1) transformation
-    // {
-    //     uint idx = 0;
-    //     for (float f : count_vect) {
-    //         if (categ_target_vect_[idx++] == 0)
-    //             cat1_values.push_back(log2(static_cast<double>(f) + 1));
-    //         else
-    //             cat2_values.push_back(log2(static_cast<double>(f) + 1));
-    //     }
-    // }
-    // else if (scorer_code_ == ScorerCode::kLR || scorer_code_ == ScorerCode::kBayes || scorer_code_ == ScorerCode::kSVM) // if ML, apply standarization
-    // {
-    //     // arma_count_vect = (arma_count_vect - arma::mean(arma::mean(arma_count_vect, 1))) / arma::mean(arma::stddev(arma_count_vect, 0, 1));
-    // }
-    // // arma_count_vect.print("Count vector after transformation:");
-
-    switch (scorer_code_)
+    switch (this->scorer_code_)
     {
     case ScorerCode::kTtestPadj:
     case ScorerCode::kTtestPi:
-        return MixedCalcTtestScore(count_vect, categ_target_vect_, scorer_code_ == ScorerCode::kTtestPi);
+        return this->LogTtestScore(count_vect);
+    case ScorerCode::kSNR:
+        return this->CalcSNRScore(count_vect);
+    case ScorerCode::kSD:
+        return this->CalcSDScore(count_vect);
+    case ScorerCode::kRSD1:
+        return this->CalcRSD1Score(count_vect);
+    case ScorerCode::kRSD2:
+        return this->CalcRSD2Score(count_vect);
+    case ScorerCode::kRSD3:
+        return this->CalcRSD3Score(count_vect);
+    // case ScorerCode::kPearson:
+    //     return CalcPearsonScore(count_vect);
     default:
         return std::nan("");
+        return this->EstimateScore_old(count_vect);
     }
 }
 
 
 const double Scorer::EstimateScore_old(const std::vector<float> &count_vect) const
 {
-    std::cout << count_vect.size() << std::endl;
     static arma::Mat<double> arma_count_vect;
     arma_count_vect = arma::conv_to<arma::Row<double>>::from(count_vect);
     // arma_count_vect.print("Count vector before transformation: ");
@@ -458,7 +514,7 @@ const double Scorer::EstimateScore_old(const std::vector<float> &count_vect) con
                               arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 1)),
                               scorer_code_ == ScorerCode::kTtestPi);
     case ScorerCode::kSNR:
-        return CalcSNRScore(arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 0)),
+        return CalcSNRScore_old(arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 0)),
                             arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 1)));
     case ScorerCode::kDIDS:
         return CalcDIDSScore(arma_categ_target_vect_, arma_count_vect, nclass_);
@@ -468,18 +524,18 @@ const double Scorer::EstimateScore_old(const std::vector<float> &count_vect) con
         return CalcBayesScore(nfold_, arma_categ_target_vect_, arma_count_vect, nclass_);
     case ScorerCode::kSVM:
         return CalcSVMScore(nfold_, arma_categ_target_vect_, arma_count_vect, nclass_);
-    case ScorerCode::kPearson:
-        return CalcPearsonScore(cntnu_target_vect_, count_vect);
+    // case ScorerCode::kPearson:
+    //     return CalcPearsonScore(cntnu_target_vect_, count_vect);
     case ScorerCode::kSpearman:
         return CalcSpearmanScore(cntnu_target_vect_, count_vect);
     case ScorerCode::kSD:
-        return CalcSDScore(arma_count_vect);
+        return CalcSDScore_old(arma_count_vect);
     case ScorerCode::kRSD1:
-        return CalcRSD1Score(arma_count_vect);
+        return CalcRSD1Score_old(arma_count_vect);
     case ScorerCode::kRSD2:
-        return CalcRSD2Score(arma_count_vect);
+        return CalcRSD2Score_old(arma_count_vect);
     case ScorerCode::kRSD3:
-        return CalcRSD3Score(arma_count_vect);
+        return CalcRSD3Score_old(arma_count_vect);
     case ScorerCode::kEntropy:
         return CalcEntropyScore(arma_count_vect);
     default:

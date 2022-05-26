@@ -59,6 +59,80 @@ const double CalcPearsonCorr_old(const std::vector<float> &x, const std::vector<
     }
 }
 
+
+const void dual_mean_stddev(const std::vector<float> &vect, const std::vector<size_t> &categ, double &mean1, double &mean2, double &stddev1, double &stddev2) {
+    // Compute sums for mean & stddev
+    double sum1(0), sq_sum1(0), num1(0);
+    double sum2(0), sq_sum2(0), num2(0);
+
+    int idx(0);
+    for (const float &x : vect) {
+        double val = static_cast<double>(x);
+
+        if (categ[idx++] == 0) {
+            sum1 += val;
+            sq_sum1 += val * val;
+            num1 += 1;
+        } else {
+            sum2 += val;
+            sq_sum2 += val * val;
+            num2 += 1;
+        }
+    }
+
+    double size1 = static_cast<double>(num1);
+    double size2 = static_cast<double>(num2);
+    // Compute mean
+    mean1 = sum1/size1;
+    mean2 = sum2/size2;
+    // compute stddev
+    stddev1 = sq_sum1 + (size1 * mean1 * mean1) - (2 * mean1 * sum1);
+    stddev1 = sqrt(stddev1 / (size1 - 1));
+    stddev2 = sq_sum2 + (size2 * mean2 * mean2) - (2 * mean2 * sum2);
+    stddev2 = sqrt(stddev2 / (size2 - 1));
+}
+
+
+const void mean_stddev_min(const std::vector<float> &vect, double &mean, double &stddev, double &min) {
+    // Compute sums for mean & stddev
+    double sum(0), sq_sum(0);
+    min = vect[0];
+
+    for (const float &x : vect) {
+        double val = static_cast<double>(x);
+        sum += val;
+        sq_sum += val * val;
+        if (val < min) min = val;
+    }
+
+    double size = static_cast<double>(vect.size());
+    // Compute mean
+    mean = sum/size;
+    // compute stddev
+    stddev = sq_sum + (size * mean * mean) - (2 * mean * sum);
+    stddev = sqrt(stddev / (size - 1));
+}
+
+
+const void mean_stddev(const std::vector<float> &vect, double &mean, double &stddev) {
+    // Compute sums for mean & stddev
+    double sum(0), sq_sum(0);
+
+    for (const float &x : vect) {
+        double val = static_cast<double>(x);
+        sum += val;
+        sq_sum += val * val;
+    }
+
+    double size = static_cast<double>(vect.size());
+    // Compute mean
+    mean = sum/size;
+    // compute stddev
+    stddev = sq_sum + (size * mean * mean) - (2 * mean * sum);
+    stddev = sqrt(stddev / (size - 1));
+}
+
+
 const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y)
 {
     // Compute prerequire for pearson
