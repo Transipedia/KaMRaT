@@ -272,8 +272,38 @@ const double CalcSNRScore_old(const arma::Mat<double> &&arma_count_vect1, const 
     }
 }
 
-const double CalcDIDSScore(const arma::Row<size_t> &arma_categ_target_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
+
+const double Scorer::CalcDIDSScore(const std::vector<float> count_vect) const
 {
+    // uint cpt = 0;
+    // Compute maxs
+    std::vector<double> max_refs(this->nclass_, 0);
+    for (uint i=0 ; i<count_vect.size() ; i++) {
+        if (count_vect[i] > max_refs[this->categ_target_vect_[i]]) {
+            max_refs[this->categ_target_vect_[i]] = count_vect[i];
+        }
+    }
+
+    // Compute scores
+    std::vector<double> sqrt_sums(this->nclass_, 0);
+    for (uint i=0 ; i<count_vect.size() ; i++) {
+        double val = static_cast<double>(count_vect[i]);
+        for (size_t label=0 ; label<this->nclass_ ; label++) {
+            if (label != this->categ_target_vect_[i] and val > max_refs[label]) {
+                // cpt ++;
+                sqrt_sums[label] += sqrt(val - max_refs[label]);
+            }
+        }
+    }
+
+    // std::cout << cpt << std::endl;
+    return *std::max_element(sqrt_sums.begin(), sqrt_sums.end());
+}
+
+
+const double CalcDIDSScore_old(const arma::Row<size_t> &arma_categ_target_vect, const arma::Mat<double> &arma_count_vect, const size_t nclass)
+{
+    // uint cpt = 0;
     double max_score(0), sqrt_sum, ref_max;
     for (size_t i_condi(0); i_condi < nclass; ++i_condi)
     {
@@ -282,9 +312,11 @@ const double CalcDIDSScore(const arma::Row<size_t> &arma_categ_target_vect, cons
         for (double x : arma::conv_to<std::vector<double>>::from(arma_count_vect.elem(arma::find(arma_categ_target_vect != i_condi))))
         {
             sqrt_sum += (x > ref_max ? sqrt(x - ref_max) : 0); // alternatively, sqrt((x - ref_max) / ref_max)
+            // cpt ++;
         }
         max_score = (sqrt_sum > max_score ? sqrt_sum : max_score);
     }
+    // std::cout << cpt << std::endl;
     return max_score;
 }
 
@@ -418,7 +450,25 @@ const double CalcRSD3Score_old(const arma::Mat<double> &arma_count_vect)
     return (mdn <= 1 ? sd : (sd / mdn));
 }
 
-const double CalcEntropyScore(const arma::Mat<double> &arma_count_vect)
+
+const double Scorer::CalcEntropyScore(const std::vector<float> &count_vect) const
+{
+    // Compute useful sums
+    double sum(0), lg_sum(0);
+    for (const float x : count_vect) {
+        double val = static_cast<double>(x);
+        double val_1 = val + 1.0;
+        sum += val;
+        lg_sum += (val_1) * log2(val_1);
+    }
+    
+    // Compute entropy from sums
+    double entropy = (lg_sum - log2(sum) * (sum + count_vect.size())) / sum;
+    return (-entropy);
+}
+
+
+const double CalcEntropyScore_old(const arma::Mat<double> &arma_count_vect)
 {
     double tot = arma::accu(arma_count_vect + 1), entropy = 0;
     for (const double x : arma_count_vect)
@@ -474,6 +524,8 @@ const double Scorer::EstimateScore(std::vector<float> &count_vect) const
         return this->LogTtestScore(count_vect);
     case ScorerCode::kSNR:
         return this->CalcSNRScore(count_vect);
+    // case ScorerCode::kDIDS:
+    //     return this->CalcDIDSScore(count_vect);
     case ScorerCode::kSD:
         return this->CalcSDScore(count_vect);
     case ScorerCode::kRSD1:
@@ -482,10 +534,11 @@ const double Scorer::EstimateScore(std::vector<float> &count_vect) const
         return this->CalcRSD2Score(count_vect);
     case ScorerCode::kRSD3:
         return this->CalcRSD3Score(count_vect);
+    case ScorerCode::kEntropy:
+        return this->CalcEntropyScore(count_vect);
     // case ScorerCode::kPearson:
     //     return CalcPearsonScore(count_vect);
     default:
-        return std::nan("");
         return this->EstimateScore_old(count_vect);
     }
 }
@@ -517,7 +570,7 @@ const double Scorer::EstimateScore_old(const std::vector<float> &count_vect) con
         return CalcSNRScore_old(arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 0)),
                             arma_count_vect.elem(arma::find(arma_categ_target_vect_ == 1)));
     case ScorerCode::kDIDS:
-        return CalcDIDSScore(arma_categ_target_vect_, arma_count_vect, nclass_);
+        return CalcDIDSScore_old(arma_categ_target_vect_, arma_count_vect, nclass_);
     case ScorerCode::kLR:
         return CalcLRScore(nfold_, arma_categ_target_vect_, arma_count_vect);
     case ScorerCode::kBayes:
@@ -537,7 +590,7 @@ const double Scorer::EstimateScore_old(const std::vector<float> &count_vect) con
     case ScorerCode::kRSD3:
         return CalcRSD3Score_old(arma_count_vect);
     case ScorerCode::kEntropy:
-        return CalcEntropyScore(arma_count_vect);
+        return CalcEntropyScore_old(arma_count_vect);
     default:
         return std::nan("");
     }
