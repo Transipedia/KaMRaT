@@ -4,7 +4,9 @@ add_executable(kamrat
 
 target_link_libraries(kamrat
     PRIVATE
+    kamratIndex
     kamratFilter
+    kamratMerge
 )
 
 target_include_directories(kamrat

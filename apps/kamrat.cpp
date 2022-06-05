@@ -5,7 +5,7 @@
 #define BOLDRED "\033[1m\033[31m"
 
 #include "kamratIndex.hpp"
-// int MergeMain(int argc, char *argv[]);
+#include "kamratMerge.hpp"
 // int RankMain(int argc, char *argv[]);
 #include "kamratFilter.hpp"
 // int MaskMain(int argc, char *argv[]);
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(argv[1], "merge") == 0)
         {
-            // MergeMain(argc - 1, &(argv[1]));
+            MergeMain(argc - 1, &(argv[1]));
         }
         else if (strcmp(argv[1], "rank") == 0)
         {

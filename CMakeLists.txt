@@ -7,9 +7,15 @@ project(KaMRaT VERSION 2.0
 set(CMAKE_CXX_STANDARD 14)
 
 
+# Include local installed libraries
+
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
+
 find_package(Armadillo REQUIRED)
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
 
+# Recursive exploration of the project
 add_subdirectory(src)
 add_subdirectory(apps)

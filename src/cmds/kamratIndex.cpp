@@ -9,7 +9,9 @@
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-#include "runinfo_files/index_runinfo.hpp"
+#include "index_runinfo.hpp"
+#include "index_loading.hpp"
+#include "seq_coding.hpp"
 
 #define RESET "\033[0m"
 #define BOLDYELLOW "\033[1m\033[33m"
@@ -24,15 +26,6 @@
  * idx-mat:                                                          *
  *   - feature counts (binarized float vector)                       *
 \* ----------------------------------------------------------------- */
-
-const uint64_t Seq2Int(const std::string &seq, const size_t k_len, const bool stranded); // seq_coding.cpp
-
-void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path);                // in utils/index_loading.cpp
-void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path, const bool need_skip_code); // in utils/index_loading.cpp
-void LoadCodePosMap(std::map<uint64_t, size_t> &code_set, const std::string &idx_pos_path);                  // in utils/index_loading.cpp
-const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat,
-                                       const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 
 const size_t CountColumn(const std::string &line_str)
 {
