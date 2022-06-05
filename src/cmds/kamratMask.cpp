@@ -5,14 +5,9 @@
 #include <fstream>
 #include <ctime>
 
-#include "runinfo_files/mask_runinfo.hpp"
-
-void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path); // in utils/index_loading.cpp
-const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat,
-                                       const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
-
-uint64_t Seq2Int(const std::string &seq, const size_t k_length, const bool stranded); // in utils/seq_coding.cpp
+#include "mask_runinfo.hpp"
+#include "index_loading.hpp"
+#include "seq_coding.hpp"
 
 void MakeMask(std::unordered_set<uint64_t> &kmer_mask, const std::string &mask_file_path, const size_t k_len, const bool stranded)
 {

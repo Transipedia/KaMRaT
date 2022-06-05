@@ -14,3 +14,7 @@ add_library(kamratFilter kamratFilter.cpp)
 target_link_libraries(kamratFilter PRIVATE indexLoading)
 target_include_directories(kamratFilter PRIVATE "${PROJECT_SOURCE_DIR}/src/runinfo_files/")
 
+add_library(kamratMask kamratMask.cpp)
+target_link_libraries(kamratMask PRIVATE indexLoading seqCoding)
+target_include_directories(kamratMask PRIVATE "${PROJECT_SOURCE_DIR}/src/runinfo_files/")
+

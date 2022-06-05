@@ -8,7 +8,7 @@
 #include "kamratMerge.hpp"
 #include "kamratRank.hpp"
 #include "kamratFilter.hpp"
-// int MaskMain(int argc, char *argv[]);
+#include "kamratMask.hpp"
 // int QueryMain(int argc, char *argv[]);
 
 const void Welcome()
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(argv[1], "mask") == 0)
         {
-            // MaskMain(argc - 1, &(argv[1]));
+            MaskMain(argc - 1, &(argv[1]));
         }
         else if (strcmp(argv[1], "query") == 0)
         {

@@ -1,0 +1,1 @@
+int MaskMain(int argc, char *argv[]);
