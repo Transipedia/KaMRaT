@@ -2,8 +2,8 @@ targets : kamrat clean
 
 CPPFLAGS = -Wall -Werror -g -std=c++14
 
-test : testMerge.cpp kamratMerge
-	g++ $(CPPFLAGS) -o ../bin/testMerge testMerge.cpp *.o -fopenmp -lmlpack -larmadillo -lboost_iostreams -I/path_to_conda_mlpack_env/include
+# test : test_vect_opera.cpp utils
+# 	g++ $(CPPFLAGS) -o ../bin/test_vect_opera test_vect_opera.cpp *.o -fopenmp -lmlpack -larmadillo -lboost_iostreams -I/path_to_conda_mlpack_env/include
 
 kamrat : kamrat.cpp kamratIndex kamratMerge kamratRank kamratFilter kamratMask kamratQuery
 	g++ -g -o ../bin/kamrat kamrat.cpp *.o -fopenmp -lmlpack -larmadillo -lboost_iostreams -I/path_to_conda_mlpack_env/include

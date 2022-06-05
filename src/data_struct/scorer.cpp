@@ -373,9 +373,9 @@ const double Scorer::CalcPearsonScore(const std::vector<float> &count_vect) cons
     return CalcPearsonCorr(this->cntnu_target_vect_, count_vect);
 }
 
-const double CalcSpearmanScore(const std::vector<float> &cntnu_target_vect, const std::vector<float> &count_vect)
+const double Scorer::CalcSpearmanScore(const std::vector<float> &count_vect) const
 {
-    return CalcSpearmanCorr(cntnu_target_vect, count_vect);
+    return CalcSpearmanCorr(this->cntnu_target_vect_, count_vect);
 }
 
 const double Scorer::CalcSDScore(const std::vector<float> & count_vect) const
@@ -536,8 +536,10 @@ const double Scorer::EstimateScore(std::vector<float> &count_vect) const
         return this->CalcRSD3Score(count_vect);
     case ScorerCode::kEntropy:
         return this->CalcEntropyScore(count_vect);
-    // case ScorerCode::kPearson:
-    //     return CalcPearsonScore(count_vect);
+    case ScorerCode::kPearson:
+        return CalcPearsonScore(count_vect);
+    case ScorerCode::kSpearman:
+        return this->CalcSpearmanScore(count_vect);
     default:
         return this->EstimateScore_old(count_vect);
     }
@@ -579,8 +581,8 @@ const double Scorer::EstimateScore_old(const std::vector<float> &count_vect) con
         return CalcSVMScore(nfold_, arma_categ_target_vect_, arma_count_vect, nclass_);
     // case ScorerCode::kPearson:
     //     return CalcPearsonScore(cntnu_target_vect_, count_vect);
-    case ScorerCode::kSpearman:
-        return CalcSpearmanScore(cntnu_target_vect_, count_vect);
+    // case ScorerCode::kSpearman:
+    //     return CalcSpearmanScore(cntnu_target_vect_, count_vect);
     case ScorerCode::kSD:
         return CalcSDScore_old(arma_count_vect);
     case ScorerCode::kRSD1:

@@ -49,6 +49,7 @@ private:
     const double CalcSNRScore(const std::vector<float> & count_vect) const;
     const double CalcDIDSScore(const std::vector<float> count_vect) const;
     const double CalcPearsonScore(const std::vector<float> &count_vect) const;
+    const double CalcSpearmanScore(const std::vector<float> &count_vect) const;
     const double CalcSDScore(const std::vector<float> & count_vect) const;
     const double CalcRSD1Score(const std::vector<float> &count_vect) const;
     const double CalcRSD2Score(const std::vector<float> &count_vect) const;
