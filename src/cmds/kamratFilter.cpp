@@ -6,17 +6,12 @@
 #include <limits>
 #include <ctime>
 
-#include "runinfo_files/filter_runinfo.hpp"
+#include "filter_runinfo.hpp"
+#include "index_loading.hpp"
 
 #define RESET "\033[0m"
 #define BOLDYELLOW "\033[1m\033[33m"
 
-void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path);                // in utils/index_loading.cpp
-const std::vector<double> &ComputeNF(std::vector<double> &smp_sum_vect, const size_t nb_smp);                // in utils/index_loading.cpp
-void LoadPosVect(std::vector<size_t> &pos_vect, const std::string &idx_pos_path, const bool need_skip_code); // in utils/index_loading.cpp
-const std::vector<float> &GetCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat,
-                                       const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 
 const std::pair<size_t, size_t> ParseDesign(std::vector<bool> &filter_stat_vect, const std::string &dsgn_path,
                                             const std::vector<std::string> &colname_vect, const size_t nb_smp)

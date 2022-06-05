@@ -1,4 +1,6 @@
+*~
 *.o 
+*.a
 *.swp
 *.dSYM
 .DS_Store
@@ -20,3 +22,14 @@ src/Makefile
 *.[oe][0-9][0-9]*
 *.old/
 dev/
+
+Makefile
+*.cmake
+CMakeCache.txt
+*.sh
+CMakeFiles/
+
+scripts/
+perfs/
+data/
+kamrat

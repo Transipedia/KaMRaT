@@ -1,6 +1,7 @@
 #include <vector>
 #include <numeric> // std::accumulate
 #include <cmath>   // sqrt
+#include <algorithm> // sort
 
 const double CalcVectMean(const std::vector<float> &x)
 {
@@ -171,7 +172,73 @@ const double CalcPearsonDist(const std::vector<float> &x, const std::vector<floa
     return (0.5 * (1 - CalcPearsonCorr(x, y)));
 }
 
+
+const void getOrder(const std::vector<float> &vec, std::vector<uint> &order) {
+    // Resize and init the order
+    if (order.size() != vec.size())
+        order.resize(vec.size());
+    for (uint i=0 ; i<vec.size() ; i++) order[i] = i;
+
+    // Sort order regarding vec
+    std::sort(order.begin(), order.end(), [&vec](uint a, uint b){return (vec[a]<vec[b]);});
+}
+
+const void orderToRank(const std::vector<float> &vec, const std::vector<uint> & order, std::vector<float> &rank) {
+    uint prev_idx = 0;
+    float prev_value = vec[order[0]];
+    rank.clear();
+    rank.resize(vec.size());
+
+    for (uint i=1 ; i<vec.size() ; i++) {
+        if (vec[order[i]] > prev_value) {
+            // Compute rank
+            uint nb_similar = i - prev_idx;
+            float current_rank = static_cast<float>(prev_idx) + static_cast<float>(nb_similar - 1) / 2;
+
+            // Register ranks
+            for (uint j=prev_value ; j<i ; j++) {
+                rank[j] = current_rank;
+            }
+
+            // Update variables
+            prev_idx = i;
+            prev_value = vec[order[i]];
+        }
+        // Else, values are equal
+    }
+
+    // Add the last values
+    // Compute rank
+    uint nb_similar = vec.size() - prev_idx;
+    float current_rank = static_cast<float>(prev_idx) + static_cast<float>(nb_similar - 1) / 2;
+
+    // Register ranks
+    for (uint j=prev_value ; j<vec.size() ; j++) {
+        rank[j] = current_rank;
+    }
+}
+
+
 const double CalcSpearmanCorr(const std::vector<float> &x, const std::vector<float> &y)
+{
+    // Get the order in both x and y vectors
+    static std::vector<uint> x_order, y_order;
+    getOrder(x, x_order);
+    getOrder(y, y_order);
+    // Transform the orders into floats
+    static std::vector<float> x_rank, y_rank;
+    if (x_rank.size() != x_order.size()) {
+        x_rank.resize(x_order.size());
+        y_rank.resize(y_order.size());
+    }
+    orderToRank(x, x_order, x_rank);
+    orderToRank(y, y_order, y_rank);
+    // Compute correlations
+    const double spearman_corr = CalcPearsonCorr(x_rank, y_rank);
+    return spearman_corr;
+}
+
+const double CalcSpearmanCorr_old(const std::vector<float> &x, const std::vector<float> &y)
 {
     static std::vector<float> x_rk, y_rk;
     CalcVectRank(x_rk, x);

@@ -4,12 +4,12 @@
 #define RESET "\033[0m"
 #define BOLDRED "\033[1m\033[31m"
 
-int IndexMain(int argc, char *argv[]);
-int MergeMain(int argc, char *argv[]);
-int RankMain(int argc, char *argv[]);
-int FilterMain(int argc, char *argv[]);
-int MaskMain(int argc, char *argv[]);
-int QueryMain(int argc, char *argv[]);
+#include "kamratIndex.hpp"
+// int MergeMain(int argc, char *argv[]);
+// int RankMain(int argc, char *argv[]);
+#include "kamratFilter.hpp"
+// int MaskMain(int argc, char *argv[]);
+// int QueryMain(int argc, char *argv[]);
 
 const void Welcome()
 {
@@ -57,11 +57,11 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(argv[1], "merge") == 0)
         {
-            MergeMain(argc - 1, &(argv[1]));
+            // MergeMain(argc - 1, &(argv[1]));
         }
         else if (strcmp(argv[1], "rank") == 0)
         {
-            RankMain(argc - 1, &(argv[1]));
+            // RankMain(argc - 1, &(argv[1]));
         }
         else if (strcmp(argv[1], "filter") == 0)
         {
@@ -69,11 +69,11 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(argv[1], "mask") == 0)
         {
-            MaskMain(argc - 1, &(argv[1]));
+            // MaskMain(argc - 1, &(argv[1]));
         }
         else if (strcmp(argv[1], "query") == 0)
         {
-            QueryMain(argc - 1, &(argv[1]));
+            // QueryMain(argc - 1, &(argv[1]));
         }
         else
         {

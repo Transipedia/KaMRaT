@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <armadillo>
 
+#include "index_loading.hpp"
+
+
 // using code2kmer_t = std::map<uint64_t, std::pair<std::string, size_t>>;
 using ftVect_t = std::vector<std::pair<std::string, size_t>>;
 
