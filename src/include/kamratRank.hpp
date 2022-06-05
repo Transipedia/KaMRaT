@@ -1,0 +1,1 @@
+int RankMain(int argc, char *argv[]);

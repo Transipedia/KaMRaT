@@ -7,6 +7,7 @@ target_link_libraries(kamrat
     kamratIndex
     kamratFilter
     kamratMerge
+    kamratRank
 )
 
 target_include_directories(kamrat

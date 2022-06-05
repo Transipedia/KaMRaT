@@ -6,7 +6,7 @@
 
 #include "kamratIndex.hpp"
 #include "kamratMerge.hpp"
-// int RankMain(int argc, char *argv[]);
+#include "kamratRank.hpp"
 #include "kamratFilter.hpp"
 // int MaskMain(int argc, char *argv[]);
 // int QueryMain(int argc, char *argv[]);
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(argv[1], "rank") == 0)
         {
-            // RankMain(argc - 1, &(argv[1]));
+            RankMain(argc - 1, &(argv[1]));
         }
         else if (strcmp(argv[1], "filter") == 0)
         {

@@ -7,17 +7,12 @@
 #include <memory>
 #include <ctime>
 
-#include "runinfo_files/rank_runinfo.hpp"
-#include "data_struct/feature_elem.hpp"
-#include "data_struct/scorer.hpp"
+#include "rank_runinfo.hpp"
+#include "index_loading.hpp"
+#include "feature_elem.hpp"
+#include "scorer.hpp"
 
 using featureVect_t = std::vector<std::unique_ptr<FeatureElem>>;
-
-void LoadIndexMeta(size_t &nb_smp, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path); // in utils/index_loading.cpp
-void LoadFeaturePosMap(std::unordered_map<std::string, size_t> &ft_pos_map, std::ifstream &idx_mat, const std::string &idx_pos_path,
-                       const bool need_skip_code, const size_t nb_smp);                                            // in utils/index_loading.cpp
-const std::string &GetTagSeq(std::string &tag_str, std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
 
 const bool MakeFeatureVectFromIndex(featureVect_t &ft_vect, const std::string &idx_pos_path,
                                     std::ifstream &idx_mat, const size_t nb_smp, const size_t k_len)

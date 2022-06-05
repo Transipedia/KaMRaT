@@ -15,6 +15,12 @@ include_directories(${Boost_INCLUDE_DIRS})
 find_package(Armadillo REQUIRED)
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
+find_package(MLPACK REQUIRED)
+include_directories(${MLPACK_INCLUDE_DIR})
+
+find_package(OpenMP)
+include_directories(${OPENMP_INCLUDE_DIR})
+
 
 # Recursive exploration of the project
 add_subdirectory(src)
