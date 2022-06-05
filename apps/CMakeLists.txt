@@ -9,6 +9,7 @@ target_link_libraries(kamrat
     kamratMerge
     kamratRank
     kamratMask
+    kamratQuery
 )
 
 target_include_directories(kamrat

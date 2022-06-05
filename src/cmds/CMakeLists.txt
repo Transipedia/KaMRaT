@@ -18,3 +18,7 @@ add_library(kamratMask kamratMask.cpp)
 target_link_libraries(kamratMask PRIVATE indexLoading seqCoding)
 target_include_directories(kamratMask PRIVATE "${PROJECT_SOURCE_DIR}/src/runinfo_files/")
 
+add_library(kamratQuery kamratQuery.cpp)
+target_link_libraries(kamratQuery PRIVATE indexLoading seqCoding)
+target_include_directories(kamratQuery PRIVATE "${PROJECT_SOURCE_DIR}/src/runinfo_files/")
+

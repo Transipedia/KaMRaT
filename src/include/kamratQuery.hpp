@@ -1,0 +1,1 @@
+int QueryMain(int argc, char *argv[]);

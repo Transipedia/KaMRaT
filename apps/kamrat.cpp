@@ -9,7 +9,7 @@
 #include "kamratRank.hpp"
 #include "kamratFilter.hpp"
 #include "kamratMask.hpp"
-// int QueryMain(int argc, char *argv[]);
+#include "kamratQuery.hpp"
 
 const void Welcome()
 {
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(argv[1], "query") == 0)
         {
-            // QueryMain(argc - 1, &(argv[1]));
+            QueryMain(argc - 1, &(argv[1]));
         }
         else
         {
