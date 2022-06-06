@@ -33,4 +33,4 @@ scripts/
 perfs/
 data/
 kamrat
-unittest
+unittests
