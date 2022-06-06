@@ -53,6 +53,7 @@ private:
     const double CalcSDScore(const std::vector<float> & count_vect) const;
     const double CalcRSD1Score(const std::vector<float> &count_vect) const;
     const double CalcRSD2Score(const std::vector<float> &count_vect) const;
+    /** WARNING: This method change the vector order to compute the median */
     const double CalcRSD3Score(std::vector<float> &count_vect) const;
     const double CalcEntropyScore(const std::vector<float> &count_vect) const;
 };

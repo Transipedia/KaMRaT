@@ -61,7 +61,7 @@ const double CalcPearsonCorr_old(const std::vector<float> &x, const std::vector<
 }
 
 
-const void dual_mean_stddev(const std::vector<float> &vect, const std::vector<size_t> &categ, double &mean1, double &mean2, double &stddev1, double &stddev2) {
+const void dual_mean_stddev(const std::vector<float> &vect, const std::vector<size_t> &categ, double &mean1, double &mean2, double &stddev1, double &stddev2, size_t &nb_catg1, size_t &nb_catg2) {
     // Compute sums for mean & stddev
     double sum1(0), sq_sum1(0), num1(0);
     double sum2(0), sq_sum2(0), num2(0);
@@ -91,6 +91,9 @@ const void dual_mean_stddev(const std::vector<float> &vect, const std::vector<si
     stddev1 = sqrt(stddev1 / (size1 - 1));
     stddev2 = sq_sum2 + (size2 * mean2 * mean2) - (2 * mean2 * sum2);
     stddev2 = sqrt(stddev2 / (size2 - 1));
+
+    nb_catg1 = num1;
+    nb_catg2 = num2;
 }
 
 
@@ -177,7 +180,8 @@ const void getOrder(const std::vector<float> &vec, std::vector<uint> &order) {
     // Resize and init the order
     if (order.size() != vec.size())
         order.resize(vec.size());
-    for (uint i=0 ; i<vec.size() ; i++) order[i] = i;
+    for (uint i=0 ; i<vec.size() ; i++)
+        order[i] = i;
 
     // Sort order regarding vec
     std::sort(order.begin(), order.end(), [&vec](uint a, uint b){return (vec[a]<vec[b]);});
@@ -196,8 +200,8 @@ const void orderToRank(const std::vector<float> &vec, const std::vector<uint> & 
             float current_rank = static_cast<float>(prev_idx) + static_cast<float>(nb_similar - 1) / 2;
 
             // Register ranks
-            for (uint j=prev_value ; j<i ; j++) {
-                rank[j] = current_rank;
+            for (uint j=prev_idx ; j<i ; j++) {
+                rank[order[j]] = current_rank;
             }
 
             // Update variables
@@ -213,8 +217,8 @@ const void orderToRank(const std::vector<float> &vec, const std::vector<uint> & 
     float current_rank = static_cast<float>(prev_idx) + static_cast<float>(nb_similar - 1) / 2;
 
     // Register ranks
-    for (uint j=prev_value ; j<vec.size() ; j++) {
-        rank[j] = current_rank;
+    for (uint j=prev_idx ; j<vec.size() ; j++) {
+        rank[order[j]] = current_rank;
     }
 }
 

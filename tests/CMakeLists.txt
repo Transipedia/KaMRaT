@@ -1,10 +1,14 @@
 add_executable(unittests
+    unittests.cpp
     test_vect_opera.cpp
+    test_scorer.cpp
 )
 
 target_link_libraries(unittests
     PRIVATE
     vectOp
+    dataStruct
+    armadillo
 )
 
 target_include_directories(unittests

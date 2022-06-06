@@ -6,8 +6,12 @@
 #include <mlpack/methods/logistic_regression/logistic_regression.hpp>
 #include <mlpack/methods/naive_bayes/naive_bayes_classifier.hpp>
 #include <mlpack/methods/linear_svm/linear_svm.hpp>
+#include <iostream>
 
+#include "vect_opera.hpp"
 #include "scorer.hpp" // armadillo library need be included after mlpack
+
+using namespace std;
 
 /* ================================== Scoring Method ================================== *\
  * ttest.padj    p-adj of t-test, adjusted by B-H procedure    [categorical supervised] *
@@ -27,12 +31,6 @@
  * rsd3          standard deviation adjusted by median                 [non-supervised] *
 \* ==================================================================================== */
 
-// functions in utils/vect_opera.cpp
-const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y);
-const double CalcSpearmanCorr(const std::vector<float> &x, const std::vector<float> &y);
-const void mean_stddev(const std::vector<float> &vect, double &mean, double &stddev);
-const void mean_stddev_min(const std::vector<float> &vect, double &mean, double &stddev, double &min);
-const void dual_mean_stddev(const std::vector<float> &vect, const std::vector<size_t> &categ, double &mean1, double &mean2, double &stddev1, double &stddev2);
 
 const ScorerCode ParseScorerCode(const std::string &scorer_str)
 {
@@ -152,8 +150,8 @@ const double Scorer::LogTtestScore(const std::vector<float> &values) const
     }
     double mean1 = sum1 / nb1;
     double mean2 = sum2 / nb2;
-    double stddev1 = (sq_sum1 - (sum1 * sum1) / nb1) / nb1;
-    double stddev2 = (sq_sum2 - (sum2 * sum2) / nb2) / nb2;
+    double stddev1 = sqrt((sq_sum1 - (sum1 * sum1) / nb1) / (nb1-1));
+    double stddev2 = sqrt((sq_sum2 - (sum2 * sum2) / nb2) / (nb2-1));
 
     // Test
     double praw;
@@ -169,45 +167,6 @@ const double Scorer::LogTtestScore(const std::vector<float> &values) const
     }
     
     if (this->scorer_code_ == ScorerCode::kTtestPi)
-        return (-log10(praw) * fabs(mean2 - mean1));
-    else
-        return praw;
-}
-
-const double CalcTtestScore(const std::vector<double> &values1, const std::vector<double> &values2, const bool return_pi)
-{
-   // Mean and std dev serie 1
-    double sum(0), sq_sum(0), nb1(values1.size()), nb2(values2.size());
-    for (double value : values1) {
-        sum += value;
-        sq_sum += value * value;
-    }
-    double mean1 = sum / values1.size();
-    double stddev1 = (sq_sum - (sum * sum) / nb1) / nb1;
-
-    // Mean and std dev serie 2
-    sum = 0; sq_sum = 0;
-    for (double value : values2) {
-        sum += value;
-        sq_sum += value * value;
-    }
-    double mean2 = sum / values2.size();
-    double stddev2 = (sq_sum - (sum * sum) / nb2) / nb2;
-
-    // Test
-    double praw;
-    if (stddev1 == 0 && stddev2 == 0)
-        praw = 1;
-    else {
-        double t1 = stddev1 * stddev1 / nb1,
-               t2 = stddev2 * stddev2 / nb2,
-               df = (t1 + t2) * (t1 + t2) / (t1 * t1 / (nb1 - 1) + t2 * t2 / (nb2 - 1)),
-               t_stat = (mean1 - mean2) / sqrt(t1 + t2);
-        boost::math::students_t dist(df);
-        praw = 2 * boost::math::cdf(boost::math::complement(dist, fabs(t_stat)));
-    }
-    
-    if (return_pi)
         return (-log10(praw) * fabs(mean2 - mean1));
     else
         return praw;
@@ -246,7 +205,8 @@ const double CalcTtestScore_old(const arma::Mat<double> &&arma_count_vect1, cons
 const double Scorer::CalcSNRScore(const std::vector<float> & count_vect) const
 {
     double mean1(0), mean2(0), stddev1(0), stddev2(0);
-    dual_mean_stddev(count_vect, this->categ_target_vect_, mean1, mean2, stddev1, stddev2);
+    size_t nb1(0), nb2(0);
+    dual_mean_stddev(count_vect, this->categ_target_vect_, mean1, mean2, stddev1, stddev2, nb1, nb2);
 
     if (stddev1 == 0 && stddev2 == 0)
     {
@@ -436,7 +396,15 @@ const double Scorer::CalcRSD3Score(std::vector<float> &count_vect) const
     // Compute the median
     auto m = count_vect.begin() + count_vect.size() / 2;
     std::nth_element(count_vect.begin(), m, count_vect.end());
+
     double median = static_cast<double>(count_vect[count_vect.size() / 2]);
+    // Median for even size is the median between the 2 middle elements
+    if (count_vect.size() % 2 == 0) {
+        // Get the element just after the median
+        uint median_pos = count_vect.size() / 2;
+        float prev_elem = *std::max_element(count_vect.begin(), count_vect.begin() + median_pos);
+        median = (static_cast<double>(prev_elem) + median) / 2;
+    }
 
     // Score
     return (median <= 1 ? stddev : (stddev / median));
