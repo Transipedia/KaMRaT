@@ -5,19 +5,17 @@
 #include <cmath>
 
 #include "lest.hpp"
+#include "vect_opera.hpp"
 
 using namespace std;
 
-
-
-const double CalcPearsonCorr_old(const std::vector<float> &x, const std::vector<float> &y);  // in utils/vect_opera.cpp
-const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y);  // in utils/vect_opera.cpp
 
 
 const lest::test specification[] =
 {
     CASE( "test CalcPearsonCorr (new vs old version)" )
     {
+        cout << "Pearson correlation verification" << endl;
         srand(time(NULL));
         vector<float> x, y;
         for (uint test_idx=0 ; test_idx<100 ; test_idx++) {
@@ -34,6 +32,7 @@ const lest::test specification[] =
             // cout << res_old << " " << res_new << " " << (res_new - res_old) << endl;
             EXPECT( res_old - res_new < 1.0/pow(10, 10) );
         }
+        cout << "   ok" << endl;
     }
 };
 

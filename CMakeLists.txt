@@ -25,3 +25,4 @@ include_directories(${OPENMP_INCLUDE_DIR})
 # Recursive exploration of the project
 add_subdirectory(src)
 add_subdirectory(apps)
+add_subdirectory(tests)
