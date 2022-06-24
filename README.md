@@ -320,6 +320,13 @@ singularity exec kamrat <CMD> -help
                                             if not provided, output without count vector
 ```
 
+Three intervention methods are available for choice:
+- `pearson`: Pearson distance, i.e., 0.5 * [1 - pearson.correlation(x, y)]
+- `spearman`: Spearman distance, i.e., 0.5 * [1 - spearman.correlation(x, y)]
+- `mac`: mean absolute contrast, as described in [Nguyen, H.T., et al. 2021](10.1186/s12885-021-08021-1)
+
+The threshold controlling these distances can be given between [0, 1], where 0 indicates the most strict case and 1 indicates the most permissive case (equivalent to `none`).
+	
 </details>
 
 <details>
