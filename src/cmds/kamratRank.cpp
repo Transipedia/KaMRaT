@@ -53,7 +53,6 @@ const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &wi
     float _; // for "place-holder" column of feature scores
     size_t nb_mem_pos(1);
     std::vector<size_t> mem_pos_vect;
-    std::unordered_map<std::string, size_t>::const_iterator it;
     while (with_file >> feature >> _ >> nb_mem_pos)
     {
         read_succ = true;

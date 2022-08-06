@@ -1,6 +1,7 @@
 #include <string>
 #include <fstream>
 #include <memory>
+#include <vector>
 
 #ifndef FEAT_STREM
 #define FEAT_STREM
@@ -19,8 +20,19 @@ private:
 	size_t current_mat_pos;
 
 	bool already_loaded;
-	size_t feature_pos;
+	std::vector<size_t> feature_pos;
+	std::string current_feature;
+
+	bool from_file;
+
+	feature_t next_matrix();
+	feature_t next_file();
+	bool hasNext_matrix();
+	bool hasNext_file();
+
+	
 public:
+	bool merged_features;
 	/** Open the files and position the file pointers on the right position.
 	 * @param pos_path File containing the feature positions in the matrix
 	 * @param mat_path Count matrix per feature
@@ -28,6 +40,7 @@ public:
 	 * @param nb_smp;
 	 **/
 	FeatureStreamer(const std::string pos_path, const std::string mat_path, const size_t k_len, const size_t nb_smp);
+	FeatureStreamer(const std::string file);
 	~FeatureStreamer();
 	/** Status of the streamer
 	 * @return True if the stream still contains features
