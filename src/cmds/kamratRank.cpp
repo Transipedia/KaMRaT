@@ -231,7 +231,7 @@ int RankMain(int argc, char *argv[])
     // ---------------------------- Test Zone ----------------------------
 
     featureVect_t ft_vect;
-    // after_merge = MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp, k_len);
+    after_merge = MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp, k_len);
 
     FeatureStreamer stream(
         idx_dir + "/idx-pos.bin",
@@ -240,9 +240,16 @@ int RankMain(int argc, char *argv[])
     );
 
     double score;
+    uint idx = 0;
     while (stream.hasNext()) {
         feature_t feature = stream.next();
-        score += feature->GetScore();
+        if (ft_vect[idx]->GetFeature() != feature->GetFeature()) {
+            cout << "Feature diff " << idx << endl;
+        }
+        if (ft_vect[idx]->GetRepPos() != feature->GetRepPos()) {
+            cout << "Position diff " << idx << endl;
+        }
+        idx += 1;
     }
 
     // --------------------------- /Test Zone/ ---------------------------
