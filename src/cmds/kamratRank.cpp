@@ -10,9 +10,11 @@
 #include "rank_runinfo.hpp"
 #include "index_loading.hpp"
 #include "feature_elem.hpp"
+#include "FeatureStreamer.hpp"
 #include "scorer.hpp"
 
 using featureVect_t = std::vector<std::unique_ptr<FeatureElem>>;
+
 
 const bool MakeFeatureVectFromIndex(featureVect_t &ft_vect, const std::string &idx_pos_path,
                                     std::ifstream &idx_mat, const size_t nb_smp, const size_t k_len)
@@ -225,10 +227,30 @@ int RankMain(int argc, char *argv[])
     {
         throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
     }
+    
+    // ---------------------------- Test Zone ----------------------------
+
     featureVect_t ft_vect;
-    after_merge = (with_path.empty() ? MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp, k_len)
-                                     : MakeFeatureVectFromFile(ft_vect, with_path));
+    // after_merge = MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp, k_len);
+
+    FeatureStreamer stream(
+        idx_dir + "/idx-pos.bin",
+        idx_dir + "/idx-mat.bin",
+        k_len, nb_smp
+    );
+
+    double score;
+    while (stream.hasNext()) {
+        feature_t feature = stream.next();
+        score += feature->GetScore();
+    }
+
+    // --------------------------- /Test Zone/ ---------------------------
+
+    // after_merge = (with_path.empty() ? MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp, k_len)
+                                     // : MakeFeatureVectFromFile(ft_vect, with_path));
     std::cerr << "Option parsing and index loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
+    exit(0);
     inter_time = clock();
 
     if (sel_top <= 0)
