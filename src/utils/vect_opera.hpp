@@ -4,9 +4,13 @@
 
 const double CalcPearsonCorr(const std::vector<float> &x, const std::vector<float> &y);
 const double CalcPearsonCorr_old(const std::vector<float> &x, const std::vector<float> &y);
+const double CalcPearsonDist(const std::vector<float> &x, const std::vector<float> &y);
 
 const double CalcSpearmanCorr(const std::vector<float> &x, const std::vector<float> &y);
 const double CalcSpearmanCorr_old(const std::vector<float> &x, const std::vector<float> &y);
+const double CalcSpearmanDist(const std::vector<float> &x, const std::vector<float> &y);
+
+const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &y);
 
 
 // --- utils for unittests ---
