@@ -227,29 +227,13 @@ int RankMain(int argc, char *argv[])
         throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
     }
     
-    // ---------------------------- Test Zone ----------------------------
-
     featureVect_t ft_vect;
-    // after_merge = MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp, k_len);
-
-    FeatureStreamer stream(
-        idx_dir + "/idx-pos.bin",
-        idx_dir + "/idx-mat.bin",
-        k_len, nb_smp
-    );
-
-    double score;
-    while (stream.hasNext()) {
-        feature_t feature = stream.next();
-        score += feature->GetScore();
-    }
-
-    // --------------------------- /Test Zone/ ---------------------------
-
     // after_merge = (with_path.empty() ? MakeFeatureVectFromIndex(ft_vect, idx_dir + "/idx-pos.bin", idx_mat, nb_smp, k_len)
-                                     // : MakeFeatureVectFromFile(ft_vect, with_path));
-    std::cerr << "Option parsing and index loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
-    exit(0);
+    //                                  : MakeFeatureVectFromFile(ft_vect, with_path));
+    FeatureStreamer stream = with_path.empty() ? FeatureStreamer(idx_dir + "/idx-pos.bin", idx_dir + "/idx-mat.bin", k_len, nb_smp)
+                                               : FeatureStreamer(with_path);
+
+    std::cerr << "Option parsing and metadata loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
     if (sel_top <= 0)
@@ -275,12 +259,27 @@ int RankMain(int argc, char *argv[])
         ParseDesign(col_target_vect, dsgn_path, colname_vect);
     }
     Scorer scorer(rk_mthd, nfold, col_target_vect);
+
+    size_t nb_features = 0;
     std::vector<float> count_vect;
-    for (const auto &ft : ft_vect)
-    {
-        ft->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
-        ft->SetScore(scorer.EstimateScore(count_vect));
+    vector<float> scores; 
+    while (stream.hasNext()) {
+        feature_t feature = stream.next();
+        feature->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
+        scores.push_back(static_cast<float>(scorer.EstimateScore(count_vect)));
+        nb_features += 1;
     }
+
+    std::vector<int> v(nb_features) ;
+    std::iota (std::begin(v), std::end(v), 0); // Fill with 0, 1, ..., 99...
+    exit(0);
+
+    // std::vector<float> count_vect;
+    // for (const auto &ft : ft_vect)
+    // {
+    //     ft->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
+    //     ft->SetScore(scorer.EstimateScore(count_vect));
+    // }
     SortScore(ft_vect, scorer.GetScorerCode());
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();

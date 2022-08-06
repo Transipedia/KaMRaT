@@ -15,10 +15,7 @@ private:
 	std::ifstream mat_file;
 	size_t k_len;
 	size_t nb_smp;
-
-	size_t current_pos_pos;
-	size_t current_mat_pos;
-
+	
 	bool already_loaded;
 	std::vector<size_t> feature_pos;
 	std::string current_feature;
@@ -41,6 +38,7 @@ public:
 	 **/
 	FeatureStreamer(const std::string pos_path, const std::string mat_path, const size_t k_len, const size_t nb_smp);
 	FeatureStreamer(const std::string file);
+	FeatureStreamer(FeatureStreamer&& fs);
 	~FeatureStreamer();
 	/** Status of the streamer
 	 * @return True if the stream still contains features

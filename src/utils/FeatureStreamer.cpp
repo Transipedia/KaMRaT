@@ -11,7 +11,7 @@ using namespace std;
  * @param mat_path Count matrix per feature
  * @param k_len k-mer size
  **/
-FeatureStreamer::FeatureStreamer(const string pos_path, const string mat_path, const size_t k_len, const size_t nb_smp) : pos_file(pos_path), mat_file(mat_path), k_len(k_len), nb_smp(nb_smp), current_pos_pos(0), current_mat_pos(0), already_loaded(false), from_file(false), merged_features(false)
+FeatureStreamer::FeatureStreamer(const string pos_path, const string mat_path, const size_t k_len, const size_t nb_smp) : pos_file(pos_path), mat_file(mat_path), k_len(k_len), nb_smp(nb_smp), already_loaded(false), from_file(false), merged_features(false)
 {
     // File opening verification
     if (! this->pos_file.is_open()) {
@@ -27,7 +27,7 @@ FeatureStreamer::FeatureStreamer(const string pos_path, const string mat_path, c
 /** Feature streamer constructed from a feature file.
  * @param pos_path File containing the features
  **/
-FeatureStreamer::FeatureStreamer(const string file) : pos_file(file), mat_file(""), k_len(0), nb_smp(0), current_pos_pos(0), current_mat_pos(0), already_loaded(false), from_file(true), merged_features(false)
+FeatureStreamer::FeatureStreamer(const string file) : pos_file(file), mat_file(""), k_len(0), nb_smp(0), already_loaded(false), from_file(true), merged_features(false)
 {
     // File opening verification
     if (! this->pos_file.is_open()) {
@@ -37,6 +37,13 @@ FeatureStreamer::FeatureStreamer(const string file) : pos_file(file), mat_file("
     if (! this->hasNext()) {
         throw std::invalid_argument("not valid file for input sequences: " + file);
     }
+}
+
+FeatureStreamer::FeatureStreamer(FeatureStreamer&& fs) : k_len(fs.k_len), nb_smp(fs.nb_smp), already_loaded(fs.already_loaded), feature_pos(std::move(fs.feature_pos)), current_feature(fs.current_feature), from_file(fs.from_file), merged_features(fs.merged_features)
+
+{
+    std::swap(this->pos_file, fs.pos_file);
+    std::swap(this->mat_file, fs.mat_file);
 }
 
 FeatureStreamer::~FeatureStreamer() {
@@ -89,9 +96,7 @@ bool FeatureStreamer::hasNext_matrix() {
         return true;
     else if (this->pos_file.read(reinterpret_cast<char *>(&(this->feature_pos[0])), sizeof(uint64_t))) {
         // Increment the file position
-        this->current_pos_pos += sizeof(uint64_t);
         if (this->k_len > 0) {
-            this->current_pos_pos += sizeof(size_t);
             if (! this->pos_file.read(reinterpret_cast<char *>(&(this->feature_pos[0])), sizeof(size_t)))
                 return false;
         }
@@ -130,17 +135,12 @@ feature_t FeatureStreamer::next_matrix() {
 
     // Get the k-mer from the matrix
     size_t matrix_position = this->feature_pos[0] + this->nb_smp * sizeof(float); // skip the indexed count vector
-    // Go to the right matrix position if needed
-    // We avoid seekg is possible due to the system call needed to move
-    if (matrix_position != this->current_mat_pos) {
-        // cout << this->current_mat_pos << "/" << matrix_position << endl;
-        this->mat_file.seekg(matrix_position);
-        this->current_mat_pos = matrix_position;
-    }
+    // Go to the right matrix position
+    this->mat_file.seekg(matrix_position);
+    
     string feature;
     this->mat_file >> feature;
     this->already_loaded = false;
-    this->current_mat_pos += feature.size();
     
     return std::make_unique<FeatureElem>(feature, this->feature_pos[0]);
 }
