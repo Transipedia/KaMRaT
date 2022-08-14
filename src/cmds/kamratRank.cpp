@@ -123,36 +123,32 @@ void ParseDesign(std::vector<std::string> &col_target_vect, const std::string &d
     dsgn_file.close();
 }
 
-void SortScore(featureVect_t &ft_vect, const ScorerCode scorer_code)
+
+void RankScore(const std::vector<float> & scores, std::vector<uint64_t> & ranks, const ScorerCode scorer_code)
 {
     if (scorer_code == ScorerCode::kSNR || scorer_code == ScorerCode::kPearson || scorer_code == ScorerCode::kSpearman) // decabs
     {
-        auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-            -> bool { return fabs(ft1->GetScore()) > fabs(ft2->GetScore()); };
-        std::sort(ft_vect.begin(), ft_vect.end(), comp);
+        auto comp = [&scores](const uint64_t pos1, const uint64_t pos2)
+            -> bool { return fabs(scores[pos1]) > fabs(scores[pos2]); };
+        std::sort(ranks.begin(), ranks.end(), comp);
     }
     else if (scorer_code == ScorerCode::kTtestPi || scorer_code == ScorerCode::kDIDS || scorer_code == ScorerCode::kLR ||
              scorer_code == ScorerCode::kBayes || scorer_code == ScorerCode::kSVM ||
              scorer_code == ScorerCode::kSD || 
              scorer_code == ScorerCode::kRSD1 || scorer_code == ScorerCode::kRSD2 || scorer_code == ScorerCode::kRSD3) // dec
     {
-        auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-            -> bool { return ft1->GetScore() > ft2->GetScore(); };
-        std::sort(ft_vect.begin(), ft_vect.end(), comp);
+        auto comp = [&scores](const uint64_t pos1, const uint64_t pos2)
+            -> bool { return scores[pos1] > scores[pos2]; };
+        std::sort(ranks.begin(), ranks.end(), comp);
     }
     else if (scorer_code == ScorerCode::kTtestPadj || scorer_code == ScorerCode::kEntropy) // inc
     {
-        auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-            -> bool { return ft1->GetScore() < ft2->GetScore(); };
-        std::sort(ft_vect.begin(), ft_vect.end(), comp);
+        auto comp = [&scores](const uint64_t pos1, const uint64_t pos2)
+            -> bool { return scores[pos1] < scores[pos2]; };
+        std::sort(ranks.begin(), ranks.end(), comp);
     }
-    // else if (...) // incabs, useless
-    // {
-    //     auto comp = [](const std::unique_ptr<FeatureElem> &ft1, const std::unique_ptr<FeatureElem> &ft2)
-    //         -> bool { return fabs(ft1->GetScore()) < fabs(ft2->GetScore()); };
-    //     std::sort(ft_vect.begin(), ft_vect.end(), comp);
-    // }
 }
+
 
 void PrintHeader(const bool after_merge, const std::vector<std::string> &colname_vect, const std::string &scorer_name)
 {
@@ -260,6 +256,7 @@ int RankMain(int argc, char *argv[])
     }
     Scorer scorer(rk_mthd, nfold, col_target_vect);
 
+    // Load and score all the usefull features
     size_t nb_features = 0;
     std::vector<float> count_vect;
     vector<float> scores; 
@@ -270,17 +267,18 @@ int RankMain(int argc, char *argv[])
         nb_features += 1;
     }
 
-    std::vector<int> v(nb_features) ;
-    std::iota (std::begin(v), std::end(v), 0); // Fill with 0, 1, ..., 99...
-    exit(0);
+    // Fill a vector that will be sorted acording the scores
+    std::vector<uint64_t> ranks(nb_features) ;
+    std::iota (std::begin(ranks), std::end(ranks), 0); // Fill with 0, 1, ..., 99...
+    
+    // Rank the features
+    RankScore(scores, ranks, scorer.GetScorerCode());
 
-    // std::vector<float> count_vect;
-    // for (const auto &ft : ft_vect)
-    // {
-    //     ft->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
-    //     ft->SetScore(scorer.EstimateScore(count_vect));
-    // }
-    SortScore(ft_vect, scorer.GetScorerCode());
+    for (size_t i=0; i<100 ; i++)
+        cout << ranks[i] << "\t" << scores[ranks[i]] << endl;
+
+    exit(0);
+    
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
     if (scorer.GetScorerCode() == ScorerCode::kTtestPadj) // BH procedure
