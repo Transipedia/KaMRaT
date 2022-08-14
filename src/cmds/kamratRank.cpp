@@ -16,64 +16,6 @@
 using featureVect_t = std::vector<std::unique_ptr<FeatureElem>>;
 
 
-const bool MakeFeatureVectFromIndex(featureVect_t &ft_vect, const std::string &idx_pos_path,
-                                    std::ifstream &idx_mat, const size_t nb_smp, const size_t k_len)
-{
-    std::ifstream idx_pos(idx_pos_path);
-    if (!idx_pos.is_open())
-    {
-        throw std::invalid_argument("loading index-pos failed, KaMRaT index folder not found or may be corrupted");
-    }
-    size_t pos;
-    std::string feature;
-    while (idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(uint64_t)))
-    {
-        if (k_len > 0)
-        {
-            idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t));
-        }
-        idx_mat.seekg(pos + nb_smp * sizeof(float)); // skip the indexed count vector
-        idx_mat >> feature;
-        ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, pos));
-    }
-    ft_vect.shrink_to_fit();
-    idx_pos.close();
-    return false;
-}
-
-const bool MakeFeatureVectFromFile(featureVect_t &ft_vect, const std::string &with_path)
-{
-    bool after_merge(false), read_succ(false);
-    std::ifstream with_file(with_path);
-    if (!with_file.is_open())
-    {
-        throw std::domain_error("error open feature list file: " + with_path);
-    }
-    std::string feature;
-    float _; // for "place-holder" column of feature scores
-    size_t nb_mem_pos(1);
-    std::vector<size_t> mem_pos_vect;
-    while (with_file >> feature >> _ >> nb_mem_pos)
-    {
-        read_succ = true;
-        mem_pos_vect.resize(nb_mem_pos);
-        with_file.ignore(1);
-        with_file.read(reinterpret_cast<char *>(&mem_pos_vect[0]), nb_mem_pos * sizeof(size_t));
-        if (nb_mem_pos > 0)
-        {
-            after_merge = true;
-        }
-        ft_vect.emplace_back(std::make_unique<FeatureElem>(feature, mem_pos_vect));
-    }
-    ft_vect.shrink_to_fit();
-    with_file.close();
-    if (!read_succ)
-    {
-        throw std::invalid_argument("not valid file for input sequences: " + with_path);
-    }
-    return after_merge;
-}
-
 void ParseDesign(std::vector<std::string> &col_target_vect, const std::string &dsgn_path, const std::vector<std::string> &colname_vect)
 {
     const size_t nb_smp = colname_vect.size() - 1; // set aside the first column representing features
@@ -232,23 +174,6 @@ int RankMain(int argc, char *argv[])
     std::cerr << "Option parsing and metadata loading finished, execution time: " << (float)(clock() - begin_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    if (sel_top <= 0)
-    {
-        max_to_sel = ft_vect.size();
-    }
-    else if (sel_top < 0.999999) // for avoiding when sel_top == 0.999999999999
-    {
-        max_to_sel = static_cast<size_t>(ft_vect.size() * sel_top + 0.5);
-    }
-    else if (sel_top <= ft_vect.size())
-    {
-        max_to_sel = static_cast<size_t>(sel_top + 0.00005); // for avoiding when sel_top == 0.999999999999
-    }
-    else
-    {
-        throw std::invalid_argument("number of top feature selection exceeds total feature number: " +
-                                    std::to_string(static_cast<size_t>(sel_top + 0.00005)) + ">" + std::to_string(ft_vect.size()));
-    }
     std::vector<std::string> col_target_vect;
     if (rk_mthd != "sd" && rk_mthd != "rsd1" && rk_mthd != "rsd2" && rk_mthd != "rsd3" && rk_mthd != "entropy")
     {
@@ -267,6 +192,19 @@ int RankMain(int argc, char *argv[])
         nb_features += 1;
     }
 
+    // Postprocess variables
+    after_merge = stream.merged_features;
+    if (sel_top <= 0) max_to_sel = scores.size();
+    else if (sel_top < 0.999999) // for avoiding when sel_top == 0.999999999999
+    { max_to_sel = static_cast<size_t>(scores.size() * sel_top + 0.5); }
+    else if (sel_top <= scores.size())
+    { max_to_sel = static_cast<size_t>(sel_top + 0.00005); }// for avoiding when sel_top == 0.999999999999
+    else
+    {
+        throw std::invalid_argument("number of top feature selection exceeds total feature number: " +
+                                    std::to_string(static_cast<size_t>(sel_top + 0.00005)) + ">" + std::to_string(scores.size()));
+    }
+
     // Fill a vector that will be sorted acording the scores
     std::vector<uint64_t> ranks(nb_features) ;
     std::iota (std::begin(ranks), std::end(ranks), 0); // Fill with 0, 1, ..., 99...
@@ -274,24 +212,31 @@ int RankMain(int argc, char *argv[])
     // Rank the features
     RankScore(scores, ranks, scorer.GetScorerCode());
 
-    for (size_t i=0; i<100 ; i++)
-        cout << ranks[i] << "\t" << scores[ranks[i]] << endl;
-
-    exit(0);
-    
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
+
+    float tot = static_cast<float>(ranks.size());
     if (scorer.GetScorerCode() == ScorerCode::kTtestPadj) // BH procedure
     {
         std::cerr << "\tadjusting p-values using BH procedure..." << std::endl
                   << std::endl;
-        for (size_t tot_num(ft_vect.size()), i_ft(tot_num - 2); i_ft >= 0 && i_ft < tot_num; --i_ft)
+        for (size_t i(ranks.size() - 1); i > 0; --i)
         {
-            ft_vect[i_ft]->AdjustScore(static_cast<double>(tot_num) / (i_ft + 1), 0, ft_vect[i_ft + 1]->GetScore());
+            uint64_t i_score = ranks[i-1];
+            uint64_t i1_score = ranks[i];
+
+            scores[i_score] = FeatureElem::AdjustScore(
+                scores[i_score],
+                tot / (i + 1),
+                0, scores[i1_score]
+            );
+
         }
         std::cerr << "P-value adjusting finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
         inter_time = clock();
     }
+    
+    exit(0);
 
     std::ofstream out_file;
     if (!out_path.empty())
@@ -310,10 +255,12 @@ int RankMain(int argc, char *argv[])
     if (with_counts)
     {
         PrintHeader(after_merge, colname_vect, scorer.GetScorerName());
+        // TODO
         PrintWithCounts(after_merge, ft_vect, idx_mat, count_mode, nb_smp, max_to_sel);
     }
     else
     {
+        // TODO
         PrintAsIntermediate(ft_vect, max_to_sel);
     }
     idx_mat.close();

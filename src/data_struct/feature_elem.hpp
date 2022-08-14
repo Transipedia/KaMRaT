@@ -20,6 +20,14 @@ public:
     const double AdjustScore(double factor, double lower_lim, double upper_lim);
     const std::vector<float> &EstimateCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, size_t nb_smp, const std::string &count_mode) const;
 
+    static float AdjustScore(float score, const float factor, const float lower_lim, const float upper_lim)
+    {
+        score *= factor;
+        score = (score < lower_lim) ? lower_lim : score;
+        score = (score > upper_lim) ? upper_lim : score;
+        return score;
+    }
+
 private:
     const std::string feature_;              // feature name or contig sequence
     const std::vector<size_t> mem_pos_vect_; // member k-mer position vector, the first is rep-pos (for k-mers and general features)
