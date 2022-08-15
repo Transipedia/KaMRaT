@@ -1,4 +1,4 @@
-add_library(indexLoading index_loading.cpp FeatureStreamer.cpp)
+add_library(indexLoading index_loading.cpp FeatureStreamer.cpp IndexRandomAccess.cpp)
 target_include_directories(indexLoading PUBLIC "${PROJECT_SOURCE_DIR}/src/utils/")
 target_link_libraries(indexLoading PRIVATE dataStruct)
 

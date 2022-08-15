@@ -11,6 +11,7 @@
 #include "index_loading.hpp"
 #include "feature_elem.hpp"
 #include "FeatureStreamer.hpp"
+#include "IndexRandomAccess.hpp"
 #include "scorer.hpp"
 
 using featureVect_t = std::vector<std::unique_ptr<FeatureElem>>;
@@ -143,6 +144,39 @@ void PrintAsIntermediate(const featureVect_t &ft_vect, const size_t max_to_sel)
     }
 }
 
+
+void PrintAsIntermediate(std::vector<float> &scores, std::vector<uint64_t> &ranks, const size_t max_to_sel)
+{
+    // --- Preprocess ranks/scores to free some memory ---
+    uint64_t saved_space = (ranks.size() - max_to_sel) * sizeof(uint64_t);
+    // Slice vector to remove useless ranks
+    ranks.resize(max_to_sel);
+    // Sort ranked scores
+    std::sort(ranks.begin(), ranks.end());
+    // Move ranked scores at the beginning of the score vector
+    for (uint64_t idx=0 ; idx<ranks.size() ; idx++)
+        scores[idx] = scores[ranks[idx]];
+    // Remove useless scores
+    saved_space += (scores.size() - max_to_sel) * sizeof(float);
+    scores.resize(max_to_sel);
+    std::cout << "Saved space " << saved_space << std::endl;
+    exit(0);
+
+    // --- Get ordered file pointers ---
+
+    // --- Read from matrix file and write to stdout
+    // size_t p;
+    // for (size_t i_ft(0); i_ft < max_to_sel; ++i_ft)
+    // {
+    //     std::cout << ft_vect[i_ft]->GetFeature() << "\t" << ft_vect[i_ft]->GetScore() << "\t"
+    //               << ft_vect[i_ft]->GetNbMemPos() << "\t";
+    //     p = ft_vect[i_ft]->GetRepPos();
+    //     std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
+    //     std::cout << std::endl;
+    // }
+}
+
+
 using namespace std;
 
 int RankMain(int argc, char *argv[])
@@ -158,6 +192,24 @@ int RankMain(int argc, char *argv[])
     ParseOptions(argc, argv, idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, sel_top, out_path, with_counts);
     PrintRunInfo(idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, sel_top, out_path, with_counts);
     LoadIndexMeta(nb_smp, k_len, _stranded, colname_vect, idx_dir + "/idx-meta.bin");
+
+    // ----- DEBUG -----
+    
+    IndexRandomAccess ira(idx_dir + "/idx-pos.bin", idx_dir + "/idx-mat.bin", idx_dir + "/idx-meta.bin");
+    cout << "nb sample " << ira.nb_smp << endl;
+
+    float * counts = new float[ira.nb_smp];
+    char * feature = new char[ira.k + 1];
+    for (uint64_t i(0) ; i<ira.nb_rows ; i++) {
+        ira.load_counts_by_idx (i, counts, feature);
+        // cout << feature << endl;
+    }
+
+    delete[] counts;
+    delete[] feature;
+    exit(0);
+
+    // ---- /DEBUG/ ----
 
     std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
     if (!idx_mat.is_open())
@@ -235,8 +287,6 @@ int RankMain(int argc, char *argv[])
         std::cerr << "P-value adjusting finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
         inter_time = clock();
     }
-    
-    exit(0);
 
     std::ofstream out_file;
     if (!out_path.empty())
@@ -261,7 +311,7 @@ int RankMain(int argc, char *argv[])
     else
     {
         // TODO
-        PrintAsIntermediate(ft_vect, max_to_sel);
+        PrintAsIntermediate(scores, ranks, max_to_sel);
     }
     idx_mat.close();
 
