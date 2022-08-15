@@ -41,6 +41,7 @@ IndexRandomAccess::IndexRandomAccess(const std::string pos_path, const std::stri
 	// Define usefull variables
 	this->nb_smp = this->matrix_header.size();
 	this->matrix_line_size = this->matrix_header.size() * sizeof(float) + this->k + 1;
+	this->pos_line_size = sizeof(size_t) + this->k == 0 ? 0 : sizeof(uint64_t);
 	
 	this->mat_file.seekg (0, this->mat_file.end);
     this->mat_length = this->mat_file.tellg();
@@ -51,6 +52,7 @@ IndexRandomAccess::IndexRandomAccess(const std::string pos_path, const std::stri
 	this->pos_file.seekg (0, this->pos_file.end);
     this->pos_length = this->pos_file.tellg();
 	this->pos_file.seekg (0);
+	this->pos_position = 0;
 }
 
 
@@ -67,14 +69,11 @@ IndexRandomAccess::~IndexRandomAccess()
 // ------------------------------------ Matrix Access ------------------------------------
 #include <cassert>
 
-void IndexRandomAccess::load_counts_by_idx (const uint64_t idx, float * counts, char * feature) 
-{
-	// Make sure that we are not reading random feature matrices
-	if (this->k == 0)
-		throw runtime_error("Impossible to have random access in non-kmer matrix");
 
+void IndexRandomAccess::load_counts_by_file_position (const uint64_t file_position, float * counts, char * feature)
+{
 	// Extract counts
-	uint64_t go_position = idx * this->matrix_line_size;
+	uint64_t go_position = file_position;
 	if (go_position != this->mat_position) {
 		this->mat_file.seekg(go_position);
 		this->mat_position = go_position;
@@ -91,4 +90,36 @@ void IndexRandomAccess::load_counts_by_idx (const uint64_t idx, float * counts, 
 	assert(c == '\n');
 
 	this->mat_position += this->nb_smp * sizeof(float) + this->k + 1;
+}
+
+
+void IndexRandomAccess::load_counts_by_row (const uint64_t row, float * counts, char * feature) 
+{
+	// Make sure that we are not reading random feature matrices
+	if (this->k == 0)
+		throw runtime_error("Impossible to have random access in non-kmer matrix");
+
+	uint64_t go_position = row * this->matrix_line_size;
+	this->load_counts_by_file_position(go_position, counts, feature);
+}
+
+
+void IndexRandomAccess::indirect_load_counts (const uint64_t row, float * counts, char * feature)
+{
+	uint64_t go_position = row * this->pos_line_size;
+
+	if (this->pos_position != go_position) {
+		this->pos_file.seekg(go_position);
+		this->pos_position = go_position;
+	}
+
+	uint64_t kmer_code;
+	if (this->k > 0) {
+		this->pos_file.read(reinterpret_cast<char *>(&kmer_code), sizeof(uint64_t));
+	}
+	size_t matrix_index;
+	this->pos_file.read(reinterpret_cast<char *>(&matrix_index), sizeof(size_t));
+
+	this->pos_position += sizeof(size_t) + this->k == 0 ? 0 : sizeof(uint64_t);
+	this->load_counts_by_file_position(matrix_index, counts, feature);
 }

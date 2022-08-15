@@ -196,12 +196,11 @@ int RankMain(int argc, char *argv[])
     // ----- DEBUG -----
     
     IndexRandomAccess ira(idx_dir + "/idx-pos.bin", idx_dir + "/idx-mat.bin", idx_dir + "/idx-meta.bin");
-    cout << "nb sample " << ira.nb_smp << endl;
 
     float * counts = new float[ira.nb_smp];
     char * feature = new char[ira.k + 1];
     for (uint64_t i(0) ; i<ira.nb_rows ; i++) {
-        ira.load_counts_by_idx (i, counts, feature);
+        ira.indirect_load_counts (i, counts, feature);
         // cout << feature << endl;
     }
 
