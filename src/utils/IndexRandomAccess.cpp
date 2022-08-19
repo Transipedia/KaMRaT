@@ -104,9 +104,8 @@ void IndexRandomAccess::load_counts_by_row (const uint64_t row, float * counts, 
 }
 
 
-void IndexRandomAccess::indirect_load_counts (const uint64_t row, float * counts, char * feature)
-{
-	uint64_t go_position = row * this->pos_line_size;
+uint64_t IndexRandomAccess::feature_to_position(const uint64_t feature_idx) {
+	uint64_t go_position = feature_idx * this->pos_line_size;
 
 	if (this->pos_position != go_position) {
 		this->pos_file.seekg(go_position);
@@ -121,5 +120,13 @@ void IndexRandomAccess::indirect_load_counts (const uint64_t row, float * counts
 	this->pos_file.read(reinterpret_cast<char *>(&matrix_index), sizeof(size_t));
 
 	this->pos_position += sizeof(size_t) + this->k == 0 ? 0 : sizeof(uint64_t);
+
+	return matrix_index;
+}
+
+
+void IndexRandomAccess::indirect_load_counts (const uint64_t row, float * counts, char * feature)
+{
+	size_t matrix_index = this->feature_to_position(row);
 	this->load_counts_by_file_position(matrix_index, counts, feature);
 }

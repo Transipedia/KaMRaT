@@ -6,6 +6,8 @@ project(KaMRaT VERSION 2.0
 
 set(CMAKE_CXX_STANDARD 14)
 
+# add_compile_options(-Ofast)
+
 
 # Include local installed libraries
 

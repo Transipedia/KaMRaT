@@ -14,6 +14,9 @@
 #include "IndexRandomAccess.hpp"
 #include "scorer.hpp"
 
+
+using namespace std;
+
 using featureVect_t = std::vector<std::unique_ptr<FeatureElem>>;
 
 
@@ -67,13 +70,13 @@ void ParseDesign(std::vector<std::string> &col_target_vect, const std::string &d
 }
 
 
-void RankScore(const std::vector<float> & scores, std::vector<uint64_t> & ranks, const ScorerCode scorer_code)
+void SortFeatures(const std::vector<float> & scores, std::vector<uint64_t> & features, const ScorerCode scorer_code)
 {
     if (scorer_code == ScorerCode::kSNR || scorer_code == ScorerCode::kPearson || scorer_code == ScorerCode::kSpearman) // decabs
     {
         auto comp = [&scores](const uint64_t pos1, const uint64_t pos2)
             -> bool { return fabs(scores[pos1]) > fabs(scores[pos2]); };
-        std::sort(ranks.begin(), ranks.end(), comp);
+        std::sort(features.begin(), features.end(), comp);
     }
     else if (scorer_code == ScorerCode::kTtestPi || scorer_code == ScorerCode::kDIDS || scorer_code == ScorerCode::kLR ||
              scorer_code == ScorerCode::kBayes || scorer_code == ScorerCode::kSVM ||
@@ -82,13 +85,13 @@ void RankScore(const std::vector<float> & scores, std::vector<uint64_t> & ranks,
     {
         auto comp = [&scores](const uint64_t pos1, const uint64_t pos2)
             -> bool { return scores[pos1] > scores[pos2]; };
-        std::sort(ranks.begin(), ranks.end(), comp);
+        std::sort(features.begin(), features.end(), comp);
     }
     else if (scorer_code == ScorerCode::kTtestPadj || scorer_code == ScorerCode::kEntropy) // inc
     {
         auto comp = [&scores](const uint64_t pos1, const uint64_t pos2)
             -> bool { return scores[pos1] < scores[pos2]; };
-        std::sort(ranks.begin(), ranks.end(), comp);
+        std::sort(features.begin(), features.end(), comp);
     }
 }
 
@@ -145,39 +148,55 @@ void PrintAsIntermediate(const featureVect_t &ft_vect, const size_t max_to_sel)
 }
 
 
-void PrintAsIntermediate(std::vector<float> &scores, std::vector<uint64_t> &ranks, const size_t max_to_sel)
+void PrintAsIntermediate(std::vector<float> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess & ira)
 {
-    // --- Preprocess ranks/scores to free some memory ---
-    uint64_t saved_space = (ranks.size() - max_to_sel) * sizeof(uint64_t);
-    // Slice vector to remove useless ranks
-    ranks.resize(max_to_sel);
-    // Sort ranked scores
-    std::sort(ranks.begin(), ranks.end());
+    // --- Preprocess features/scores to free some memory ---
+    uint64_t saved_space = (features.size() - max_to_sel) * sizeof(uint64_t);
+    // Slice vector to remove low score features
+    features.resize(max_to_sel);
+    // Sort features regarding their file position
+    std::sort(features.begin(), features.end());
     // Move ranked scores at the beginning of the score vector
-    for (uint64_t idx=0 ; idx<ranks.size() ; idx++)
-        scores[idx] = scores[ranks[idx]];
+    for (uint64_t idx=0 ; idx<features.size() ; idx++)
+        scores[idx] = scores[features[idx]];
     // Remove useless scores
     saved_space += (scores.size() - max_to_sel) * sizeof(float);
     scores.resize(max_to_sel);
     std::cout << "Saved space " << saved_space << std::endl;
+
+    // --- Get ordered features file pointers (in place) ---
+    for (uint64_t idx=0 ; idx<features.size() ; idx++)
+        features[idx] = ira.feature_to_position(features[idx]);
+
+    // --- Get features file pointers in the matrix (in place) ---
+    for (uint64_t idx=0 ; idx<features.size() ; idx++)
+        features[idx] = ira.feature_to_position(features[idx]);
+
+    // --- Get file ordered features (to read the file from the beginning to the end) ---
+    vector<uint64_t> feature_indexes(features.size());
+    iota(std::begin(feature_indexes), std::end(feature_indexes), 0);
+    auto comp = [&features](const uint64_t idx1, const uint64_t idx2)
+            -> bool { return features[idx1] < features[idx2]; };
+    sort(feature_indexes.begin(), feature_indexes.end(), comp);
+
+    // --- Read from matrix file and write to stdout ---
+    float * counts = new float[ira.nb_smp];
+    char * feature = new char[ira.k + 1];
+    for (uint64_t idx=0 ; idx<features.size() ; idx++) {
+        // void load_counts_by_file_position (const uint64_t file_position, float * counts, char * feature)
+        // cout << feature
+        // std::cout << ft_vect[i_ft]->GetFeature() << "\t" << ft_vect[i_ft]->GetScore() << "\t"
+                  // << ft_vect[i_ft]->GetNbMemPos() << "\t";
+        // p = ft_vect[i_ft]->GetRepPos();
+        // std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
+        std::cout << std::endl;
+    }
+
+    delete[] counts;
+    delete[] feature;
     exit(0);
-
-    // --- Get ordered file pointers ---
-
-    // --- Read from matrix file and write to stdout
-    // size_t p;
-    // for (size_t i_ft(0); i_ft < max_to_sel; ++i_ft)
-    // {
-    //     std::cout << ft_vect[i_ft]->GetFeature() << "\t" << ft_vect[i_ft]->GetScore() << "\t"
-    //               << ft_vect[i_ft]->GetNbMemPos() << "\t";
-    //     p = ft_vect[i_ft]->GetRepPos();
-    //     std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
-    //     std::cout << std::endl;
-    // }
 }
 
-
-using namespace std;
 
 int RankMain(int argc, char *argv[])
 {
@@ -257,24 +276,24 @@ int RankMain(int argc, char *argv[])
     }
 
     // Fill a vector that will be sorted acording the scores
-    std::vector<uint64_t> ranks(nb_features) ;
-    std::iota (std::begin(ranks), std::end(ranks), 0); // Fill with 0, 1, ..., 99...
+    std::vector<uint64_t> features(nb_features) ;
+    std::iota (std::begin(features), std::end(features), 0); // Fill with 0, 1, ..., 99...
     
     // Rank the features
-    RankScore(scores, ranks, scorer.GetScorerCode());
+    SortFeatures(scores, features, scorer.GetScorerCode());
 
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    float tot = static_cast<float>(ranks.size());
+    float tot = static_cast<float>(features.size());
     if (scorer.GetScorerCode() == ScorerCode::kTtestPadj) // BH procedure
     {
         std::cerr << "\tadjusting p-values using BH procedure..." << std::endl
                   << std::endl;
-        for (size_t i(ranks.size() - 1); i > 0; --i)
+        for (size_t i(features.size() - 1); i > 0; --i)
         {
-            uint64_t i_score = ranks[i-1];
-            uint64_t i1_score = ranks[i];
+            uint64_t i_score = features[i-1];
+            uint64_t i1_score = features[i];
 
             scores[i_score] = FeatureElem::AdjustScore(
                 scores[i_score],
@@ -310,7 +329,7 @@ int RankMain(int argc, char *argv[])
     else
     {
         // TODO
-        PrintAsIntermediate(scores, ranks, max_to_sel);
+        PrintAsIntermediate(scores, features, max_to_sel, ira);
     }
     idx_mat.close();
 
