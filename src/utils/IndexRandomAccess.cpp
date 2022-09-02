@@ -6,7 +6,7 @@
 using namespace std;
 
 
-IndexRandomAccess::IndexRandomAccess(const std::string pos_path, const std::string mat_path, const std::string meta_path) : pos_file(pos_path), mat_file(mat_path), stranded(false)
+IndexRandomAccess::IndexRandomAccess(const std::string pos_path, const std::string mat_path, const std::string meta_path, bool kmers) : pos_file(pos_path), mat_file(mat_path), kmers(kmers), stranded(false)
 {
 	// Opening
 	ifstream meta_file(meta_path);
@@ -41,7 +41,7 @@ IndexRandomAccess::IndexRandomAccess(const std::string pos_path, const std::stri
 	// Define usefull variables
 	this->nb_smp = this->matrix_header.size();
 	this->matrix_line_size = this->matrix_header.size() * sizeof(float) + this->k + 1;
-	this->pos_line_size = sizeof(size_t) + this->k == 0 ? 0 : sizeof(uint64_t);
+	this->pos_line_size = sizeof(size_t) + (this->k == 0 ? 0 : sizeof(uint64_t));
 	
 	this->mat_file.seekg (0, this->mat_file.end);
     this->mat_length = this->mat_file.tellg();
@@ -106,7 +106,7 @@ void IndexRandomAccess::load_counts_by_row (const uint64_t row, float * counts, 
 
 uint64_t IndexRandomAccess::feature_to_position(const uint64_t feature_idx) {
 	uint64_t go_position = feature_idx * this->pos_line_size;
-
+	
 	if (this->pos_position != go_position) {
 		this->pos_file.seekg(go_position);
 		this->pos_position = go_position;
@@ -118,8 +118,8 @@ uint64_t IndexRandomAccess::feature_to_position(const uint64_t feature_idx) {
 	}
 	size_t matrix_index;
 	this->pos_file.read(reinterpret_cast<char *>(&matrix_index), sizeof(size_t));
-
-	this->pos_position += sizeof(size_t) + this->k == 0 ? 0 : sizeof(uint64_t);
+	
+	this->pos_position += sizeof(size_t) + (this->k == 0 ? 0 : sizeof(uint64_t));
 
 	return matrix_index;
 }

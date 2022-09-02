@@ -70,6 +70,11 @@ void ParseDesign(std::vector<std::string> &col_target_vect, const std::string &d
 }
 
 
+/** Sort features idx regarding their scores.
+ * @param scores A vector containing all scores. Score at position x corresponds to the xth feature.
+ * @param features The features to sort.
+ * @param scorer_code The scoring method to use.
+ **/
 void SortFeatures(const std::vector<float> & scores, std::vector<uint64_t> & features, const ScorerCode scorer_code)
 {
     if (scorer_code == ScorerCode::kSNR || scorer_code == ScorerCode::kPearson || scorer_code == ScorerCode::kSpearman) // decabs
@@ -134,20 +139,9 @@ void PrintWithCounts(const bool after_merge, const featureVect_t &ft_vect, std::
     }
 }
 
-void PrintAsIntermediate(const featureVect_t &ft_vect, const size_t max_to_sel)
-{
-    size_t p;
-    for (size_t i_ft(0); i_ft < max_to_sel; ++i_ft)
-    {
-        std::cout << ft_vect[i_ft]->GetFeature() << "\t" << ft_vect[i_ft]->GetScore() << "\t"
-                  << ft_vect[i_ft]->GetNbMemPos() << "\t";
-        p = ft_vect[i_ft]->GetRepPos();
-        std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
-        std::cout << std::endl;
-    }
-}
 
-
+/** @param scores Sorted scores
+ **/
 void PrintAsIntermediate(std::vector<float> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess & ira)
 {
     // --- Preprocess features/scores to free some memory ---
@@ -156,21 +150,11 @@ void PrintAsIntermediate(std::vector<float> &scores, std::vector<uint64_t> &feat
     features.resize(max_to_sel);
     // Sort features regarding their file position
     std::sort(features.begin(), features.end());
-    // Move ranked scores at the beginning of the score vector
-    for (uint64_t idx=0 ; idx<features.size() ; idx++)
-        scores[idx] = scores[features[idx]];
-    // Remove useless scores
-    saved_space += (scores.size() - max_to_sel) * sizeof(float);
-    scores.resize(max_to_sel);
-    std::cout << "Saved space " << saved_space << std::endl;
 
-    // --- Get ordered features file pointers (in place) ---
-    for (uint64_t idx=0 ; idx<features.size() ; idx++)
+    // --- Get matrix pointers (in place) ---
+    for (uint64_t idx=0 ; idx<features.size() ; idx++) {
         features[idx] = ira.feature_to_position(features[idx]);
-
-    // --- Get features file pointers in the matrix (in place) ---
-    for (uint64_t idx=0 ; idx<features.size() ; idx++)
-        features[idx] = ira.feature_to_position(features[idx]);
+    }
 
     // --- Get file ordered features (to read the file from the beginning to the end) ---
     vector<uint64_t> feature_indexes(features.size());
@@ -181,20 +165,17 @@ void PrintAsIntermediate(std::vector<float> &scores, std::vector<uint64_t> &feat
 
     // --- Read from matrix file and write to stdout ---
     float * counts = new float[ira.nb_smp];
+    // WARNING: Only works for constant size feature
     char * feature = new char[ira.k + 1];
+    feature[ira.k] = '\0';
     for (uint64_t idx=0 ; idx<features.size() ; idx++) {
-        // void load_counts_by_file_position (const uint64_t file_position, float * counts, char * feature)
-        // cout << feature
-        // std::cout << ft_vect[i_ft]->GetFeature() << "\t" << ft_vect[i_ft]->GetScore() << "\t"
-                  // << ft_vect[i_ft]->GetNbMemPos() << "\t";
-        // p = ft_vect[i_ft]->GetRepPos();
-        // std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
+        size_t mat_idx = features[feature_indexes[idx]];
+        // cout << feature_indexes[idx] << endl;
+        ira.load_counts_by_file_position(mat_idx, counts, feature);
+        cout << feature << "\t" << scores[idx] << "\t" << 1 << "\t";
+        std::cout.write(reinterpret_cast<char *>(&mat_idx), sizeof(size_t));
         std::cout << std::endl;
     }
-
-    delete[] counts;
-    delete[] feature;
-    exit(0);
 }
 
 
@@ -212,22 +193,7 @@ int RankMain(int argc, char *argv[])
     PrintRunInfo(idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, sel_top, out_path, with_counts);
     LoadIndexMeta(nb_smp, k_len, _stranded, colname_vect, idx_dir + "/idx-meta.bin");
 
-    // ----- DEBUG -----
-    
     IndexRandomAccess ira(idx_dir + "/idx-pos.bin", idx_dir + "/idx-mat.bin", idx_dir + "/idx-meta.bin");
-
-    float * counts = new float[ira.nb_smp];
-    char * feature = new char[ira.k + 1];
-    for (uint64_t i(0) ; i<ira.nb_rows ; i++) {
-        ira.indirect_load_counts (i, counts, feature);
-        // cout << feature << endl;
-    }
-
-    delete[] counts;
-    delete[] feature;
-    exit(0);
-
-    // ---- /DEBUG/ ----
 
     std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
     if (!idx_mat.is_open())

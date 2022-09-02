@@ -15,6 +15,8 @@ private:
 	size_t matrix_line_size;
 	size_t pos_line_size;
 
+	bool kmers;
+
 	uint64_t mat_length;
 	uint64_t mat_position;
 	uint64_t pos_length;
@@ -31,8 +33,9 @@ public:
 	 * @param pos_path File containing the feature positions in the matrix
 	 * @param mat_path Count matrix per feature
 	 * @param meta_path Metadata path
+	 * @param kmers True if the features are kmers
 	 **/
-	IndexRandomAccess(const std::string pos_path, const std::string mat_path, const std::string meta_path);
+	IndexRandomAccess(const std::string pos_path, const std::string mat_path, const std::string meta_path, bool kmers=true);
 
 	~IndexRandomAccess();
 
