@@ -75,7 +75,7 @@ void ParseDesign(std::vector<std::string> &col_target_vect, const std::string &d
  * @param features The features to sort.
  * @param scorer_code The scoring method to use.
  **/
-void SortFeatures(const std::vector<float> & scores, std::vector<uint64_t> & features, const ScorerCode scorer_code)
+void SortFeatures(const std::vector<double> & scores, std::vector<uint64_t> & features, const ScorerCode scorer_code)
 {
     if (scorer_code == ScorerCode::kSNR || scorer_code == ScorerCode::kPearson || scorer_code == ScorerCode::kSpearman) // decabs
     {
@@ -142,7 +142,7 @@ void PrintWithCounts(const bool after_merge, const featureVect_t &ft_vect, std::
 
 /** @param scores Sorted scores
  **/
-void PrintAsIntermediate(std::vector<float> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess & ira)
+void PrintAsIntermediate(std::vector<double> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess & ira)
 {
     // --- Preprocess features/scores to free some memory ---
     uint64_t saved_space = (features.size() - max_to_sel) * sizeof(uint64_t);
@@ -220,11 +220,13 @@ int RankMain(int argc, char *argv[])
     // Load and score all the usefull features
     size_t nb_features = 0;
     std::vector<float> count_vect;
-    vector<float> scores; 
+    vector<double> scores;
     while (stream.hasNext()) {
         feature_t feature = stream.next();
         feature->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
-        scores.push_back(static_cast<float>(scorer.EstimateScore(count_vect)));
+        double score = scorer.EstimateScore(count_vect);
+        scores.push_back(score);
+
         nb_features += 1;
     }
 
@@ -248,10 +250,13 @@ int RankMain(int argc, char *argv[])
     // Rank the features
     SortFeatures(scores, features, scorer.GetScorerCode());
 
+    for (int i=0 ; i<10 ; i++)
+        cout << features[i] << " " << scores[features[i]] << endl;
+
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
 
-    float tot = static_cast<float>(features.size());
+    double tot = static_cast<double>(features.size());
     if (scorer.GetScorerCode() == ScorerCode::kTtestPadj) // BH procedure
     {
         std::cerr << "\tadjusting p-values using BH procedure..." << std::endl
