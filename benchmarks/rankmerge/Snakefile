@@ -1,0 +1,82 @@
+
+input_file = "data/large/kmer-counts.allsmp.tsv.gz"
+main_folder = "data/large"
+matrix_name = input_file[input_file.rfind('/')+1:-7]
+
+
+rule all:
+    input:
+        f"{main_folder}/{matrix_name}_ressources.tsv"
+
+rule index_creation:
+    input:
+        "{path}/{matrix}.tsv.gz"
+    output:
+        "{path}/index_{matrix}/idx-mat.bin",
+        "{path}/index_{matrix}/idx-meta.bin",
+        "{path}/index_{matrix}/idx-pos.bin",
+        mem = "{path}/{matrix}/index.mem"
+    params:
+        job_name="index"
+    run:
+        shell("mkdir -p {wildcards.path}/index_{wildcards.matrix}")
+        shell("mkdir -p {wildcards.path}/{wildcards.matrix}/")
+        shell("/usr/bin/time -v ./apps/kamrat index -intab {wildcards.path}/{wildcards.matrix}.tsv.gz -outdir {wildcards.path}/index_{wildcards.matrix} -klen 31 -unstrand -nfbase 50000000000 2> {output.mem}.tmp")
+	shell("mv {output.mem}.tmp {output.mem}")
+
+
+# ../bin/kamrat rank -idxdir output/kamrat.idx -rankby ttest.padj -design data/sample-condition.toy.tsv -seltop 0.1 -outpath output/rankingfirst/top-kmers.bin
+rule binary_rank:
+    input:
+        "{path}/index_{matrix}/idx-mat.bin",
+        "{path}/index_{matrix}/idx-meta.bin",
+        "{path}/index_{matrix}/idx-pos.bin",
+        design = "{path}/design.csv"
+    output:
+        out = "{path}/{matrix}/binary/raw-{method}.bin",
+        mem = "{path}/{matrix}/binary/raw-{method}.mem"
+    params:
+        job_name="{method}"
+    shell:
+        f"COUNT=$(zcat -f < {input_file} | wc -l | cut -f1 -d' ') && \
+        RATIO=$(bc -l <<< \"scale=4; 1000000/$COUNT\" ) && RATIO=0$RATIO && \
+        /usr/bin/time -v ./apps/kamrat rank \
+                -idxdir {{wildcards.path}}/index_{{wildcards.matrix}} \
+                -rankby {{wildcards.method}} \
+                -design {{input.design}} \
+                -seltop $RATIO \
+                -outpath {{output.out}} \
+            2> {{output.mem}}"
+
+
+# ../bin/kamrat merge -idxdir output/kamrat.idx -overlap 30-15 -with "{path}/{matrix}/binary/{method}.out:min -outpath output/rankingfirst/top-ctg-counts.tsv -withcounts mean
+rule merge:
+    input:
+        "{path}/index_{matrix}/idx-mat.bin",
+        "{path}/index_{matrix}/idx-meta.bin",
+        "{path}/index_{matrix}/idx-pos.bin",
+        ranked = "{path}/{matrix}/binary/raw-ttest.pi.bin"
+    output:
+        out = "{path}/index_{matrix}/ranked-merged-kmers.bin",
+        mem = "{path}/{matrix}/rank-merge.mem"
+    params:
+        job_name="merge"
+    shell:
+        "/usr/bin/time -v ./apps/kamrat merge \
+                -idxdir {wildcards.path}/index_{wildcards.matrix} \
+                -overlap 30-15 \
+                -with {input.ranked}:min \
+                -outpath {output.out} \
+                -withcounts mean \
+            2> {output.mem}"
+
+
+rule extract_metrics:
+    input:
+        "{path}/{matrix_name}/index.mem",
+        "{path}/{matrix_name}/binary/raw-ttest.pi.mem",
+        "{path}/{matrix_name}/rank-merge.mem"
+    output:
+        "{path}/{matrix_name}_ressources.tsv"
+    params:
+        job_name="extract"

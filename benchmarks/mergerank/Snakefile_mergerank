@@ -1,0 +1,100 @@
+
+input_file = "data/medium/kmer-counts.allsmp.tsv.gz"
+main_folder = "data/large"
+matrix_name = input_file[input_file.rfind('/')+1:-7]
+
+
+rule all:
+    input:
+        f"{main_folder}/{matrix_name}_ressources.tsv"
+
+rule index_creation:
+    input:
+        "{path}/{matrix}.tsv.gz"
+    output:
+        "{path}/index_{matrix}/idx-mat.bin",
+        "{path}/index_{matrix}/idx-meta.bin",
+        "{path}/index_{matrix}/idx-pos.bin",
+        mem = "{path}/{matrix}/index.mem"
+    params:
+        job_name="index"
+    run:
+        shell("mkdir -p {wildcards.path}/index_{wildcards.matrix}")
+        shell("mkdir -p {wildcards.path}/{wildcards.matrix}/")
+        shell("/usr/bin/time -v ./apps/kamrat index -intab {wildcards.path}/{wildcards.matrix}.tsv.gz -outdir {wildcards.path}/index_{wildcards.matrix} -klen 31 -unstrand -nfbase 50000000000 2> {output.mem}.tmp")
+	shell("mv {output.mem}.tmp {output.mem}")
+
+
+rule merge:
+    input:
+        "{path}/index_{matrix}/idx-mat.bin",
+        "{path}/index_{matrix}/idx-meta.bin",
+        "{path}/index_{matrix}/idx-pos.bin"
+    output:
+        out = "{path}/index_{matrix}/merged-kmers.bin",
+        mem = "{path}/{matrix}/merge.mem"
+    params:
+        job_name="merge"
+    shell:
+        "/usr/bin/time -v ./apps/kamrat merge -idxdir {wildcards.path}/index_{wildcards.matrix} -overlap 30-15 -outpath {output.out} 2> {output.mem}"
+
+
+rule binary_rank:
+    input:
+        merged = "{path}/index_{matrix}/merged-kmers.bin",
+        design = "{path}/design.csv"
+    output:
+        out = "{path}/{matrix}/binary/{method}.out",
+        mem = "{path}/{matrix}/binary/{method}.mem"
+    params:
+        job_name="{method}"
+    shell:
+        "/usr/bin/time -v ./apps/kamrat rank -design {input.design} -rankby {wildcards.method} -idxdir {wildcards.path}/index_{wildcards.matrix} -with {input.merged} -outpath {output.out} -withcounts 2> {output.mem}"
+
+
+rule continuous_rank:
+    input:
+        merged = "{path}/index_{matrix}/merged-kmers.bin",
+        design = "{path}/design_ctnu.csv"
+    output:
+        out = "{path}/{matrix}/continuous/{method}.out",
+        mem = "{path}/{matrix}/continuous/{method}.mem"
+    params:
+        job_name="{method}"
+    shell:
+        "/usr/bin/time -v ./apps/kamrat rank -design {input.design} -rankby {wildcards.method} -idxdir {wildcards.path}/index_{wildcards.matrix} -with {input.merged} -outpath {output.out} -withcounts 2> {output.mem}"
+
+
+rule unary_rank:
+    input:
+        "{path}/index_{matrix}/merged-kmers.bin"
+    output:
+        out = "{path}/{matrix}/unary/{method}.out",
+        mem = "{path}/{matrix}/unary/{method}.mem"
+    params:
+        job_name="{method}"
+    shell:
+        "/usr/bin/time -v ./apps/kamrat rank -idxdir {wildcards.path}/index_{wildcards.matrix} -rankby {wildcards.method} -with {input} -outpath {output.out} -withcounts 2> {output.mem}"
+
+
+rule extract_metrics:
+    input:
+        "{path}/{matrix_name}/index.mem",
+        "{path}/{matrix_name}/merge.mem",
+        "{path}/{matrix_name}/binary/ttest.padj.mem",
+        "{path}/{matrix_name}/binary/ttest.pi.mem",
+        "{path}/{matrix_name}/binary/snr.mem",
+        "{path}/{matrix_name}/binary/lr.mem",
+        "{path}/{matrix_name}/binary/dids.mem",
+        "{path}/{matrix_name}/binary/bayes.mem",
+        "{path}/{matrix_name}/continuous/pearson.mem",
+        "{path}/{matrix_name}/continuous/spearman.mem",
+        "{path}/{matrix_name}/unary/sd.mem",
+        "{path}/{matrix_name}/unary/rsd1.mem",
+        "{path}/{matrix_name}/unary/rsd2.mem",
+        "{path}/{matrix_name}/unary/rsd3.mem",
+        "{path}/{matrix_name}/unary/entropy.mem",
+    output:
+        "{path}/{matrix_name}_ressources.tsv"
+    params:
+        job_name="extract"
