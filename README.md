@@ -112,7 +112,9 @@ A set of auxiliary tools to be used for upstream and downstream of kamrat are pr
 
 ### Dependencies
 
++ CMake
 + [MLPack 3.3.2](https://github.com/mlpack/mlpack/releases/tag/3.3.2)
++ Armadillo
 + [Boost-iostreams](https://www.boost.org/doc/libs/1_74_0/libs/iostreams/doc/index.html)
 
 MLPack can be installed on [Linux/Mac](https://mlpack.org/doc/mlpack-3.3.2/doxygen/build.html), [Windows](https://mlpack.org/doc/mlpack-3.3.2/doxygen/build_windows.html), or via [conda](https://anaconda.org/conda-forge/mlpack) by following the corresponding links.  
