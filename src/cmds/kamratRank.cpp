@@ -140,6 +140,35 @@ void PrintWithCounts(const bool after_merge, const featureVect_t &ft_vect, std::
 }
 
 
+// void PrintWithCounts(const bool after_merge, const std::vector<double> &scores, const std::vector<uint64_t> &features, std::ifstream &idx_mat,
+//                      const std::string &count_mode, const size_t nb_smp, const size_t max_to_sel)
+// {
+//     std::vector<float> count_vect;
+//     std::string rep_seq;
+//     for (size_t i_ft(0); i_ft < max_to_sel; ++i_ft)
+//     {
+//         std::cout << ft_vect[i_ft]->GetFeature();
+//         if (after_merge)
+//         {
+//             std::cout << "\t" << ft_vect[i_ft]->GetNbMemPos();
+//             std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, ft_vect[i_ft]->GetRepPos(), nb_smp);
+//         }
+//         std::cout << "\t" << ft_vect[i_ft]->GetScore();
+//         ft_vect[i_ft]->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
+//         for (float x : count_vect)
+//         {
+//             std::cout << "\t" << x;
+//         }
+//         std::cout << std::endl;
+//     }
+// }
+
+
+typedef struct feature_pos_s {
+    uint64_t feature;
+    uint64_t file_pos;
+} feature_pos_t;
+
 /** @param scores Sorted scores
  **/
 void PrintAsIntermediate(std::vector<double> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess & ira)
@@ -151,17 +180,16 @@ void PrintAsIntermediate(std::vector<double> &scores, std::vector<uint64_t> &fea
     // Sort features regarding their file position
     std::sort(features.begin(), features.end());
 
-    // --- Get matrix pointers (in place) ---
+    // --- Get matrix pointers ---
+    std::vector<feature_pos_t> feature_positions(max_to_sel);
     for (uint64_t idx=0 ; idx<features.size() ; idx++) {
-        features[idx] = ira.feature_to_position(features[idx]);
+        feature_positions[idx] = {features[idx], ira.feature_to_position(features[idx])};
     }
 
     // --- Get file ordered features (to read the file from the beginning to the end) ---
-    vector<uint64_t> feature_indexes(features.size());
-    iota(std::begin(feature_indexes), std::end(feature_indexes), 0);
-    auto comp = [&features](const uint64_t idx1, const uint64_t idx2)
-            -> bool { return features[idx1] < features[idx2]; };
-    sort(feature_indexes.begin(), feature_indexes.end(), comp);
+    auto comp = [](const feature_pos_t f1, const feature_pos_t f2)
+            -> bool { return f1.file_pos < f2.file_pos; };
+    sort(feature_positions.begin(), feature_positions.end(), comp);
 
     // --- Read from matrix file and write to stdout ---
     float * counts = new float[ira.nb_smp];
@@ -170,12 +198,11 @@ void PrintAsIntermediate(std::vector<double> &scores, std::vector<uint64_t> &fea
     feature[ira.k] = '\0';
     ofstream debug;
     debug.open("data/medium/debug.txt", ios::out);
-    for (uint64_t idx=0 ; idx<features.size() ; idx++) {
-        size_t mat_idx = features[feature_indexes[idx]];
-        // cout << feature_indexes[idx] << endl;
+    for (uint64_t idx=0 ; idx<feature_positions.size() ; idx++) {
+        size_t mat_idx = feature_positions[idx].file_pos;
         ira.load_counts_by_file_position(mat_idx, counts, feature);
-        cout << feature << "\t" << scores[idx] << "\t" << 1 << "\t";
-        debug << feature << "\t" << scores[idx] << "\t" << 1 << endl;
+        cout << feature << "\t" << scores[feature_positions[idx].feature] << "\t" << 1 << "\t";
+        debug << feature << "\t" << scores[feature_positions[idx].feature] << "\t" << 1 << endl;
         std::cout.write(reinterpret_cast<char *>(&mat_idx), sizeof(size_t));
         std::cout << std::endl;
     }
@@ -278,6 +305,11 @@ int RankMain(int argc, char *argv[])
         inter_time = clock();
     }
 
+    ofstream scores_f("data/medium/scores.txt");
+    for (auto feature : features)
+        scores_f << scores[feature] << "\n";
+    scores_f.close();
+
     std::ofstream out_file;
     if (!out_path.empty())
     {
@@ -300,7 +332,6 @@ int RankMain(int argc, char *argv[])
     }
     else
     {
-        // TODO
         PrintAsIntermediate(scores, features, max_to_sel, ira);
     }
     idx_mat.close();
