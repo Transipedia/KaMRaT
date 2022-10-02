@@ -6,6 +6,8 @@
 #include <memory>
 #include <fstream>
 
+#include <iostream>
+
 class FeatureElem
 {
 public:
@@ -20,11 +22,15 @@ public:
     const double AdjustScore(double factor, double lower_lim, double upper_lim);
     const std::vector<float> &EstimateCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, size_t nb_smp, const std::string &count_mode) const;
 
-    static float AdjustScore(float score, const float factor, const float lower_lim, const float upper_lim)
+    static double AdjustScore(double score, const double factor, const double lower_lim, const double upper_lim)
     {
+        auto save = score;
         score *= factor;
         score = (score < lower_lim) ? lower_lim : score;
         score = (score > upper_lim) ? upper_lim : score;
+
+        if (score == 0)
+            std::cout << save << " -> 0" << std::endl;
         return score;
     }
 

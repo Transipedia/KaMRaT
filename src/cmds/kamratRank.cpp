@@ -168,14 +168,18 @@ void PrintAsIntermediate(std::vector<double> &scores, std::vector<uint64_t> &fea
     // WARNING: Only works for constant size feature
     char * feature = new char[ira.k + 1];
     feature[ira.k] = '\0';
+    ofstream debug;
+    debug.open("data/medium/debug.txt", ios::out);
     for (uint64_t idx=0 ; idx<features.size() ; idx++) {
         size_t mat_idx = features[feature_indexes[idx]];
         // cout << feature_indexes[idx] << endl;
         ira.load_counts_by_file_position(mat_idx, counts, feature);
         cout << feature << "\t" << scores[idx] << "\t" << 1 << "\t";
+        debug << feature << "\t" << scores[idx] << "\t" << 1 << endl;
         std::cout.write(reinterpret_cast<char *>(&mat_idx), sizeof(size_t));
         std::cout << std::endl;
     }
+    debug.close();
 }
 
 
@@ -249,9 +253,6 @@ int RankMain(int argc, char *argv[])
     
     // Rank the features
     SortFeatures(scores, features, scorer.GetScorerCode());
-
-    for (int i=0 ; i<10 ; i++)
-        cout << features[i] << " " << scores[features[i]] << endl;
 
     std::cerr << "Score evalution finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
     inter_time = clock();
