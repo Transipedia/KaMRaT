@@ -116,52 +116,51 @@ void PrintHeader(const bool after_merge, const std::vector<std::string> &colname
     std::cout << std::endl;
 }
 
-void PrintWithCounts(const bool after_merge, const featureVect_t &ft_vect, std::ifstream &idx_mat,
-                     const std::string &count_mode, const size_t nb_smp, const size_t max_to_sel)
+
+void PrintWithCounts(const bool after_merge,
+                     const std::vector<double> &scores, const std::vector<uint64_t> &features,
+                     std::ifstream &idx_mat, const std::string &count_mode, const size_t nb_smp,
+                     const size_t max_to_sel, IndexRandomAccess & ira)
 {
-    std::vector<float> count_vect;
-    std::string rep_seq;
-    for (size_t i_ft(0); i_ft < max_to_sel; ++i_ft)
+    float * counts = new float[ira.nb_smp];
+    char * feature = new char[ira.k + 1];
+    feature[ira.k] = '\0';
+
+    std::ofstream debug;
+    debug.open("data/medium/debug.txt", std::ios::out);
+
+    for (size_t idx(0); idx < max_to_sel; ++idx)
     {
-        std::cout << ft_vect[i_ft]->GetFeature();
+        // WARNING: Only works for kmer features
+        size_t mat_idx = ira.feature_to_position(features[idx]);
+        ira.load_counts_by_file_position(mat_idx, counts, feature);
+
+        std::cout << feature;
+        debug << feature;
         if (after_merge)
         {
-            std::cout << "\t" << ft_vect[i_ft]->GetNbMemPos();
-            std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, ft_vect[i_ft]->GetRepPos(), nb_smp);
+            // std::cout << "\t" << ft_vect[i_ft]->GetNbMemPos();
+            // std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, ft_vect[i_ft]->GetRepPos(), nb_smp);
+            cerr << "Not yet implemented (after_merge)" << endl;
+            exit(1);
         }
-        std::cout << "\t" << ft_vect[i_ft]->GetScore();
-        ft_vect[i_ft]->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
-        for (float x : count_vect)
+        debug << "\t" << scores[features[idx]];
+        std::cout << "\t" << scores[features[idx]];
+        // Only needed for multiple kmer features
+        // TODO
+        // ft_vect[i_ft]->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
+        for (size_t idx(0) ; idx<ira.nb_smp ; idx++)
         {
-            std::cout << "\t" << x;
+            debug << "\t" << counts[idx];
+            std::cout << "\t" << counts[idx];
         }
+        debug << std::endl;
         std::cout << std::endl;
     }
+
+    delete[] counts;
+    delete[] feature;
 }
-
-
-// void PrintWithCounts(const bool after_merge, const std::vector<double> &scores, const std::vector<uint64_t> &features, std::ifstream &idx_mat,
-//                      const std::string &count_mode, const size_t nb_smp, const size_t max_to_sel)
-// {
-//     std::vector<float> count_vect;
-//     std::string rep_seq;
-//     for (size_t i_ft(0); i_ft < max_to_sel; ++i_ft)
-//     {
-//         std::cout << ft_vect[i_ft]->GetFeature();
-//         if (after_merge)
-//         {
-//             std::cout << "\t" << ft_vect[i_ft]->GetNbMemPos();
-//             std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, ft_vect[i_ft]->GetRepPos(), nb_smp);
-//         }
-//         std::cout << "\t" << ft_vect[i_ft]->GetScore();
-//         ft_vect[i_ft]->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
-//         for (float x : count_vect)
-//         {
-//             std::cout << "\t" << x;
-//         }
-//         std::cout << std::endl;
-//     }
-// }
 
 
 typedef struct feature_pos_s {
@@ -169,7 +168,12 @@ typedef struct feature_pos_s {
     uint64_t file_pos;
 } feature_pos_t;
 
-/** @param scores Sorted scores
+/** Print the outputs. Features need to be reloaded from the matrix. This function is highly
+  * modified to read all the files in the right order (begin to end and not random access) 
+  * @param scores Scores by feature. scores[i] is the score for the ith feature.
+  * @param features Feature idxs sorted by score.
+  * @param max_to_sel Number max of features to keep in the output.
+  * @param ira Object to allow index random accesses.
  **/
 void PrintAsIntermediate(std::vector<double> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess & ira)
 {
@@ -207,6 +211,9 @@ void PrintAsIntermediate(std::vector<double> &scores, std::vector<uint64_t> &fea
         std::cout << std::endl;
     }
     debug.close();
+
+    delete[] counts;
+    delete[] feature;
 }
 
 
@@ -327,8 +334,8 @@ int RankMain(int argc, char *argv[])
     if (with_counts)
     {
         PrintHeader(after_merge, colname_vect, scorer.GetScorerName());
-        // TODO
-        PrintWithCounts(after_merge, ft_vect, idx_mat, count_mode, nb_smp, max_to_sel);
+        PrintWithCounts(after_merge, scores, features, idx_mat, count_mode, nb_smp, max_to_sel, ira);
+        // PrintWithCounts(after_merge, ft_vect, idx_mat, count_mode, nb_smp, max_to_sel);
     }
     else
     {
