@@ -168,6 +168,42 @@ typedef struct feature_pos_s {
     uint64_t file_pos;
 } feature_pos_t;
 
+
+
+void PrintAsIntermediate_features(std::vector<double> & scores, std::vector<uint64_t> & features, size_t max_to_sel, FeatureStreamer & stream, ifstream & idx_mat, size_t nb_smp, std::string count_mode)
+{
+    features.resize(max_to_sel);
+    std::sort(features.begin(), features.end());
+
+    ofstream debug;
+    debug.open("data/medium/debug.txt", ios::out);
+    std::vector<float> count_vect;
+
+    uint64_t feature_idx = 0, idx = 0;
+    while (stream.hasNext()) {
+        feature_t feature = stream.next();
+
+        // If the next feature of interest is not yet reached
+        if (features[feature_idx] > idx++) {
+            continue;
+        }
+        feature->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
+
+        // Print the current feature
+        std::cout << feature->GetFeature() << "\t" << scores[features[feature_idx]] << "\t"
+                  << feature->GetNbMemPos() << "\t";
+        debug << feature->GetFeature() << "\t" << scores[features[feature_idx]] << "\t"
+                  << feature->GetNbMemPos() << endl;
+
+        size_t p = feature->GetRepPos();
+        std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
+        std::cout << std::endl;
+
+        feature_idx += 1;
+    }
+    debug.close();
+}
+
 /** Print the outputs. Features need to be reloaded from the matrix. This function is highly
   * modified to read all the files in the right order (begin to end and not random access) 
   * @param scores Scores by feature. scores[i] is the score for the ith feature.
@@ -175,7 +211,7 @@ typedef struct feature_pos_s {
   * @param max_to_sel Number max of features to keep in the output.
   * @param ira Object to allow index random accesses.
  **/
-void PrintAsIntermediate(std::vector<double> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess & ira)
+void PrintAsIntermediate_kmers(std::vector<double> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess & ira)
 {
     // --- Preprocess features/scores to free some memory ---
     uint64_t saved_space = (features.size() - max_to_sel) * sizeof(uint64_t);
@@ -335,11 +371,16 @@ int RankMain(int argc, char *argv[])
     {
         PrintHeader(after_merge, colname_vect, scorer.GetScorerName());
         PrintWithCounts(after_merge, scores, features, idx_mat, count_mode, nb_smp, max_to_sel, ira);
-        // PrintWithCounts(after_merge, ft_vect, idx_mat, count_mode, nb_smp, max_to_sel);
     }
     else
     {
-        PrintAsIntermediate(scores, features, max_to_sel, ira);
+        if (with_path.empty())
+            PrintAsIntermediate_kmers(scores, features, max_to_sel, ira);
+        else {
+            std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
+            FeatureStreamer stream(with_path);
+            PrintAsIntermediate_features(scores, features, max_to_sel, stream, idx_mat, nb_smp, count_mode);
+        }
     }
     idx_mat.close();
 
