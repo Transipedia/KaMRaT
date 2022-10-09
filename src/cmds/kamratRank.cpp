@@ -122,8 +122,6 @@ void PrintWithCounts_features(const std::vector<double> & scores, std::vector<ui
     features.resize(max_to_sel);
     std::sort(features.begin(), features.end());
 
-    ofstream debug;
-    debug.open("data/medium/debug.txt", ios::out);
     std::vector<float> count_vect;
 
     uint64_t feature_idx = 0, idx = 0;
@@ -139,22 +137,16 @@ void PrintWithCounts_features(const std::vector<double> & scores, std::vector<ui
         // Print the current feature
         std::string rep_seq;
         std::cout << feature->GetFeature() << "\t" << feature->GetNbMemPos();
-        debug << feature->GetFeature() << "\t" << feature->GetNbMemPos();
         std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, feature->GetRepPos(), nb_smp);
-        debug << "\t" << GetTagSeq(rep_seq, idx_mat, feature->GetRepPos(), nb_smp);
         std::cout << "\t" << scores[features[feature_idx]];
-        debug << "\t" << scores[features[feature_idx]];
         for (float x : count_vect)
         {
             std::cout << "\t" << x;
-            debug << "\t" << x;
         }
         std::cout << std::endl;
-        debug << std::endl;
-
+    
         feature_idx += 1;
     }
-    debug.close();
 }
 
 
@@ -166,9 +158,6 @@ void PrintWithCounts_kmers(const std::vector<double> &scores, const std::vector<
     char * feature = new char[ira.k + 1];
     feature[ira.k] = '\0';
 
-    std::ofstream debug;
-    debug.open("data/medium/debug.txt", std::ios::out);
-
     for (size_t idx(0); idx < max_to_sel; ++idx)
     {
         // WARNING: Only works for kmer features
@@ -176,16 +165,12 @@ void PrintWithCounts_kmers(const std::vector<double> &scores, const std::vector<
         ira.load_counts_by_file_position(mat_idx, counts, feature);
 
         std::cout << feature;
-        debug << feature;
-        debug << "\t" << scores[features[idx]];
         std::cout << "\t" << scores[features[idx]];
         
         for (size_t idx(0) ; idx<ira.nb_smp ; idx++)
         {
-            debug << "\t" << counts[idx];
             std::cout << "\t" << counts[idx];
         }
-        debug << std::endl;
         std::cout << std::endl;
     }
 
@@ -206,8 +191,6 @@ void PrintAsIntermediate_features(std::vector<double> & scores, std::vector<uint
     features.resize(max_to_sel);
     std::sort(features.begin(), features.end());
 
-    ofstream debug;
-    debug.open("data/medium/debug.txt", ios::out);
     std::vector<float> count_vect;
 
     uint64_t feature_idx = 0, idx = 0;
@@ -223,16 +206,12 @@ void PrintAsIntermediate_features(std::vector<double> & scores, std::vector<uint
         // Print the current feature
         std::cout << feature->GetFeature() << "\t" << scores[features[feature_idx]] << "\t"
                   << feature->GetNbMemPos() << "\t";
-        debug << feature->GetFeature() << "\t" << scores[features[feature_idx]] << "\t"
-                  << feature->GetNbMemPos() << endl;
-
         size_t p = feature->GetRepPos();
         std::cout.write(reinterpret_cast<char *>(&p), sizeof(size_t));
         std::cout << std::endl;
 
         feature_idx += 1;
     }
-    debug.close();
 }
 
 /** Print the outputs. Features need to be reloaded from the matrix. This function is highly
@@ -264,21 +243,16 @@ void PrintAsIntermediate_kmers(std::vector<double> &scores, std::vector<uint64_t
 
     // --- Read from matrix file and write to stdout ---
     float * counts = new float[ira.nb_smp];
-    // WARNING: Only works for constant size feature
     char * feature = new char[ira.k + 1];
     feature[ira.k] = '\0';
-    ofstream debug;
-    debug.open("data/medium/debug.txt", ios::out);
     for (uint64_t idx=0 ; idx<feature_positions.size() ; idx++) {
         size_t mat_idx = feature_positions[idx].file_pos;
         ira.load_counts_by_file_position(mat_idx, counts, feature);
-        cout << feature << "\t" << scores[feature_positions[idx].feature] << "\t" << 1 << "\t";
-        debug << feature << "\t" << scores[feature_positions[idx].feature] << "\t" << 1 << endl;
+        std::cout << feature << "\t" << scores[feature_positions[idx].feature] << "\t" << 1 << "\t";
         std::cout.write(reinterpret_cast<char *>(&mat_idx), sizeof(size_t));
         std::cout << std::endl;
     }
-    debug.close();
-
+    
     delete[] counts;
     delete[] feature;
 }
@@ -378,11 +352,6 @@ int RankMain(int argc, char *argv[])
         std::cerr << "P-value adjusting finished, execution time: " << (float)(clock() - inter_time) / CLOCKS_PER_SEC << "s." << std::endl;
         inter_time = clock();
     }
-
-    ofstream scores_f("data/medium/scores.txt");
-    for (auto feature : features)
-        scores_f << scores[feature] << "\n";
-    scores_f.close();
 
     std::ofstream out_file;
     if (!out_path.empty())
