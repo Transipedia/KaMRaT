@@ -117,8 +117,48 @@ void PrintHeader(const bool after_merge, const std::vector<std::string> &colname
 }
 
 
-void PrintWithCounts(const bool after_merge,
-                     const std::vector<double> &scores, const std::vector<uint64_t> &features,
+void PrintWithCounts_features(const std::vector<double> & scores, std::vector<uint64_t> & features, size_t max_to_sel, FeatureStreamer & stream, ifstream & idx_mat, size_t nb_smp, std::string count_mode)
+{
+    features.resize(max_to_sel);
+    std::sort(features.begin(), features.end());
+
+    ofstream debug;
+    debug.open("data/medium/debug.txt", ios::out);
+    std::vector<float> count_vect;
+
+    uint64_t feature_idx = 0, idx = 0;
+    while (stream.hasNext()) {
+        feature_t feature = stream.next();
+
+        // If the next feature of interest is not yet reached
+        if (features[feature_idx] > idx++) {
+            continue;
+        }
+        feature->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
+
+        // Print the current feature
+        std::string rep_seq;
+        std::cout << feature->GetFeature() << "\t" << feature->GetNbMemPos();
+        debug << feature->GetFeature() << "\t" << feature->GetNbMemPos();
+        std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, feature->GetRepPos(), nb_smp);
+        debug << "\t" << GetTagSeq(rep_seq, idx_mat, feature->GetRepPos(), nb_smp);
+        std::cout << "\t" << scores[features[feature_idx]];
+        debug << "\t" << scores[features[feature_idx]];
+        for (float x : count_vect)
+        {
+            std::cout << "\t" << x;
+            debug << "\t" << x;
+        }
+        std::cout << std::endl;
+        debug << std::endl;
+
+        feature_idx += 1;
+    }
+    debug.close();
+}
+
+
+void PrintWithCounts_kmers(const std::vector<double> &scores, const std::vector<uint64_t> &features,
                      std::ifstream &idx_mat, const std::string &count_mode, const size_t nb_smp,
                      const size_t max_to_sel, IndexRandomAccess & ira)
 {
@@ -137,18 +177,9 @@ void PrintWithCounts(const bool after_merge,
 
         std::cout << feature;
         debug << feature;
-        if (after_merge)
-        {
-            // std::cout << "\t" << ft_vect[i_ft]->GetNbMemPos();
-            // std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, ft_vect[i_ft]->GetRepPos(), nb_smp);
-            cerr << "Not yet implemented (after_merge)" << endl;
-            exit(1);
-        }
         debug << "\t" << scores[features[idx]];
         std::cout << "\t" << scores[features[idx]];
-        // Only needed for multiple kmer features
-        // TODO
-        // ft_vect[i_ft]->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
+        
         for (size_t idx(0) ; idx<ira.nb_smp ; idx++)
         {
             debug << "\t" << counts[idx];
@@ -370,7 +401,13 @@ int RankMain(int argc, char *argv[])
     if (with_counts)
     {
         PrintHeader(after_merge, colname_vect, scorer.GetScorerName());
-        PrintWithCounts(after_merge, scores, features, idx_mat, count_mode, nb_smp, max_to_sel, ira);
+        if (after_merge) {
+            std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
+            FeatureStreamer stream(with_path);
+            PrintWithCounts_features(scores, features, max_to_sel, stream, idx_mat, nb_smp, count_mode);
+        } else {
+            PrintWithCounts_kmers(scores, features, idx_mat, count_mode, nb_smp, max_to_sel, ira);
+        }
     }
     else
     {
