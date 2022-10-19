@@ -50,7 +50,7 @@ do
 	echo -ne "\t"$s | gzip -c >> $kmer_tab_path
 done
 echo "" | gzip -c >> $kmer_tab_path
-singularity exec --bind /src:/des kamrat.sif joinCounts -r 1 -a 1 $outdir/*.txt | gzip -c >> $kmer_tab_path # no filter of recurrence
+apptainer exec --bind /src:/des kamrat.sif joinCounts -r 1 -a 1 $outdir/*.txt | gzip -c >> $kmer_tab_path # no filter of recurrence
 ```
 
 Note: please keep in mind that the ```sort``` after ```jellyfish dump``` is important for joinCounts.
@@ -60,25 +60,25 @@ Note: please keep in mind that the ```sort``` after ```jellyfish dump``` is impo
 ```bash
 mkdir $outdir/kamrat.idx
 # Make index for k-mer matrix with k=31, unstranded mode, and with a count per billion normalization
-singularity exec --bind /src:/des kamrat.sif kamrat index -intab $kmer_tab_path -outdir $outdir/kamrat.idx -klen 31 -unstrand -nfbase 1000000000
+apptainer exec --bind /src:/des kamrat.sif kamrat index -intab $kmer_tab_path -outdir $outdir/kamrat.idx -klen 31 -unstrand -nfbase 1000000000
 ```
 
 **KaMRaT rank-merge approach**
 
 ```bash
 # Select top 50% of relevant k-mers using ttest pi-value
-singularity exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -rankby ttest.pi -design $indir/rank-design.txt -outpath $outdir/top-ranked-kmers.ttest-pi.bin -seltop 0.5
+apptainer exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -rankby ttest.pi -design $indir/rank-design.txt -outpath $outdir/top-ranked-kmers.ttest-pi.bin -seltop 0.5
 # Extend k-mers by tolerating overlap from 30nc to 15nc, intervened by Pearson distance <= 0.20, and with mean contig count
-singularity exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -with $outdir/top-ranked-kmers.ttest-pi.bin -interv pearson:0.20 -outpath $outdir/contig-counts.ttest-pi.pearson20.tsv -withcounts mean
+apptainer exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -with $outdir/top-ranked-kmers.ttest-pi.bin -interv pearson:0.20 -outpath $outdir/contig-counts.ttest-pi.pearson20.tsv -withcounts mean
 ```
 
 **KaMRaT merge-rank approach**
 
 ```bash
 # Extend k-mers by tolerating overlap from 30nc to 15nc, intervened by Pearson distance <= 0.20, and with mean contig count
-singularity exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -interv pearson:0.20 -outpath $outdir/contigs.pearson20.bin
+apptainer exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -interv pearson:0.20 -outpath $outdir/contigs.pearson20.bin
 # Select top 50% of relevant contigs using ttest pi-value
-singularity exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -rankby ttest.pi -design $indir/rank-design.txt -seltop 0.5 -with $outdir/contigs.pearson20.bin -outpath $outdir/top-ranked-contigs.pearson20.ttest-pi.tsv -withcounts
+apptainer exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -rankby ttest.pi -design $indir/rank-design.txt -seltop 0.5 -with $outdir/contigs.pearson20.bin -outpath $outdir/top-ranked-contigs.pearson20.ttest-pi.tsv -withcounts
 ```
 
 ## Typical Workflow of KaMRaT
@@ -131,31 +131,20 @@ Firstly, clone the repository:
 ``` bash
 git clone --recursive https://github.com/Transipedia/KaMRaT.git
 cd KaMRaT
+camke . && make -j
 ```
 
-If you installed MLPack library with conda:
-
-``` bash
-bash compile.bash /path_to_MLPack_conda_environment
-```
-
-Otherwise, if you installed MLPack without conda:
-
-``` bash
-bash compile.bash
-```
-
-Finally, an executable binary file is available as `bin/kamrat`.
+Finally, an executable binary file is available as `apps/kamrat`.
 
 </details>
 
 <details>
-<summary>Use singularity</summary>
+<summary>Use apptainer (previously singularity)</summary>
 
-If using KaMRaT inside singularity, only by pulling from docker hub is enough:
+You can build the container from docker hub:
 
 ```bash
-singularity build KaMRaT.sif docker://xuehl/kamrat:latest
+apptainer build KaMRaT.sif docker://xuehl/kamrat:latest
 ```
 </details>
 
@@ -189,17 +178,17 @@ Note: if you use KaMRaT in command line, please remember to indicate the full pa
 
 ### KaMRaT Execution
 
-We recommande using KaMRaT within ```singularity```:
+We recommande using KaMRaT within ```apptainer```(previously singularity):
 
 ``` bash
-singularity exec -B /bind_src:/bind_des kamrat <CMD> [options] input_table 
+apptainer exec -B /bind_src:/bind_des kamrat <CMD> [options] input_table 
 # <CMD> can be one of filter, mask, merge, rank
 ```
 
-The ```-B``` option is for binding disk partitions to singularity image, please check ```singularity``` helper for details:
+The ```-B``` option is for binding disk partitions to apptainer image, please check ```apptainer``` helper for details:
 
 ```bash
-singularity exec -h
+apptainer exec -h
 ```
 
 It's also executable directly on command line:
@@ -209,25 +198,25 @@ It's also executable directly on command line:
 # <CMD> can be one of filter, mask, merge, rank
 ```
 
-In the following sections, we present under the situation of using KaMRaT in ```singularity```.  
-For running it directly on command line, please replace the leading ```singularity exec -B /bind_src:/bind_des``` by the path to KaMRaT binary file.
+In the following sections, we present under the situation of using KaMRaT in ```apptainer```.  
+For running it directly on command line, please replace the leading ```apptainer exec -B /bind_src:/bind_des``` by the path to KaMRaT binary file.
 
 ### KaMRaT Helper
 
 KaMRaT's top-level helper is accessible by typing one of these commands:
 
 ``` bash
-singularity exec kamrat
-singularity exec kamrat -h
-singularity exec kamrat -help
+apptainer exec kamrat
+apptainer exec kamrat -h
+apptainer exec kamrat -help
 ```
 
 Helpers of each KaMRaT modules are accessible via:
 
 ``` bash
 # <CMD> can be one from filter, mask, merge, rank #
-singularity exec kamrat <CMD> -h
-singularity exec kamrat <CMD> -help
+apptainer exec kamrat <CMD> -h
+apptainer exec kamrat <CMD> -help
 ```
 
 ### KaMRaT Usage by Module
