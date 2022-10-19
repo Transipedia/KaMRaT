@@ -1,0 +1,115 @@
+
+input_file = "data/snaketest/made-kmer-counts.tsv.gz"
+main_folder = "data/snaketest"
+matrix_name = input_file[input_file.rfind('/')+1:-7]
+
+
+rule all:
+    input:
+        f"{main_folder}/{matrix_name}_ressources.tsv"
+
+rule index_creation:
+    input:
+        "{path}/{matrix}.tsv.gz"
+    output:
+        "{path}/index_{matrix}/idx-mat.bin",
+        "{path}/index_{matrix}/idx-meta.bin",
+        "{path}/index_{matrix}/idx-pos.bin",
+        mem = "{path}/{matrix}/index.mem"
+    params:
+        job_name="index"
+    run:
+        shell("mkdir -p {wildcards.path}/index_{wildcards.matrix}")
+        shell("mkdir -p {wildcards.path}/{wildcards.matrix}/")
+        shell("/usr/bin/time -v ./apps/kamrat index -intab {wildcards.path}/{wildcards.matrix}.tsv.gz -outdir {wildcards.path}/index_{wildcards.matrix} -klen 31 -unstrand -nfbase 50000000000 2> {output.mem}.tmp")
+	shell("mv {output.mem}.tmp {output.mem}")
+
+
+rule binary_rank:
+    input:
+        index = "{path}/index_{matrix}/idx-mat.bin",
+        design = "{path}/design.csv"
+    output:
+        out = "{path}/{matrix}/binary/rank-{method}_{counts}.out",
+        mem = "{path}/{matrix}/binary/rank-{method}_{counts}.mem"
+    params:
+        job_name="{method}"
+    run:
+        shell("mkdir -p {wildcards.path}/{wildcards.matrix}/binary")
+        if wildcards.counts == "counts":
+            shell("/usr/bin/time -v ./apps/kamrat rank -design {input.design} -rankby {wildcards.method} -idxdir {wildcards.path}/index_{wildcards.matrix} -outpath {output.out} -withcounts 2> {output.mem}")
+        else:
+            shell("/usr/bin/time -v ./apps/kamrat rank -design {input.design} -rankby {wildcards.method} -idxdir {wildcards.path}/index_{wildcards.matrix} -outpath {output.out} 2> {output.mem}")
+
+
+rule continuous_rank:
+    input:
+        index = "{path}/index_{matrix}/idx-mat.bin",
+        design = "{path}/design_ctnu.csv"
+    output:
+        out = "{path}/{matrix}/continuous/rank-{method}_{counts}.out",
+        mem = "{path}/{matrix}/continuous/rank-{method}_{counts}.mem"
+    params:
+        job_name="{method}"
+    run:
+        shell("mkdir -p {wildcards.path}/{wildcards.matrix}/continuous")
+        if wildcards.counts == "counts":
+            shell("/usr/bin/time -v ./apps/kamrat rank -design {input.design} -rankby {wildcards.method} -idxdir {wildcards.path}/index_{wildcards.matrix} -outpath {output.out} -withcounts 2> {output.mem}")
+        else:
+            shell("/usr/bin/time -v ./apps/kamrat rank -design {input.design} -rankby {wildcards.method} -idxdir {wildcards.path}/index_{wildcards.matrix} -outpath {output.out} 2> {output.mem}")
+
+
+rule unary_rank:
+    input:
+        index = "{path}/index_{matrix}/idx-mat.bin",
+    output:
+        out = "{path}/{matrix}/unary/rank-{method}_{counts}.out",
+        mem = "{path}/{matrix}/unary/rank-{method}_{counts}.mem"
+    params:
+        job_name="{method}"
+    run:
+        shell("mkdir -p {wildcards.path}/{wildcards.matrix}/unary")
+        if wildcards.counts == "counts":
+            shell("/usr/bin/time -v ./apps/kamrat rank -idxdir {wildcards.path}/index_{wildcards.matrix} -rankby {wildcards.method} -outpath {output.out} -withcounts 2> {output.mem}")
+        else:
+            shell("/usr/bin/time -v ./apps/kamrat rank -idxdir {wildcards.path}/index_{wildcards.matrix} -rankby {wildcards.method} -outpath {output.out} 2> {output.mem}")
+
+
+rule extract_metrics:
+    input:
+        "{path}/{matrix_name}/index.mem",
+        "{path}/{matrix_name}/binary/rank-ttest.padj_nocounts.mem",
+        "{path}/{matrix_name}/binary/rank-ttest.pi_nocounts.mem",
+        "{path}/{matrix_name}/binary/rank-snr_nocounts.mem",
+        "{path}/{matrix_name}/binary/rank-lr_nocounts.mem",
+        "{path}/{matrix_name}/binary/rank-dids_nocounts.mem",
+        "{path}/{matrix_name}/binary/rank-bayes_nocounts.mem",
+        "{path}/{matrix_name}/continuous/rank-pearson_nocounts.mem",
+        "{path}/{matrix_name}/continuous/rank-spearman_nocounts.mem",
+        "{path}/{matrix_name}/unary/rank-sd_nocounts.mem",
+        "{path}/{matrix_name}/unary/rank-rsd1_nocounts.mem",
+        "{path}/{matrix_name}/unary/rank-rsd2_nocounts.mem",
+        "{path}/{matrix_name}/unary/rank-rsd3_nocounts.mem",
+        "{path}/{matrix_name}/unary/rank-entropy_nocounts.mem",
+        "{path}/{matrix_name}/binary/rank-ttest.padj_counts.mem",
+        "{path}/{matrix_name}/binary/rank-ttest.pi_counts.mem",
+        "{path}/{matrix_name}/binary/rank-snr_counts.mem",
+        "{path}/{matrix_name}/binary/rank-lr_counts.mem",
+        "{path}/{matrix_name}/binary/rank-dids_counts.mem",
+        "{path}/{matrix_name}/binary/rank-bayes_counts.mem",
+        "{path}/{matrix_name}/continuous/rank-pearson_counts.mem",
+        "{path}/{matrix_name}/continuous/rank-spearman_counts.mem",
+        "{path}/{matrix_name}/unary/rank-sd_counts.mem",
+        "{path}/{matrix_name}/unary/rank-rsd1_counts.mem",
+        "{path}/{matrix_name}/unary/rank-rsd2_counts.mem",
+        "{path}/{matrix_name}/unary/rank-rsd3_counts.mem",
+        "{path}/{matrix_name}/unary/rank-entropy_counts.mem",
+    output:
+        "{path}/{matrix_name}_ressources.tsv"
+    params:
+        job_name="extract"
+    run:
+        open(output, 'w').close()
+        shell('echo "cmd\twalltime(s)\tusertime(s)\tsystime(s)\twaittime(s)\tmemory(MB)" > {output}')
+        for i_f in input:
+            shell(f'echo $(python3 benchmarks/exctract_measures.py {i_f}) >> {{output}}')

@@ -33,8 +33,8 @@ rule binary_rank:
         "{path}/index_{matrix}/idx-pos.bin",
         design = "{path}/design.csv"
     output:
-        out = "{path}/{matrix}/binary/raw-{method}.bin",
-        mem = "{path}/{matrix}/binary/raw-{method}.mem"
+        out = "{path}/{matrix}/binary/rank-{method}.bin",
+        mem = "{path}/{matrix}/binary/rank-{method}.mem"
     params:
         job_name="{method}"
     shell:
@@ -55,10 +55,10 @@ rule merge:
         "{path}/index_{matrix}/idx-mat.bin",
         "{path}/index_{matrix}/idx-meta.bin",
         "{path}/index_{matrix}/idx-pos.bin",
-        ranked = "{path}/{matrix}/binary/raw-ttest.pi.bin"
+        ranked = "{path}/{matrix}/binary/rank-{method}.bin"
     output:
-        out = "{path}/index_{matrix}/ranked-merged-kmers.bin",
-        mem = "{path}/{matrix}/rank-merge.mem"
+        out = "{path}/index_{matrix}/rank-{method}-merge.bin",
+        mem = "{path}/{matrix}/rank-{method}-merge.mem"
     params:
         job_name="merge"
     shell:
@@ -80,3 +80,6 @@ rule extract_metrics:
         "{path}/{matrix_name}_ressources.tsv"
     params:
         job_name="extract"
+    run:
+        open(output, 'w').close()
+        for i_f in input:
