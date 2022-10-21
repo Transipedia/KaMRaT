@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 
-ENV PATH="/usr/KaMRaT/bin:$PATH"
+ENV PATH="/usr/KaMRaT/apps/:$PATH"
 ENV LC_ALL=C
 
 RUN export DEBIAN_FRONTEND=noninteractive \
