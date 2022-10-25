@@ -3,18 +3,18 @@
 -----
 KaMRaT is a C++ tool for finding substrings with interesting properties in large NGS datasets. 
 
-KaMRaT requires a k-mer count matrix extracted from the NGS files (e.g. with Jellyfish), and labels for each sample. 
+KaMRaT requires a k-mer count matrix extracted from the NGS files (e.g. with Jellyfish), and potential design table or FASTA file (see below for more information). 
 
-KaMRaT then provides a set of tools for reducing the k-mer matrix and extending k-mers to longer contigs. The main subfunctions are:
+KaMRaT then provides a set of tools for reducing the k-mer matrix and extending k-mers to longer contigs. The main modules are:
 
 - kamrat index: index feature* count table on disk
-- kamrat merge: merge k-mers into contigs, produces a contig count table
-- kamrat filter: exclude/retain features* by expression level 
-- kamrat mask: exclude/retain *k*-mers matching given fasta sequences
-- kamrat rank: rank features* according to labels and statistical test
+- kamrat filter: remove/retain features* by expression level 
+- kamrat mask: remove/retain k-mers matching given fasta sequences
+- kamrat merge: merge k-mers into contigs
+- kamrat rank: rank features* by classification performance, statistical significance, correlation, or variability 
 - kamrat query: estimate count vectors of given list of contigs
 
-Note: \*	features can be not only *k*-mers or *k*-mer contigs, but also general features such as genes or transcripts.
+  Note: \*	features can be not only k-mers or k-mer contigs, but also general features such as genes or transcripts.
 
 KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really Tremendous !".
 
@@ -32,7 +32,7 @@ dsgnfile=$indir/rank-design.txt
 kmer_tab_path=$outdir/kmer-counts.tsv.gz
 ```
 
-***k*-mer matrix preparation**
+**k-mer matrix preparation**
 
 ```bash
 mkdir $outdir
@@ -81,24 +81,78 @@ apptainer exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.i
 apptainer exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -rankby ttest.pi -design $indir/rank-design.txt -seltop 0.5 -with $outdir/contigs.pearson20.bin -outpath $outdir/top-ranked-contigs.pearson20.ttest-pi.tsv -withcounts
 ```
 
-## Typical Workflow of KaMRaT
+## General Information
 
-KaMRaT *per se* is shown at the center of the workflow. It is a C++ program that takes as input a count matrix and produces another matrix as output.
-In the workflow shown, KaMRaT is used for reducing a count matrix produced from a set of fastq files and producing a reduced matrix with features of interest with respect to conditions in the input sample-info file.
+### Typical Workflow of KaMRaT
+
+KaMRaT *per se* is shown at the center of the workflow. It is a C++ program that takes as input a count matrix and produces another reduced matrix as output.
+
+In the shown workflow, KaMRaT is used for reducing a count matrix produced from a set of FASTQ files and producing a reduced matrix with features of interest with respect to information given in the design or the FASTA file.
 
 ![workflow](./docs/workflow.png)
 
-The feature matrix contains features in row and samples in column. Features can be *k*-mers (for all modules) as well as other general features such as genes/transcripts (only for KaMRaT-index, -filter, and -rank). The feature counts can be either normalized or non-normalized. 
+### Input Feature Count Matrix for KaMRaT
 
-The *k*-mer feature matrix can be constructed with the following possibilities: 
+The feature count matrix contains features in row and samples in column. Features can be k-mers (for all modules) as well as other general features such as genes/transcripts (only for KaMRaT index, filter, and rank). The feature counts can be either normalized or non-normalized. 
+
+The matrix should be in .tsv or .tsv.gz format, in which fields are separated by tabulations.  The first column in matrix should always be the feature column (sequences or feature names).
+
+Features of k-mers or contigs are represented by their own sequence.  
+
+The k-mer feature matrix can be constructed with the following possibilities: 
 
 -   The [Snakefile](./related-tools/prepare_kmer_table/Snakefile) provided with the project + [DE-kupl joinCounts](https://github.com/Transipedia/dekupl-joinCounts)
 -   [Kmtricks](https://github.com/tlemane/kmtricks) software
 -   [DE-kupl](https://github.com/Transipedia/dekupl-run)'s raw-counts.tsv or masked-counts.tsv matrices
 
+### Final Output Count Matrix by KaMRaT
+
+The final output count matrix is also .tsv format table, where fields are separated by tabulations.  
+
+In the matrix, the features are presented as rows, and the columns are in same order as the input.  
+
+This final output of count matrix is generated when `-withcounts` option is given to the module.
+
+### KaMRaT index
+
+KaMRaT index is always the first module of workflow.  In a typical use case, it only needs to be done once for different applications of other functional modules.  However, because currently KaMRaT only supports up to two-layer chaining of functional modules, advanced users may want to reindex the final output matrix.  In this situation, please ensure that the matrix to reindex only contains feature column and sample count columns.
+
+### Functional Modules of KaMRaT: filter, mask, merge, rank, query
+
+The functional modules of KaMRaT include filter, mask, merge, rank, and query.  They are always applied on the constructed KaMRaT index.  As indicated in the workflow figure, some functional modules like merge and rank can follow others as a second layer.  In these cases, the intermediate output of the first module and the final output of the second module are controlled by the `-withcounts` and `-with` arguments (described below).
+
+
+### Design File
+
+The design file is indicated by the `-design` option in the modules filter and rank. 
+
+The design file is formed by two columns:
+- the first column indicates samples (i.e., columns of the input count matrix);
+- the second column indicates the associated values considered to filter or rank.
+
+In KaMRaT filter, the second column can be either "UP" or "DOWN", indicating whether the sample should be considered as up-regulated or down-regulated for filtering.
+
+In KaMRaT rank, the second column can be:
+- a string indicating sample's condition for the classification methods;
+- a real value for correlation evaluation.
+
+Please note that this file should not contain any header row.  
+
+### FASTA File
+
+The FASTA file is indicated by the `-fasta` option in the modules mask and query, giving the sequences to mask or query.
+
+### Intermediate Output by KaMRaT
+
+As indicated by the workflow figure, some functional modules may follow others in the workflow.  In this situation, the `-withcounts` option is supposed to be given to the second module rather than to the first.  For example in the merge-rank workflow, `-withcounts` should be given to rank but not to merge.
+
+The first functional module in the workflow without `-withcounts` option genrates binary intermediate files as the second module's input (taken by the `-with` argument of the second module).
+
+### Auxiliary Tools for Upsteam/Downstream Analysis
+
 A set of auxiliary tools to be used for upstream and downstream of kamrat are provided:
 + Upstream tools: 
-  + A matrix generating module controlled by Snakemake which applying jellyfish and DE-kupl joinCounts module
+  + A matrix generating module controlled by Snakemake which applies jellyfish and DE-kupl joinCounts module
   + A bash script for generating a submatrix by selecting from it a set of columns
 + Downstream tools:
   + A feature selection model with an R script applying ridge/lasso regressions and random forest classifier
@@ -131,7 +185,7 @@ Firstly, clone the repository:
 ``` bash
 git clone --recursive https://github.com/Transipedia/KaMRaT.git
 cd KaMRaT
-camke . && make -j
+cmake . && make -j
 ```
 
 Finally, an executable binary file is available as `apps/kamrat`.
@@ -148,29 +202,6 @@ apptainer build KaMRaT.sif docker://xuehl/kamrat:latest
 ```
 </details>
 
-## General Information
-
-### Sample Information File
-
-The sample-info file is indicated by the option `-smp-info`. This file aims to indicate which columns in the k-mer count matrix should be considered as sample columns. Please do not put any header line in the file, since the columns are already defined by convention as below.  
-
-+ If the file contains only one column, it indicates sample names, and all samples are considered as the same condition
-+ If the file contains two columns, the first column corresponds to sample names, and the second corresponds to conditions (*e.g.* tumor, normal)
-+ If the file is not provided, all columns in the matrix apart from the first one are considered as samples
-
-### Input Count Matrix for KaMRaT
-
-
-The input count matrix should be in .tsv or .tsv.gz format, in which fields are separated by tabulations. 
-In the matrix, features are presented as rows, and samples as columns. The first column in matrix should always be the feature column (sequences or feature names).  
-"Features" can be any quantified feature such as genes, k-mers or contigs. k-mers or contigs are represented by their own sequence.
-KaMRaT accepts extra columns representing non-count values, e.g. feature's p-value, score, etc. In this case, a smp-info file is mandatory for indicating which columns are the count columns.
-
-### Output Count Matrix by KaMRaT
-
-The output count matrix is also .tsv format table, where fields are separated by tabs.  
-In the matrix, the features are presented as rows, and the columns are in same order as the input.  
-KaMRaT guarantees the information of output matrix is coherent with that of the input matrix. For KaMRaT-rank, though there are steps of count normalization, log transformation and standardization for score evaluation, the count values in output matrix are kept same as input (raw count).
 
 ## Usage
 
@@ -195,7 +226,7 @@ It's also executable directly on command line:
 
 ```bash
 /path_to_KaMRaT_bin_dir/kamrat <CMD> [options] input_table 
-# <CMD> can be one of filter, mask, merge, rank
+# <CMD> can be index, filter, mask, merge, rank, query
 ```
 
 In the following sections, we present under the situation of using KaMRaT in ```apptainer```.  
@@ -315,7 +346,7 @@ apptainer exec kamrat <CMD> -help
 </details>
 
 <details>
-<summary>rank: rank features according to their association with sample conditions</summary>
+<summary>rank: rank features* by classification performance, statistical significance, correlation, or variability</summary>
 
 
 ```text
