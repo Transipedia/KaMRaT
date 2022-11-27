@@ -77,6 +77,11 @@ void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, 
     }
 }
 
+void LoadNF(std::vector<double> &nf_vect, std::istream &nf_file)
+{
+    for (size_t i_col(0); nf_file >> nf_vect[i_col]; ++i_col);
+}
+
 void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, const std::vector<double> &nf_vect,
                 const std::string &line_str, const size_t k_len, const bool stranded, const size_t nb_smp, const bool to_norm)
 {
@@ -182,20 +187,25 @@ int IndexMain(int argc, char **argv)
     IndexWelcome();
 
     std::clock_t begin_time = clock();
-    std::string out_dir, count_tab_path;
+    std::string out_dir, count_tab_path, nf_file_path;
     size_t k_len(0), nf_base(0);
     bool stranded(true);
 
-    ParseOptions(argc, argv, count_tab_path, out_dir, k_len, stranded, nf_base);
-    PrintRunInfo(count_tab_path, out_dir, k_len, stranded, nf_base);
+    ParseOptions(argc, argv, count_tab_path, out_dir, k_len, stranded, nf_base, nf_file_path);
+    PrintRunInfo(count_tab_path, out_dir, k_len, stranded, nf_base, nf_file_path);
     if (0 == k_len)
     {
         std::cerr << BOLDYELLOW << "[warning]" << RESET << " indexing in general: features are not considered as k-mers" << std::endl
                   << std::endl;
     }
-    if (0 == nf_base)
+    if (0 == nf_base && nf_file_path.empty())
     {
         std::cerr << BOLDYELLOW << "[warning]" << RESET << " indexing without normalization" << std::endl
+                  << std::endl;
+    }
+    if (nf_file_path.empty())
+    {
+        std::cerr << BOLDYELLOW << "[warning]" << RESET << " no precomputed normalization factor given, k-mer count matrix will be scanned twice" << std::endl
                   << std::endl;
     }
 
@@ -223,6 +233,16 @@ int IndexMain(int argc, char **argv)
         std::istream kmer_count_instream(&inbuf);
         ComputeNF(nf_vect, kmer_count_instream, nf_base);
         count_tab.close();
+    }
+    else if (!nf_file_path.empty())
+    {
+        std::ifstream nf_file(nf_file_path);
+        if (!nf_file.is_open())
+        {
+            throw std::invalid_argument("cannot open count NF file: " + nf_file_path);
+        }
+        LoadNF(nf_vect, nf_file);
+        nf_file.close()
     }
 
     std::ifstream count_tab(count_tab_path);
