@@ -242,7 +242,7 @@ int IndexMain(int argc, char **argv)
             throw std::invalid_argument("cannot open count NF file: " + nf_file_path);
         }
         LoadNF(nf_vect, nf_file);
-        nf_file.close()
+        nf_file.close();
     }
 
     std::ifstream count_tab(count_tab_path);
