@@ -135,7 +135,7 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
     idx_meta << line_str << std::endl; // [idx_meta 2] the header row
     while (std::getline(kmer_count_instream, line_str))
     {
-        IndexCount(idx_pos, idx_mat, nf_vect, line_str, k_len, stranded, nb_smp, nf_base > 0); // [idx_pos, idx_mat] (inside)
+        IndexCount(idx_pos, idx_mat, nf_vect, line_str, k_len, stranded, nb_smp, nf_vect.empty()); // [idx_pos, idx_mat] (inside)
     }
 }
 
@@ -214,7 +214,7 @@ int IndexMain(int argc, char **argv)
     std::vector<double> nf_vect;
     if (nf_file_path.empty()) // to compute NF
     {
-        std::cout << "Computing NF..." << std::endl;
+        std::cerr << "Computing NF..." << std::endl;
         std::ifstream count_tab(count_tab_path);
         if (!count_tab.is_open())
         {
@@ -232,7 +232,7 @@ int IndexMain(int argc, char **argv)
     }
     else // to load NF
     {
-        std::cout << "Loading NF..." << std::endl;
+        std::cerr << "Loading NF..." << std::endl;
         std::ifstream nf_file(nf_file_path);
         if (!nf_file.is_open())
         {
@@ -243,12 +243,12 @@ int IndexMain(int argc, char **argv)
         }
         nf_file.close();
     }
-    std::cout << "Normalization Factor:" << std::endl;
-    for (double x : nf_vect)
-    {
-        std::cout << x << "\t";
-    }
-    std::cout << std::endl;
+    // std::cout << "Normalization Factor:" << std::endl;
+    // for (double x : nf_vect)
+    // {
+    //     std::cout << x << "\t";
+    // }
+    // std::cout << std::endl;
 
     std::ifstream count_tab(count_tab_path);
     if (!count_tab.is_open())
