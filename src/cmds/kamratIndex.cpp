@@ -135,7 +135,7 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
     idx_meta << line_str << std::endl; // [idx_meta 2] the header row
     while (std::getline(kmer_count_instream, line_str))
     {
-        IndexCount(idx_pos, idx_mat, nf_vect, line_str, k_len, stranded, nb_smp, nf_vect.empty()); // [idx_pos, idx_mat] (inside)
+        IndexCount(idx_pos, idx_mat, nf_vect, line_str, k_len, stranded, nb_smp, !nf_vect.empty()); // [idx_pos, idx_mat] (inside)
     }
 }
 
