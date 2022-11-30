@@ -81,7 +81,7 @@ void LoadNF(std::vector<double> &nf_vect, std::istream &nf_file)
 {
     for (double x; nf_file >> x; nf_vect.push_back(x))
     {
-        std::cerr << nf.vect.back() << "\t";
+        std::cerr << nf_vect.back() << "\t";
     }
     std::cerr << std::endl;
 }
