@@ -77,19 +77,6 @@ void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, 
     }
 }
 
-void LoadNF(std::vector<double> &nf_vect, std::istream &nf_file)
-{
-    std::cerr << "Loading NF..." << std::endl;
-    for (double x, nf_file >> x; nf_file >> x; nf_vect.push_back(x))
-    {
-    }
-    for (double x : nf_vect)
-    {
-        std::cerr << x << "\t";
-    }
-    std::cerr << std::endl;
-}
-
 void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, const std::vector<double> &nf_vect,
                 const std::string &line_str, const size_t k_len, const bool stranded, const size_t nb_smp, const bool to_norm)
 {
@@ -249,7 +236,15 @@ int IndexMain(int argc, char **argv)
         {
             throw std::invalid_argument("cannot open count NF file: " + nf_file_path);
         }
-        LoadNF(nf_vect, nf_file);
+        std::cerr << "Loading NF..." << std::endl;
+        for (double x, nf_file >> x; nf_file >> x; nf_vect.push_back(x))
+        {
+        }
+        for (double x : nf_vect)
+        {
+            std::cerr << x << "\t";
+        }
+        std::cerr << std::endl;
         nf_file.close();
     }
 
