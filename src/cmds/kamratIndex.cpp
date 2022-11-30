@@ -231,13 +231,13 @@ int IndexMain(int argc, char **argv)
     }
     else if (!nf_file_path.empty())
     {
+        std::cerr << "Loading NF..." << std::endl;
         std::ifstream nf_file(nf_file_path);
         if (!nf_file.is_open())
         {
             throw std::invalid_argument("cannot open count NF file: " + nf_file_path);
         }
-        std::cerr << "Loading NF..." << std::endl;
-        for (double x, nf_file >> x; nf_file >> x; nf_vect.push_back(x))
+        for (double x(0); nf_file >> x; nf_vect.push_back(x))
         {
         }
         for (double x : nf_vect)
