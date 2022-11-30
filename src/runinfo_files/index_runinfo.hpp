@@ -103,6 +103,7 @@ void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::stri
                 throw std::invalid_argument("-nfbase and -nffile cannot be given together");
             }
             nf_file_path = argv[++i_opt];
+            nf_base = 1;
         }
         else
         {

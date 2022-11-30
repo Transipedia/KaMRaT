@@ -79,7 +79,11 @@ void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, 
 
 void LoadNF(std::vector<double> &nf_vect, std::istream &nf_file)
 {
-    for (size_t i_col(0); nf_file >> nf_vect[i_col]; ++i_col);
+    for (double x; nf_file >> x; nf_vect.push_back(x))
+    {
+        std::cerr << nf.vect.back() << "\t";
+    }
+    std::cerr << std::endl;
 }
 
 void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, const std::vector<double> &nf_vect,
