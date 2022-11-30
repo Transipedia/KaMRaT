@@ -79,9 +79,13 @@ void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, 
 
 void LoadNF(std::vector<double> &nf_vect, std::istream &nf_file)
 {
-    for (double x; nf_file >> x; nf_vect.push_back(x))
+    std::cerr << "Loading NF..." << std::endl;
+    for (double x, nf_file >> x; nf_file >> x; nf_vect.push_back(x))
     {
-        std::cerr << nf_vect.back() << "\t";
+    }
+    for (double x : nf_vect)
+    {
+        std::cerr << x << "\t";
     }
     std::cerr << std::endl;
 }
