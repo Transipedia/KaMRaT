@@ -214,7 +214,7 @@ int IndexMain(int argc, char **argv)
     std::vector<double> nf_vect;
     if (nf_file_path.empty()) // to compute NF
     {
-        std::cerr << "Computing NF..." << std::endl;
+        std::cout << "Computing NF..." << std::endl;
         std::ifstream count_tab(count_tab_path);
         if (!count_tab.is_open())
         {
@@ -232,7 +232,7 @@ int IndexMain(int argc, char **argv)
     }
     else // to load NF
     {
-        std::cerr << "Loading NF..." << std::endl;
+        std::cout << "Loading NF..." << std::endl;
         std::ifstream nf_file(nf_file_path);
         if (!nf_file.is_open())
         {
@@ -243,12 +243,12 @@ int IndexMain(int argc, char **argv)
         }
         nf_file.close();
     }
-    std::cerr << "Normalization Factor:" << std::endl;
+    std::cout << "Normalization Factor:" << std::endl;
     for (double x : nf_vect)
     {
-        std::cerr << x << "\t";
+        std::cout << x << "\t";
     }
-    std::cerr << std::endl;
+    std::cout << std::endl;
 
     std::ifstream count_tab(count_tab_path);
     if (!count_tab.is_open())
