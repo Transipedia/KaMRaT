@@ -236,14 +236,14 @@ int IndexMain(int argc, char **argv)
         {
             throw std::invalid_argument("cannot open count NF file: " + nf_file_path);
         }
-        // for (double x(0); nf_file >> x; nf_vect.push_back(x))
-        // {
-        // }
-        // for (double x : nf_vect)
-        // {
-        //     std::cerr << x << "\t";
-        // }
-        // std::cerr << std::endl;
+        for (double x(0); nf_file >> x; nf_vect.push_back(x))
+        {
+        }
+        for (double x : nf_vect)
+        {
+            std::cerr << x << "\t";
+        }
+        std::cerr << std::endl;
         nf_file.close();
     }
 
