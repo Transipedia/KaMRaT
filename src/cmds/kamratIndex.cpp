@@ -231,7 +231,6 @@ int IndexMain(int argc, char **argv)
     }
     else if (!nf_file_path.empty())
     {
-        std::cerr << "Loading NF..." << std::endl;
         std::ifstream nf_file(nf_file_path);
         if (!nf_file.is_open())
         {
@@ -239,6 +238,7 @@ int IndexMain(int argc, char **argv)
         }
         for (double x(0); nf_file >> x; nf_vect.push_back(x))
         {
+            throw std::invalid_argument(std::to_string(x));
         }
         for (double x : nf_vect)
         {
