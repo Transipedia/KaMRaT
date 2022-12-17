@@ -243,12 +243,11 @@ int IndexMain(int argc, char **argv)
         }
         nf_file.close();
     }
-    // std::cout << "Normalization Factor:" << std::endl;
-    // for (double x : nf_vect)
-    // {
-    //     std::cout << x << "\t";
-    // }
-    // std::cout << std::endl;
+    for (double x : nf_vect)
+    {
+        idx_meta << x << "\t";
+    }
+    idx_meta << "\b" << std::endl;
 
     std::ifstream count_tab(count_tab_path);
     if (!count_tab.is_open())
