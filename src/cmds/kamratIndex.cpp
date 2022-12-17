@@ -262,12 +262,11 @@ int IndexMain(int argc, char **argv)
     if (!nf_vect.empty())
     {
         idx_meta << nf_vect[0];
-        for (size_t i(1); i < nf_vect.size(); idx_meta << "\t" << nf_vect[i])
+        for (size_t i(1); i < nf_vect.size(); idx_meta << "\t" << nf_vect[i++])
         {
         }
+        idx_meta << std::endl;
     }
-    
-    idx_meta << std::endl;
     count_tab.close();
     idx_mat.close(), idx_pos.close(), idx_meta.close();
 
