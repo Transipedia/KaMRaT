@@ -198,7 +198,7 @@ int IndexMain(int argc, char **argv)
         std::cerr << BOLDYELLOW << "[warning]" << RESET << " indexing without normalization" << std::endl
                   << std::endl;
     }
-    if (nf_file_path.empty())
+    else if (nf_file_path.empty())
     {
         std::cerr << BOLDYELLOW << "[warning]" << RESET << " no precomputed normalization factor given, k-mer count matrix will be scanned twice" << std::endl
                   << std::endl;
