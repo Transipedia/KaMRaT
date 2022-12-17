@@ -1,0 +1,1 @@
+int IndexMain(int argc, char *argv[]);

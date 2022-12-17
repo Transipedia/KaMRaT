@@ -1,0 +1,47 @@
+======================================================================
+ |                                                                  |
+ |  888    d8P           888b     d888 8888888b.       88888888888  |
+ |  888   d8P            8888b   d8888 888   Y88b          888      |
+ |  888  d8P             88888b.d88888 888    888          888      |
+ |  888d88K      8888b.  888Y88888P888 888   d88P  8888b.  888      |
+ |  8888888b        "88b 888 Y888P 888 8888888P"      "88b 888      |
+ |  888  Y88b   .d888888 888  Y8P  888 888 T88b   .d888888 888      |
+ |  888   Y88b  888  888 888   "   888 888  T88b  888  888 888      |
+ |  888    Y88b "Y888888 888       888 888   T88b "Y888888 888      |
+ |                                                                  |
+================== k-mer Matrix, Really Tremendous! ==================
+
+KaMRaT index: index feature count table on disk
+------------------------------------------------------------------------------------
+Count table path:          data/large/kmer-counts.allsmp.tsv.gz
+Output index directory:    data/large/index_kmer-counts.allsmp
+k-mer length:              31
+Stranded k-mers:           False
+Normalization base:        50000000000
+
+Count table indexing finished, execution time: 41983.2s.
+Total executing time: 41983.2s.
+	Command being timed: "./apps/kamrat index -intab data/large/kmer-counts.allsmp.tsv.gz -outdir data/large/index_kmer-counts.allsmp -klen 31 -unstrand -nfbase 50000000000"
+	User time (seconds): 41397.97
+	System time (seconds): 819.73
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 11:50:12
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 19989752
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17
+	Minor (reclaiming a frame) page faults: 30292227
+	Voluntary context switches: 37004
+	Involuntary context switches: 154905
+	Swaps: 0
+	File system inputs: 119704552
+	File system outputs: 628043696
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	

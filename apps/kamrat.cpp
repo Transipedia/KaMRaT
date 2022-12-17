@@ -4,12 +4,12 @@
 #define RESET "\033[0m"
 #define BOLDRED "\033[1m\033[31m"
 
-int IndexMain(int argc, char *argv[]);
-int MergeMain(int argc, char *argv[]);
-int RankMain(int argc, char *argv[]);
-int FilterMain(int argc, char *argv[]);
-int MaskMain(int argc, char *argv[]);
-int QueryMain(int argc, char *argv[]);
+#include "kamratIndex.hpp"
+#include "kamratMerge.hpp"
+#include "kamratRank.hpp"
+#include "kamratFilter.hpp"
+#include "kamratMask.hpp"
+#include "kamratQuery.hpp"
 
 const void Welcome()
 {

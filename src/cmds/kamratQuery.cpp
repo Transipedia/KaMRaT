@@ -7,22 +7,12 @@
 #include <limits>
 #include <ctime>
 
-#include "runinfo_files/query_runinfo.hpp"
+#include "query_runinfo.hpp"
+#include "seq_coding.hpp"
+#include "index_loading.hpp"
 
 const float kMinDistance = 0, kMaxDistance = 1;
 
-uint64_t Seq2Int(const std::string &seq, const size_t k_length, const bool stranded); // in utils/seq_coding.cpp
-uint64_t GetRC(const uint64_t code, size_t k_length);                                 // in utils/seq_coding.cpp
-uint64_t NextCode(uint64_t code, const size_t k_length, const char new_nuc);          // in utils/seq_coding.cpp
-
-void LoadIndexMeta(size_t &nb_smp_all, size_t &k_len, bool &stranded,
-                   std::vector<std::string> &colname_vect, const std::string &idx_meta_path);   // in utils/index_loading.cpp
-void LoadCodePosMap(std::map<uint64_t, size_t> &code_pos_map, const std::string &idx_pos_path); // in utils/index_loading.cpp
-
-const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                           const std::vector<size_t> &mem_pos_vect); // in utils/index_loading.cpp
-const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                             const std::vector<size_t> &mem_pos_vect); // in utils/index_loading.cpp
 
 void PrintHeader(const std::vector<std::string> &colname_vect)
 {

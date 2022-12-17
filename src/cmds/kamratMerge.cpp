@@ -6,30 +6,17 @@
 #include <cmath>
 #include <algorithm> // std::remove_if
 
-#include "runinfo_files/merge_runinfo.hpp"
-#include "data_struct/contig_elem.hpp"
-#include "data_struct/merge_knot.hpp"
+#include "merge_runinfo.hpp"
+#include "contig_elem.hpp"
+#include "merge_knot.hpp"
+#include "seq_coding.hpp"
+#include "index_loading.hpp"
 
 using contigVect_t = std::vector<std::unique_ptr<ContigElem>>;
-
-uint64_t Seq2Int(const std::string &seq, const size_t k_length, const bool stranded); // in utils/seq_coding.cpp
-uint64_t GetRC(const uint64_t code, size_t k_length);                                 // in utils/seq_coding.cpp
 
 const double CalcPearsonDist(const std::vector<float> &x, const std::vector<float> &y);  // in utils/vect_opera.cpp
 const double CalcSpearmanDist(const std::vector<float> &x, const std::vector<float> &y); // in utils/vect_opera.cpp
 const double CalcMACDist(const std::vector<float> &x, const std::vector<float> &y);      // in utils/vect_opera.cpp
-
-void LoadIndexMeta(size_t &nb_smp, size_t &k_len, bool &stranded, std::vector<std::string> &colname_vect, const std::string &idx_meta_path); // in utils/index_loading.cpp
-void LoadCodePosValMap(std::map<uint64_t, std::pair<size_t, float>> &code_posval_map,
-                       std::unordered_map<uint64_t, float> &sel_code_val_map,
-                       const std::string &idx_pos_path);                                                           // in utils/index_loading.cpp
-const std::string &GetTagSeq(std::string &tag_str, std::ifstream &idx_mat, const size_t pos, const size_t nb_smp); // in utils/index_loading.cpp
-const std::vector<float> &GetCountVect(std::vector<float> &count_vect,
-                                       std::ifstream &idx_mat, size_t pos, size_t nb_smp); // in utils/index_loading.cpp
-const std::vector<float> &GetMeanCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                           const std::vector<size_t> &mem_pos_vect);
-const std::vector<float> &GetMedianCountVect(std::vector<float> &count_vect, std::ifstream &idx_mat, const size_t nb_smp,
-                                             const std::vector<size_t> &mem_pos_vect);
 
 const bool MakeContigListFromIndex(contigVect_t &ctg_vect, const std::string &idx_pos_path,
                                    std::ifstream &idx_mat, const size_t nb_smp)
@@ -85,6 +72,8 @@ const bool MakeContigListFromFile(contigVect_t &ctg_vect, const std::string &wit
     return has_value;
 }
 
+/**
+ */
 void MakeOverlapKnots(fix2knot_t &hashed_merge_knots, const contigVect_t &ctg_vect, const bool stranded, const size_t i_ovlp)
 {
     for (size_t i_ctg(0); i_ctg < ctg_vect.size(); ++i_ctg)
@@ -325,6 +314,8 @@ int MergeMain(int argc, char **argv)
     bool stranded(false);
     std::vector<std::string> colname_vect;
     ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, with_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_mode);
+
+    // --- Loading ---
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
     if (k_len == 0)
     {
