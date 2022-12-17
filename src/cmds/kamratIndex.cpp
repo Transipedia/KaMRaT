@@ -212,7 +212,7 @@ int IndexMain(int argc, char **argv)
     }
 
     std::vector<double> nf_vect;
-    if (nf_file_path.empty()) // to compute NF
+    if (nf_base > 0 && nf_file_path.empty()) // to compute NF
     {
         std::cerr << "Computing NF..." << std::endl;
         std::ifstream count_tab(count_tab_path);
@@ -230,7 +230,7 @@ int IndexMain(int argc, char **argv)
         ComputeNF(nf_vect, kmer_count_instream, nf_base);
         count_tab.close();
     }
-    else // to load NF
+    else if (!nf_file_path.empty()) // to load NF
     {
         std::cerr << "Loading NF..." << std::endl;
         std::ifstream nf_file(nf_file_path);
@@ -259,11 +259,15 @@ int IndexMain(int argc, char **argv)
     // Load and index the matrix
     ScanIndex(idx_meta, idx_pos, idx_mat, kmer_count_instream, nf_vect, k_len, stranded, nf_base);
     // Write normalization factor values to idx-meta file
-    for (double x : nf_vect)
+    if (!nf_vect.empty())
     {
-        idx_meta << x << "\t";
+        idx_meta << nf_vect[0];
+        for (size_t i(1); i < nf_vect.size(); idx_meta << "\t" << nf_vect[i])
+        {
+        }
     }
-    idx_meta << "\b" << std::endl;
+    
+    idx_meta << std::endl;
     count_tab.close();
     idx_mat.close(), idx_pos.close(), idx_meta.close();
 
