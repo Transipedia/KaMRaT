@@ -11,7 +11,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 RUN cd /usr \
     && git clone --recursive https://github.com/Transipedia/KaMRaT.git \
     && cd KaMRaT/ \
-    && git checkout dev \
+    && git checkout master \
     && cmake . \
     && make -j
 RUN apt-get purge -y --auto-remove $buildDeps git \

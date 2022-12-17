@@ -4,7 +4,7 @@
 void IndexWelcome()
 {
     std::cerr << "KaMRaT index: index feature count table on disk" << std::endl
-              << "------------------------------------------------------------------------------------" << std::endl;
+              << "------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintIndexHelper()
@@ -18,21 +18,24 @@ void PrintIndexHelper()
               << "                              if present, indexation will be switched to k-mer mode" << std::endl;
     std::cerr << "           -unstrand      Unstranded mode, indexation with canonical k-mers" << std::endl
               << "                              if present, indexation will be switched to k-mer mode" << std::endl;
-    std::cerr << "           -nfbase INT    Base for calculating normalization factor" << std::endl
+    std::cerr << "           -nfbase INT    Base for calculating normalization factor, not compatible with -nffile STR" << std::endl
               << "                              normCount_ij <- INT * rawCount_ij / sum_i{rawCount_ij}" << std::endl
               << "                              if not provided, input counts will not be normalized" << std::endl
+              << "           -nffile STR    File for loading normalization factor, not compatible with -nfbase INT" << std::endl
+              << "                              a tab-separated row of normalization factors, same order as table header" << std::endl
               << std::endl;
 }
 
 void PrintRunInfo(const std::string &count_tab_path, const std::string &out_dir,
-                  const size_t k_len, const bool stranded, const size_t nf_base)
+                  const size_t k_len, const bool stranded,
+                  const size_t nf_base, const std::string &nf_file_path)
 {
-    std::cerr << "Count table path:          " << count_tab_path << std::endl;
-    std::cerr << "Output index directory:    " << out_dir << std::endl;
+    std::cerr << "Count table path:             " << count_tab_path << std::endl;
+    std::cerr << "Output index directory:       " << out_dir << std::endl;
     if (k_len > 0)
     {
-        std::cerr << "k-mer length:              " << k_len << std::endl;
-        std::cerr << "Stranded k-mers:           " << (stranded ? "True" : "False") << std::endl;
+        std::cerr << "k-mer length:                 " << k_len << std::endl;
+        std::cerr << "Stranded k-mers:              " << (stranded ? "True" : "False") << std::endl;
     }
     else
     {
@@ -40,13 +43,17 @@ void PrintRunInfo(const std::string &count_tab_path, const std::string &out_dir,
     }
     if (nf_base > 0)
     {
-        std::cerr << "Normalization base:        " << nf_base << std::endl;
+        std::cerr << "Normalization base:           " << nf_base << std::endl;
+    }
+    else if (!nf_file_path.empty())
+    {
+        std::cerr << "Normalization factor from:    " << nf_file_path << std::endl;
     }
     std::cerr << std::endl;
 }
 
 void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::string &out_dir,
-                  size_t &k_len, bool &stranded, size_t &nf_base)
+                  size_t &k_len, bool &stranded, size_t &nf_base, std::string &nf_file_path)
 {
     int i_opt(1);
     if (argc == 1)
@@ -83,7 +90,19 @@ void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::stri
         }
         else if (arg == "-nfbase" && i_opt + 1 < argc)
         {
+            if (!nf_file_path.empty()) {
+                PrintIndexHelper();
+                throw std::invalid_argument("-nfbase and -nffile cannot be given together");
+            }
             nf_base = std::stoul(argv[++i_opt]);
+        }
+        else if (arg == "-nffile" && i_opt + 1 < argc)
+        {
+            if (nf_base > 0) {
+                PrintIndexHelper();
+                throw std::invalid_argument("-nfbase and -nffile cannot be given together");
+            }
+            nf_file_path = argv[++i_opt];
         }
         else
         {

@@ -135,7 +135,7 @@ void ScanIndex(std::ofstream &idx_meta, std::ofstream &idx_pos, std::ofstream &i
     idx_meta << line_str << std::endl; // [idx_meta 2] the header row
     while (std::getline(kmer_count_instream, line_str))
     {
-        IndexCount(idx_pos, idx_mat, nf_vect, line_str, k_len, stranded, nb_smp, nf_base > 0); // [idx_pos, idx_mat] (inside)
+        IndexCount(idx_pos, idx_mat, nf_vect, line_str, k_len, stranded, nb_smp, !nf_vect.empty()); // [idx_pos, idx_mat] (inside)
     }
 }
 
@@ -182,20 +182,25 @@ int IndexMain(int argc, char **argv)
     IndexWelcome();
 
     std::clock_t begin_time = clock();
-    std::string out_dir, count_tab_path;
+    std::string out_dir, count_tab_path, nf_file_path;
     size_t k_len(0), nf_base(0);
     bool stranded(true);
 
-    ParseOptions(argc, argv, count_tab_path, out_dir, k_len, stranded, nf_base);
-    PrintRunInfo(count_tab_path, out_dir, k_len, stranded, nf_base);
+    ParseOptions(argc, argv, count_tab_path, out_dir, k_len, stranded, nf_base, nf_file_path);
+    PrintRunInfo(count_tab_path, out_dir, k_len, stranded, nf_base, nf_file_path);
     if (0 == k_len)
     {
         std::cerr << BOLDYELLOW << "[warning]" << RESET << " indexing in general: features are not considered as k-mers" << std::endl
                   << std::endl;
     }
-    if (0 == nf_base)
+    if (0 == nf_base && nf_file_path.empty())
     {
         std::cerr << BOLDYELLOW << "[warning]" << RESET << " indexing without normalization" << std::endl
+                  << std::endl;
+    }
+    if (nf_file_path.empty())
+    {
+        std::cerr << BOLDYELLOW << "[warning]" << RESET << " no precomputed normalization factor given, k-mer count matrix will be scanned twice" << std::endl
                   << std::endl;
     }
 
@@ -207,8 +212,9 @@ int IndexMain(int argc, char **argv)
     }
 
     std::vector<double> nf_vect;
-    if (nf_base > 0) // if to normalize
+    if (nf_file_path.empty()) // to compute NF
     {
+        std::cerr << "Computing NF..." << std::endl;
         std::ifstream count_tab(count_tab_path);
         if (!count_tab.is_open())
         {
@@ -224,6 +230,25 @@ int IndexMain(int argc, char **argv)
         ComputeNF(nf_vect, kmer_count_instream, nf_base);
         count_tab.close();
     }
+    else // to load NF
+    {
+        std::cerr << "Loading NF..." << std::endl;
+        std::ifstream nf_file(nf_file_path);
+        if (!nf_file.is_open())
+        {
+            throw std::invalid_argument("cannot open count NF file: " + nf_file_path);
+        }
+        for (double x(0); nf_file >> x; nf_vect.push_back(x))
+        {
+        }
+        nf_file.close();
+    }
+    // std::cout << "Normalization Factor:" << std::endl;
+    // for (double x : nf_vect)
+    // {
+    //     std::cout << x << "\t";
+    // }
+    // std::cout << std::endl;
 
     std::ifstream count_tab(count_tab_path);
     if (!count_tab.is_open())
