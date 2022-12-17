@@ -243,11 +243,6 @@ int IndexMain(int argc, char **argv)
         }
         nf_file.close();
     }
-    for (double x : nf_vect)
-    {
-        idx_meta << x << "\t";
-    }
-    idx_meta << "\b" << std::endl;
 
     std::ifstream count_tab(count_tab_path);
     if (!count_tab.is_open())
@@ -263,6 +258,12 @@ int IndexMain(int argc, char **argv)
     std::istream kmer_count_instream(&inbuf);
     // Load and index the matrix
     ScanIndex(idx_meta, idx_pos, idx_mat, kmer_count_instream, nf_vect, k_len, stranded, nf_base);
+    // Write normalization factor values to idx-meta file
+    for (double x : nf_vect)
+    {
+        idx_meta << x << "\t";
+    }
+    idx_meta << "\b" << std::endl;
     count_tab.close();
     idx_mat.close(), idx_pos.close(), idx_meta.close();
 
