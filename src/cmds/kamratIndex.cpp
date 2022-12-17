@@ -212,7 +212,7 @@ int IndexMain(int argc, char **argv)
     }
 
     std::vector<double> nf_vect;
-    if (nf_base > 0 && nf_file_path.empty()) // to compute NF
+    if (nf_base > 0) // to compute NF
     {
         std::cerr << "Computing NF..." << std::endl;
         std::ifstream count_tab(count_tab_path);
