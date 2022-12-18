@@ -1,6 +1,10 @@
+# KaMRaT Validation Scripts
+
 This folder collects the scripts that validate KaMRaT's functionality. These scripts reproduce the results in the demonstrating article (link to be added), and can be referred to as well for example usage.
 
 The different goals for each script are listed below:
+
+## Script Overview
 
 ```bash
 bench-merge		                     # KaMRaT merge validation
@@ -29,3 +33,10 @@ other-applications                           # KaMRaT application on LUADseo and
 |-- h2_cmp_kamrat_imoka.R                    #   fig S2
 |-- h3_cmp_kamrat-rank.R                     #   fig S3
 ```
+
+## KaMRaT merge validation
+### Required Data
+[Gencode transcript reference (version 34)](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.transcripts.fa.gz)
+
+### Required R Library
+[Polyester](https://bioconductor.org/packages/release/bioc/html/polyester.html)
