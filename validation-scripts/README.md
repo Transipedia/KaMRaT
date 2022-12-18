@@ -38,5 +38,6 @@ other-applications                           # KaMRaT application on LUADseo and
 ### Required Data
 [Gencode transcript reference (version 34)](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.transcripts.fa.gz)
 
-### Required R Library
+### Required R Library and Software
 [Polyester](https://bioconductor.org/packages/release/bioc/html/polyester.html)
+[Snakemake](https://snakemake.readthedocs.io/en/stable/index.html)
