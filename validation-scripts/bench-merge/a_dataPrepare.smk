@@ -2,83 +2,71 @@
 # Author: Haoliang Xue
 
 # nohup command:
-#       nohup snakemake --snakefile a_dataPrepare.smk --cluster "qsub -q common -l nodes=node22:ppn=6" --jobs 6 -p --latency-wait 60 --rerun-incomplete >> workflow_a_dataPrepare.txt &
+#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile a_dataPrepare.smk --cluster "qsub -q common -l nodes=node15 -l mem=20G -l walltime=300:00:00 -m ea -M xhl-1993@hotmail.com" --jobs 3 -p --latency-wait 60 --rerun-incomplete >> workflow_a_dataPrepare.txt &
 
 # Involved programs
-POLYESTER = "/store/USERS/haoliang.xue/development/KaMRaT/paper-code/bench-merge/polyester.R"
-RSCRIPT = "/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/Rscript"
-JELLYFISH = "/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/jellyfish"
-KAMRAT_IMG = "/home/haoliang.xue/tools/KaMRaT-2b3cf6e.sif"
+POLYESTER = "/store/plateformes/CALCUL/SSFA_KaMRaT/KaMRaT/validation-scripts/bench-merge/polyester.R"
+RSCRIPT = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/Rscript"
+JELLYFISH = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/jellyfish"
+KAMRAT_IMG = "/home/haoliang.xue_ext/KaMRaT.sif"
 
 # Inputs
-REF_FASTA = "/store/EQUIPES/SSFA/Index/Gencode/gencode.v34.transcripts.fa"
+REF_FASTA = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Data/bench-merge/gencode.v34.transcripts.fa"
 
 # Outputs
-RES_DIR = "/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/KaMRaT-paper/benchmark-merge/"
+RES_DIR = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
 PLSTR_DIR = RES_DIR + "polyester_res/"
 JF_DIR = RES_DIR + "jellyfish_res/"
 MAT_DIR = RES_DIR + "matrices/"
 
 SMP_LIST = ["sample_01", "sample_02", "sample_03", "sample_04", "sample_05", "sample_06", "sample_07", "sample_08", "sample_09", "sample_10",
             "sample_11", "sample_12", "sample_13", "sample_14", "sample_15", "sample_16", "sample_17", "sample_18", "sample_19", "sample_20"]
+MEAN_DEPTH_LIST = [0.1, 0.2, 0.5, 1, 2, 5, 10]
 
 # ===== Workflow ===== #
 rule all:
     input:
-        expand(MAT_DIR + "kmer-counts-{p}pct.tsv", p = [i * 10 for i in range(4, 11)])
+        expand(MAT_DIR + "depth_{meandepth}/kmer-counts.tsv", meandepth = MEAN_DEPTH_LIST)
 
 rule polyester:
     output:
-        expand(PLSTR_DIR + "{smp}_{num}.fasta", smp = SMP_LIST, num = [1, 2])
+        expand(PLSTR_DIR + "depth_{meandepth}/{smp}_{num}.fasta", smp = SMP_LIST, num = [1, 2], meandepth = ["{meandepth}"])
+    params:
+        meandepth = "{meandepth}"
     log:
-        PLSTR_DIR + "log-polyester.txt"
+        PLSTR_DIR + "depth_{meandepth}/log-polyester.txt"
     shell:
         """
-        {RSCRIPT} {POLYESTER} {REF_FASTA} {PLSTR_DIR} 2> {log}
+        {RSCRIPT} {POLYESTER} {REF_FASTA} {PLSTR_DIR} {params.meandepth} 2> {log}
         """
 
 rule jellyfish:
     input:
-        fa1 = PLSTR_DIR + "{smp}_1.fasta",
-        fa2 = PLSTR_DIR + "{smp}_2.fasta"
+        fa1 = PLSTR_DIR + "depth_{meandepth}/{smp}_1.fasta",
+        fa2 = PLSTR_DIR + "depth_{meandepth}/{smp}_2.fasta"
     output:
-        JF_DIR + "{smp}.txt"
+        JF_DIR + "depth_{meandepth}/{smp}.txt"
     params:
-        JF_DIR + "{smp}.jf"
+        JF_DIR + "depth_{meandepth}/{smp}.jf"
     log:
-        JF_DIR + "log-jellyfish-{smp}.txt"
+        JF_DIR + "depth_{meandepth}/log-jellyfish-{smp}.txt"
     shell:
         """
-        {JELLYFISH} count -m 31 -s 1000000 -t 6 -o {params} -F 2 -C {input.fa1} {input.fa2} &> {log}
-	    {JELLYFISH} dump -c {params} | sort -k 1 -T {JF_DIR} --parallel=6 > {output} 2>> {log}
+        {JELLYFISH} count -m 31 -s 1000000 -t 3 -o {params} -F 2 -C {input.fa1} {input.fa2} &> {log}
+	    {JELLYFISH} dump -c {params} | sort -k 1 -T {JF_DIR} --parallel=3 > {output} 2>> {log}
         rm -f {params}
         """
 
 rule joinCounts:
     input:
-        expand(JF_DIR + "{smp}.txt", smp = SMP_LIST)
+        expand(JF_DIR + "depth_{meandepth}/{smp}.txt", smp = SMP_LIST, meandepth = ["{meandepth}"])
     output:
-        MAT_DIR + "kmer-counts-100pct.tsv"
+        MAT_DIR + "depth_{meandepth}/kmer-counts.tsv"
     log:
-        MAT_DIR + "log-joinCounts.txt"
+        MAT_DIR + "depth_{meandepth}/log-joinCounts.txt"
     shell:
         """
         echo -en "tag\\t" > {output}
         echo `ls {input} | sed 's/.txt//g' | sed 's|.*/sample|sample|g'` | sed 's/ /\\t/g' >> {output}
-        export SINGULARITY_BINDPATH="/store:/store"
-        singularity exec {KAMRAT_IMG} joinCounts -r 1 -a 1 {input} >> {output} 2> {log}
-        """
-
-rule gene_subtab:
-    input:
-        MAT_DIR + "kmer-counts-100pct.tsv"
-    output:
-        MAT_DIR + "kmer-counts-{p}pct.tsv"
-    params:
-        "{p}"
-    shell:
-        """
-        head -n1 {input} > {output}
-        nline=$[`wc -l {input} | awk '{{print $1}}'` - 1]
-        sed '1d' {input} | shuf -n $[$nline * {params} / 100] >> {output}
+        apptainer exec -B "/data:/data" {KAMRAT_IMG} joinCounts -r 1 -a 1 {input} >> {output} 2> {log}
         """
