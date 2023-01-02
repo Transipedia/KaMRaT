@@ -41,4 +41,4 @@ other-applications                           # KaMRaT application on LUADseo and
 ### Required R Library and Software
 - [Polyester](https://bioconductor.org/packages/release/bioc/html/polyester.html)
 - [Snakemake](https://snakemake.readthedocs.io/en/stable/index.html)
-- [SPAdes (version 3.14.0)](https://cab.spbu.ru/files/release3.14.0/manual.html#sec2.1)
+- [SPAdes (version 3.15.5)](https://cab.spbu.ru/files/release3.15.5/manual.html)
