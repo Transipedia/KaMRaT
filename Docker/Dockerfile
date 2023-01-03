@@ -14,7 +14,8 @@ RUN cd /usr \
     && git checkout master \
     && cmake . \
     && make -j
+RUN cd /usr/KaMRaT/related-tools/prepare_kmer_table/dekupl-joinCounts \
+    && make \
+    && mv joinCounts /usr/KaMRaT/apps/
 RUN apt-get purge -y --auto-remove $buildDeps git \
     && echo "Creation Complete !"
-
-ENTRYPOINT ["kamrat"]
