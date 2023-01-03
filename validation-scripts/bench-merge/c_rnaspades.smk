@@ -2,43 +2,42 @@
 # Author: Haoliang Xue
 
 # nohup command:
-#       nohup snakemake --snakefile c_rnaspades.smk --cluster "qsub -q common -l nodes=node15:ppn=6" --jobs 6 -p --latency-wait 60 --rerun-incomplete >> workflow_c_rnaspades.txt &
+#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile c_rnaspades.smk --cluster "qsub -q common -l nodes=node22:ppn=6 -l mem=120G -l walltime=300:00:00 -m ea -M xhl-1993@hotmail.com" --jobs 1 -p --latency-wait 60 --rerun-incomplete >> workflow_c_rnaspades.txt &
 
 # Involved programs
-SPADES = "/home/haoliang.xue/.conda/envs/spades/bin/spades.py"
-BLASTN = "/usr/bin/blastn"
+SPADES = "/home/haoliang.xue_ext/SPAdes-3.15.5-Linux/bin/spades.py"
+BLASTN = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/blastn"
 
 # Inputs
-BLAST_DB = "/store/EQUIPES/SSFA/Index/Gencode/gencode.v34.transcripts.fa"
+BLAST_DB = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Data/bench-merge/gencode.v34.transcripts.fa"
 
 # Outputs
-RES_DIR = "/store/EQUIPES/SSFA/MEMBERS/haoliang.xue/KaMRaT-paper/benchmark-merge/"
+RES_DIR = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
 PLSTR_DIR = RES_DIR + "polyester_res/"
-JF_DIR = RES_DIR + "jellyfish_res/"
 SPADES_DIR = RES_DIR + "spades_res/"
 
-SMP_LIST = ["sample_01", "sample_02", "sample_03", "sample_04", "sample_05", "sample_06", "sample_07", "sample_08", "sample_09", "sample_10",
-            "sample_11", "sample_12", "sample_13", "sample_14", "sample_15", "sample_16", "sample_17", "sample_18", "sample_19", "sample_20"]
+SMP_LIST = ["sample_01", "sample_02", "sample_03", "sample_04", "sample_05", "sample_06", "sample_07", "sample_08", "sample_09", "sample_10", "sample_11", "sample_12", "sample_13", "sample_14", "sample_15", "sample_16", "sample_17", "sample_18", "sample_19", "sample_20"]
+MEAN_DEPTH_LIST = [0.1, 0.5, 1, 2, 5, 10]
 
 # ===== Workflow ===== #
 rule all:
     input:
-        SPADES_DIR + "allreads/blastn_align.tsv",
-        SPADES_DIR + "allkmers/blastn_align.tsv"
+        expand(SPADES_DIR + "depth_{meandepth}/allreads/blastn_align.tsv", meandepth = MEAN_DEPTH_LIST),
+        expand(SPADES_DIR + "depth_{meandepth}/allkmers/blastn_align.tsv", meandepth = MEAN_DEPTH_LIST)
 
 rule spades_allreads:
     input:
-        fa1 = expand(PLSTR_DIR + "{smp}_1.fasta", smp = SMP_LIST),
-        fa2 = expand(PLSTR_DIR + "{smp}_2.fasta", smp = SMP_LIST)
+        fa1 = expand(PLSTR_DIR + "depth_{meandepth}/{smp}_1.fasta", meandepth = ["{meandepth}"], smp = SMP_LIST),
+        fa2 = expand(PLSTR_DIR + "depth_{meandepth}/{smp}_2.fasta", meandepth = ["{meandepth}"], smp = SMP_LIST)
     output:
-        SPADES_DIR + "allreads/transcripts.fasta"
+        SPADES_DIR + "depth_{meandepth}/allreads/transcripts.fasta"
     log:
-        SPADES_DIR + "allreads/log-spades.txt"
+        SPADES_DIR + "depth_{meandepth}/allreads/log-spades.txt"
     threads: 6
     params:
-        fa1 = SPADES_DIR + "allreads_1.fasta",
-        fa2 = SPADES_DIR + "allreads_2.fasta",
-        spades_out = directory(SPADES_DIR + "allreads/")
+        fa1 = SPADES_DIR + "depth_{meandepth}/allreads_1.fasta",
+        fa2 = SPADES_DIR + "depth_{meandepth}/allreads_2.fasta",
+        spades_out = SPADES_DIR + "depth_{meandepth}/allreads/"
     shell:
         """
         cat {input.fa1} > {params.fa1}
@@ -48,15 +47,15 @@ rule spades_allreads:
 
 rule spades_allkmers:
     input:
-        RES_DIR + "matrices/kmer-counts-100pct.tsv"
+        RES_DIR + "matrices/depth_{meandepth}/kmer-counts.tsv"
     output:
-        SPADES_DIR + "allkmers/transcripts.fasta"
+        SPADES_DIR + "depth_{meandepth}/allkmers/transcripts.fasta"
     log:
-        SPADES_DIR + "allkmers/log-spades.txt"
+        SPADES_DIR + "depth_{meandepth}/allkmers/log-spades.txt"
     threads: 6
     params:
-        fa = SPADES_DIR + "allkmers.fasta",
-        spades_out = directory(SPADES_DIR + "allkmers/")
+        fa = SPADES_DIR + "depth_{meandepth}/allkmers.fasta",
+        spades_out = SPADES_DIR + "depth_{meandepth}/allkmers/"
     shell:
         """
         awk 'NR > 1 {{print ">kmer_"NR - 1"\\n"$1}}' {input} > {params.fa}
@@ -65,12 +64,12 @@ rule spades_allkmers:
 
 rule blastn:
     input:
-        SPADES_DIR + "{mode}/transcripts.fasta"
+        SPADES_DIR + "depth_{meandepth}/{mode}/transcripts.fasta"
     output:
-        SPADES_DIR + "{mode}/blastn_align.tsv"
+        SPADES_DIR + "depth_{meandepth}/{mode}/blastn_align.tsv"
     threads: 6
     log:
-        SPADES_DIR + "{mode}/log-blastn.txt"
+        SPADES_DIR + "depth_{meandepth}/{mode}/log-blastn.txt"
     shell:
         """
         echo -e "qseqid\\tqlen\\tqstart\\tqend\\tslen\\tsstart\\tsend\\tlength\\tnident\\tpident\\tsseqid" > {output}
