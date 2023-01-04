@@ -42,3 +42,9 @@ other-applications                           # KaMRaT application on LUADseo and
 - [Polyester](https://bioconductor.org/packages/release/bioc/html/polyester.html)
 - [Snakemake](https://snakemake.readthedocs.io/en/stable/index.html)
 - [SPAdes (version 3.15.5)](https://cab.spbu.ru/files/release3.15.5/manual.html)
+- [Jellyfish (version 2.2.10)](https://github.com/gmarcais/Jellyfish)
+
+## Other KaMRaT validation
+### Required R Library and Software
+- [Cutadapt (version 2.6)](https://cutadapt.readthedocs.io/en/v2.6/installation.html)
+- FASTQC and Multiqc (just for read quality check)
