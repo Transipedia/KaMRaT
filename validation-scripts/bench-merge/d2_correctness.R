@@ -60,27 +60,28 @@ ggplot(data = stats.res) +
     geom_line(aes(x = depth, y = 100 - perf.align, color = mode)) +
     geom_point(aes(x = depth, y = 100 - perf.align, color = mode)) +
     scale_x_log10(breaks = c(0, 0.1, 0.2, 0.5, 1, 2, 5, 10)) +
+    scale_y_continuous(breaks = c(0, 5, 10, 30, 50, 70)) +
     scale_color_manual(values = c("KaMRaT none" = "#e66101",
 				  "KaMRaT mac:0.2" = "#fdb863", 
 				  "KaMRaT pearson:0.2" = "#b2abd2",
 				  "KaMRaT spearman:0.2" = "#5e3c99",
 				  "rnaSPAdes allkmers" = "#808080",
 				  "rnaSPAdes allreads" = "#000000")) +
-    ylab("mis-extension/-assenmbly %") +
+    ylab("%contig not perfectly matched to reference") +
     theme_light() +
     theme(text = element_text(size = 30, family = "sans"))
 ggplot(data = stats.res) +
     geom_line(aes(x = depth, y = 100 - perf.align, color = mode)) +
     geom_point(aes(x = depth, y = 100 - perf.align, color = mode)) +
     scale_x_log10(breaks = c(0, 0.1, 0.2, 0.5, 1, 2, 5, 10)) +
-    scale_y_log10() +
+    scale_y_log10(breaks = c(0, 0,1, 0.3, 0.5, 1, 10, 20, 30, 50, 70)) +
     scale_color_manual(values = c("KaMRaT none" = "#e66101",
 				  "KaMRaT mac:0.2" = "#fdb863", 
 				  "KaMRaT pearson:0.2" = "#b2abd2",
 				  "KaMRaT spearman:0.2" = "#5e3c99",
 				  "rnaSPAdes allkmers" = "#808080",
 				  "rnaSPAdes allreads" = "#000000")) +
-    ylab("mis-extension/-assenmbly %") +
+    ylab("%contig not perfectly matched to reference") +
     theme_light() +
     theme(text = element_text(size = 30, family = "sans"))
 dev.off()
