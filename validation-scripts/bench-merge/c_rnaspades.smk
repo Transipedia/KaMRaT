@@ -17,7 +17,7 @@ PLSTR_DIR = RES_DIR + "polyester_res/"
 SPADES_DIR = RES_DIR + "spades_res/"
 
 SMP_LIST = ["sample_01", "sample_02", "sample_03", "sample_04", "sample_05", "sample_06", "sample_07", "sample_08", "sample_09", "sample_10", "sample_11", "sample_12", "sample_13", "sample_14", "sample_15", "sample_16", "sample_17", "sample_18", "sample_19", "sample_20"]
-MEAN_DEPTH_LIST = [0.1, 0.5, 1, 2, 5, 10]
+MEAN_DEPTH_LIST = [0.1, 0.2, 0.5, 1, 2, 5, 10]
 
 # ===== Workflow ===== #
 rule all:
