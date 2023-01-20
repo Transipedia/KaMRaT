@@ -17,5 +17,7 @@ RUN cd /usr \
 RUN cd /usr/KaMRaT/related-tools/prepare_kmer_table/dekupl-joinCounts \
     && make \
     && mv joinCounts /usr/KaMRaT/apps/
+RUN cp /usr/KaMRaT/related-tools/prepare_kmer_table/*.bash /usr/KaMRaT/apps/ \
+    && cp /usr/KaMRaT/related-tools/prepare_kmer_table/*.pl /usr/KaMRaT/apps/
 RUN apt-get purge -y --auto-remove $buildDeps git \
     && echo "Creation Complete !"
