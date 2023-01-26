@@ -74,6 +74,10 @@ void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, 
         {
             throw std::invalid_argument("normalization factor too small (" + std::to_string(nf_vect[i_smp]) + "), please try larger base");
         }
+	else if (nf_vect[i_smp] > 1000)
+	{
+	    throw std::invalid_argument("normalization factor too large (" + std::to_string(nf_vect[i_smp]) + "), please try smaller base");
+        }
     }
 }
 
