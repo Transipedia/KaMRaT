@@ -9,35 +9,41 @@ SPADES = "/home/haoliang.xue_ext/SPAdes-3.15.5-Linux/bin/spades.py"
 BLASTN = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/blastn"
 
 # Inputs
-BLAST_DB = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Data/bench-merge/gencode.v34.transcripts.fa"
+BLAST_DB = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/blast_db/gc34.50-53.fa"
 
-# Outputs
-RES_DIR = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
-PLSTR_DIR = RES_DIR + "polyester_res/"
-SPADES_DIR = RES_DIR + "spades_res/"
-
+# Parameters
 SMP_LIST = ["sample_01", "sample_02", "sample_03", "sample_04", "sample_05", "sample_06", "sample_07", "sample_08", "sample_09", "sample_10", "sample_11", "sample_12", "sample_13", "sample_14", "sample_15", "sample_16", "sample_17", "sample_18", "sample_19", "sample_20"]
 MEAN_DEPTH_LIST = [0.1, 0.2, 0.5, 1, 2, 5, 10]
+
+# Outputs
+RES_DIR = f"/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
+PLSTR_DIR = RES_DIR + "polyester_res/"
+MAT_DIR = RES_DIR + "matrices/"
+SPADES_DIR = RES_DIR + "spades_res/"
 
 # ===== Workflow ===== #
 rule all:
     input:
-        expand(SPADES_DIR + "depth_{meandepth}/allreads/blastn_align.tsv", meandepth = MEAN_DEPTH_LIST),
-        expand(SPADES_DIR + "depth_{meandepth}/allkmers/blastn_align.tsv", meandepth = MEAN_DEPTH_LIST)
+        expand(SPADES_DIR + "err-free/depth_{meandepth}/allreads/blastn_align.tsv", meandepth = MEAN_DEPTH_LIST),
+        expand(SPADES_DIR + "err-free/depth_{meandepth}/allkmers-1-1/blastn_align.tsv", meandepth = MEAN_DEPTH_LIST),
+        expand(SPADES_DIR + "err-illumina5/depth_{meandepth}/allreads/blastn_align.tsv", meandepth = MEAN_DEPTH_LIST),
+        expand(SPADES_DIR + "err-illumina5/depth_{meandepth}/allkmers-2-2/blastn_align.tsv", meandepth = MEAN_DEPTH_LIST)
 
 rule spades_allreads:
     input:
-        fa1 = expand(PLSTR_DIR + "depth_{meandepth}/{smp}_1.fasta", meandepth = ["{meandepth}"], smp = SMP_LIST),
-        fa2 = expand(PLSTR_DIR + "depth_{meandepth}/{smp}_2.fasta", meandepth = ["{meandepth}"], smp = SMP_LIST)
+        fa1 = expand(PLSTR_DIR + "{errmode}/depth_{meandepth}/{smp}_1.fasta",
+                     errmode = ["{errmode}"], meandepth = ["{meandepth}"], smp = SMP_LIST),
+        fa2 = expand(PLSTR_DIR + "{errmode}/depth_{meandepth}/{smp}_2.fasta",
+                     errmode = ["{errmode}"], meandepth = ["{meandepth}"], smp = SMP_LIST)
     output:
-        SPADES_DIR + "depth_{meandepth}/allreads/transcripts.fasta"
+        SPADES_DIR + "{errmode}/depth_{meandepth}/allreads/transcripts.fasta"
     log:
-        SPADES_DIR + "depth_{meandepth}/allreads/log-spades.txt"
+        SPADES_DIR + "{errmode}/depth_{meandepth}/allreads/log-spades.txt"
     threads: 6
     params:
-        fa1 = SPADES_DIR + "depth_{meandepth}/allreads_1.fasta",
-        fa2 = SPADES_DIR + "depth_{meandepth}/allreads_2.fasta",
-        spades_out = SPADES_DIR + "depth_{meandepth}/allreads/"
+        fa1 = SPADES_DIR + "{errmode}/depth_{meandepth}/allreads_1.fasta",
+        fa2 = SPADES_DIR + "{errmode}/depth_{meandepth}/allreads_2.fasta",
+        spades_out = SPADES_DIR + "{errmode}/depth_{meandepth}/allreads/"
     shell:
         """
         cat {input.fa1} > {params.fa1}
@@ -47,15 +53,15 @@ rule spades_allreads:
 
 rule spades_allkmers:
     input:
-        RES_DIR + "matrices/depth_{meandepth}/kmer-counts.tsv"
+        MAT_DIR + "{errmode}/depth_{meandepth}/kmer-counts-{min_rec}-{min_abd}.tsv"
     output:
-        SPADES_DIR + "depth_{meandepth}/allkmers/transcripts.fasta"
+        SPADES_DIR + "{errmode}/depth_{meandepth}/allkmers-{min_rec}-{min_abd}/transcripts.fasta"
     log:
-        SPADES_DIR + "depth_{meandepth}/allkmers/log-spades.txt"
+        SPADES_DIR + "{errmode}/depth_{meandepth}/allkmers-{min_rec}-{min_abd}/log-spades.txt"
     threads: 6
     params:
-        fa = SPADES_DIR + "depth_{meandepth}/allkmers.fasta",
-        spades_out = SPADES_DIR + "depth_{meandepth}/allkmers/"
+        fa = SPADES_DIR + "{errmode}/depth_{meandepth}/allkmers-{min_rec}-{min_abd}.fasta",
+        spades_out = SPADES_DIR + "{errmode}/depth_{meandepth}/allkmers-{min_rec}-{min_abd}/"
     shell:
         """
         awk 'NR > 1 {{print ">kmer_"NR - 1"\\n"$1}}' {input} > {params.fa}
@@ -64,12 +70,12 @@ rule spades_allkmers:
 
 rule blastn:
     input:
-        SPADES_DIR + "depth_{meandepth}/{mode}/transcripts.fasta"
+        SPADES_DIR + "{errmode}/depth_{meandepth}/{mode}/transcripts.fasta"
     output:
-        SPADES_DIR + "depth_{meandepth}/{mode}/blastn_align.tsv"
+        SPADES_DIR + "{errmode}/depth_{meandepth}/{mode}/blastn_align.tsv"
     threads: 6
     log:
-        SPADES_DIR + "depth_{meandepth}/{mode}/log-blastn.txt"
+        SPADES_DIR + "{errmode}/depth_{meandepth}/{mode}/log-blastn.txt"
     shell:
         """
         echo -e "qseqid\\tqlen\\tqstart\\tqend\\tslen\\tsstart\\tsend\\tlength\\tnident\\tpident\\tsseqid" > {output}

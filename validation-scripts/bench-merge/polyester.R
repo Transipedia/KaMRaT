@@ -13,6 +13,7 @@ out.dir <- cmdArgs[2]
 # out.dir <- "working-bench/workdir/output/polyester_res/"
 mean_read_depth <- as.numeric(cmdArgs[3])
 # mean_read_depth <- 0.1
+mode <- cmdArgs[4]
 
 ref <- readDNAStringSet(fasta.path)
 num_tx <- length(ref)
@@ -21,12 +22,21 @@ fold_change <- matrix(c(rep(1, num_tx), runif(n = num_tx, min = 0, max = 2)),
 read_per_tx <- round(mean_read_depth * width(ref) / 100) # number of read per transcript
 read_per_tx[read_per_tx == 0] <- 1 # set minimum read per transcript as 1
 
-res.dir <- paste0(out.dir, "depth_", mean_read_depth)
-simulate_experiment(fasta = fasta.path, outdir = res.dir,
-                    reads_per_transcript = read_per_tx, fold_changes = fold_change,
-                    paired = TRUE, readlen = 100, num_reps = c(10, 10),
-                    error_model = "uniform",
-                    error_rate = 0, 
-                    seed = run_seed) # error-free simulation
+if (mode == "err-free") {
+    res.dir <- paste0(out.dir, "err-free/depth_", mean_read_depth)
+    simulate_experiment(fasta = fasta.path, outdir = res.dir,
+                        reads_per_transcript = read_per_tx, fold_changes = fold_change,
+                        paired = TRUE, readlen = 100, num_reps = c(10, 10),
+                    	error_model = "uniform",
+                    	error_rate = 0,
+                    	seed = run_seed)
+} else {
+    res.dir <- paste0(out.dir, "err-illumina5/depth_", mean_read_depth)
+    simulate_experiment(fasta = fasta.path, outdir = res.dir,
+                        reads_per_transcript = read_per_tx, fold_changes = fold_change,
+                        paired = TRUE, readlen = 100, num_reps = c(10, 10),
+		    	error_model = "illumina5",
+                    	seed = run_seed)
+}
 
 cat("Polyester completed!\n")
