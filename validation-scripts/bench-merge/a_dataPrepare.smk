@@ -16,7 +16,7 @@ REF_FASTA = "/store/plateformes/CALCUL/SSFA_KaMRaT/Data/gc34.50-53.fa"
 # Parameters
 SMP_LIST = ["sample_01", "sample_02", "sample_03", "sample_04", "sample_05", "sample_06", "sample_07", "sample_08", "sample_09", "sample_10",
             "sample_11", "sample_12", "sample_13", "sample_14", "sample_15", "sample_16", "sample_17", "sample_18", "sample_19", "sample_20"]
-MEAN_DEPTH_LIST = [0.1, 0.2, 0.5, 1, 2, 5, 10]
+MEAN_DEPTH_LIST = list(range(1, 11))
 
 # Outputs
 RES_DIR = f"/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
@@ -30,7 +30,7 @@ rule all:
         expand(MAT_DIR + "err-free/depth_{meandepth}/kmer-counts-1-1.tsv",
                meandepth = MEAN_DEPTH_LIST),
         expand(MAT_DIR + "err-illumina5/depth_{meandepth}/kmer-counts-{rec_abd[0]}-{rec_abd[1]}.tsv",
-               meandepth = MEAN_DEPTH_LIST, rec_abd = [(1, 1), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5)])
+               meandepth = MEAN_DEPTH_LIST, rec_abd = [(2, 1), (2, 5)])
 
 rule polyester:
     output:

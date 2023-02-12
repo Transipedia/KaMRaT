@@ -2,7 +2,7 @@
 # Author: Haoliang Xue
 
 # nohup command:
-#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile b1_kamrat-on-all-kmers.smk --cluster "qsub -q common -l nodes=1:ppn=1 -l mem=50G -l walltime=300:00:00 -m ea -M xhl-1993@hotmail.com" --jobs 7 -p --latency-wait 60 --rerun-incomplete >> workflow_b1_kamrat-on-all.txt &
+#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile b_kamrat-on-all-kmers.smk --cluster "qsub -q common -l nodes=1:ppn=1 -l mem=50G -l walltime=300:00:00 -m ea -M xhl-1993@hotmail.com" --jobs 7 -p --latency-wait 60 --rerun-incomplete >> workflow_b1_kamrat-on-all.txt &
 
 # Involved programs
 RSCRIPT = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/Rscript"
@@ -13,14 +13,14 @@ MKBLASTDB = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/makeblastdb
 # Inputs and outputs
 REF_FASTA = "/store/plateformes/CALCUL/SSFA_KaMRaT/Data/gc34.50-53.fa"
 RES_DIR = f"/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
-REF_DIR = RES_DIR + "blast_db/"
+BLAST_DB = RES_DIR + "blast_db/"
 MAT_DIR = RES_DIR + "matrices/"
 
 # Parameters
-MEAN_DEPTH_LIST = [0.1, 0.2, 0.5, 1, 2, 5, 10]
+MEAN_DEPTH_LIST = list(range(1, 11))
 INTERV_LIST = ["pearson", "spearman", "mac"]
 THRES_LIST = [str(i / 10) for i in range(1, 11)]
-RECABD_LIST = [(1, 1), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5)]
+RECABD_LIST = [(2, 1), (2, 5)]
 
 
 # ===== Workflow ===== #
@@ -30,27 +30,29 @@ rule all:
                mean_depth=MEAN_DEPTH_LIST),
         expand(RES_DIR + "kamrat_res_err-free_1-1/depth_{mean_depth}/ctg-aligned.{interv}_0.2.tsv",
                mean_depth=MEAN_DEPTH_LIST, interv=INTERV_LIST),
-        expand(RES_DIR + "kamrat_res_err-illumina5_2-2/depth_{mean_depth}/ctg-aligned.none.tsv", 
-               mean_depth=MEAN_DEPTH_LIST),
-        expand(RES_DIR + "kamrat_res_err-illumina5_2-2/depth_{mean_depth}/ctg-aligned.{interv}_{thres}.tsv",
-               mean_depth=MEAN_DEPTH_LIST, interv=INTERV_LIST, thres=THRES_LIST, rec_abd = RECABD_LIST)
+        expand(RES_DIR + "kamrat_res_err-illumina5_{rec_abd[0]}-{rec_abd[1]}/depth_{mean_depth}/ctg-aligned.none.tsv", 
+               mean_depth=MEAN_DEPTH_LIST, rec_abd = RECABD_LIST),
+        expand(RES_DIR + "kamrat_res_err-illumina5_{rec_abd[0]}-{rec_abd[1]}/depth_{mean_depth}/ctg-aligned.{interv}_0.2.tsv", 
+               mean_depth=MEAN_DEPTH_LIST, interv=INTERV_LIST, rec_abd = RECABD_LIST),
+        expand(RES_DIR + "kamrat_res_err-illumina5_{rec_abd[0]}-{rec_abd[1]}/depth_10/ctg-aligned.{interv}_{thres}.tsv",
+               interv=INTERV_LIST, thres=THRES_LIST, rec_abd = RECABD_LIST)
 
 rule makeblastdb:
     input:
         REF_FASTA 
     output:
-        REF_DIR + "gc34.50-53.fa",
-        REF_DIR + "gc34.50-53.fa.nhr",
-        REF_DIR + "gc34.50-53.fa.nin",
-        REF_DIR + "gc34.50-53.fa.nog",
-        REF_DIR + "gc34.50-53.fa.nsd",
-        REF_DIR + "gc34.50-53.fa.nsi",
-        REF_DIR + "gc34.50-53.fa.nsq"
+        BLAST_DB + "gc34.50-53.fa",
+        BLAST_DB + "gc34.50-53.fa.nhr",
+        BLAST_DB + "gc34.50-53.fa.nin",
+        BLAST_DB + "gc34.50-53.fa.nog",
+        BLAST_DB + "gc34.50-53.fa.nsd",
+        BLAST_DB + "gc34.50-53.fa.nsi",
+        BLAST_DB + "gc34.50-53.fa.nsq"
     threads: 1
     shell:
         """
-        cp {REF_FASTA} {REF_DIR}
-        {MKBLASTDB} -in {input} -dbtype nucl -parse_seqids -out {REF_DIR}gc34.50-53.fa
+        cp {REF_FASTA} {BLAST_DB}
+        {MKBLASTDB} -in {input} -dbtype nucl -parse_seqids -out {BLAST_DB}gc34.50-53.fa
         """
 
 rule kamrat_index:
@@ -115,7 +117,7 @@ rule kamrat_merge_interv:
 rule blastn:
     input:
         ctg_file = RES_DIR + "kamrat_res_{errmode}_{min_rec}-{min_abd}/depth_{mean_depth}/merged-counts.{mode}.tsv",
-        blast_db = REF_DIR + "gc34.50-53.fa"
+        blast_db = BLAST_DB + "gc34.50-53.fa"
     output:
         RES_DIR + "kamrat_res_{errmode}_{min_rec}-{min_abd}/depth_{mean_depth}/ctg-aligned.{mode}.tsv"
     threads: 1
