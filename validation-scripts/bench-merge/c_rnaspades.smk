@@ -13,7 +13,7 @@ BLAST_DB = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/blas
 
 # Parameters
 SMP_LIST = ["sample_01", "sample_02", "sample_03", "sample_04", "sample_05", "sample_06", "sample_07", "sample_08", "sample_09", "sample_10", "sample_11", "sample_12", "sample_13", "sample_14", "sample_15", "sample_16", "sample_17", "sample_18", "sample_19", "sample_20"]
-MEAN_DEPTH_LIST = list(range(1, 11))
+MEAN_DEPTH_LIST = [1, 5, 10, 20, 30, 40, 50]
 
 # Outputs
 RES_DIR = f"/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"

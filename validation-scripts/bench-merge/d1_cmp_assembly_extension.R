@@ -3,6 +3,7 @@ rm(list = ls())
 library(Biostrings)
 library(tidyr)
 library(ggplot2)
+library(ggrepel)
 
 
 work.dir <- "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
@@ -30,16 +31,14 @@ evaluate_global <- function(ctg.fa, align.res) {
 }
 
 stats.res <- NULL
-for (dpt in seq(1, 10)) {
+for (dpt in c(1, 5, 10, 20, 30, 40, 50)) {
     # KaMRaT none
-    cat(dpt, "KaMRaT none", "\n")
+    cat(dpt, "KaMRaT none", ":")
     ctg.path <- paste0(work.dir, "kamrat_res_err-free_1-1/depth_", dpt, "/ctg-seq.none.fa")
     align.path <- paste0(work.dir, "kamrat_res_err-free_1-1/depth_", dpt, "/ctg-aligned.none.tsv")
     ctg.fa <- readDNAStringSet(ctg.path)
     align.res <- read.table(align.path, header = TRUE, row.names = 1)
-    if (!all(nchar(ctg.fa) == align.res$qlen[rownames(ctg.fa)])) {
-        stop(paste(ctg.path, align.path, sep = "\n"))
-    }
+    cat("\t", length(ctg.fa), nrow(align.res), "\n")
     stats.res <- rbind(stats.res,
                        data.frame("depth" = dpt,
                                   "mode" = "KaMRaT none",
@@ -49,14 +48,12 @@ for (dpt in seq(1, 10)) {
         			  "identical" = evaluate_global(ctg.fa, align.res)))
     # rnaSPAdes
     for (mode in c("allreads", "allkmers-1-1")) {
-        cat(dpt, "SPAdes", mode, "\n")
+        cat(dpt, "SPAdes", mode, ":")
         ctg.path <- paste0(work.dir, "spades_res/err-free/depth_", dpt, "/", mode, "/transcripts.fasta")
         align.path <- paste0(work.dir, "spades_res/err-free/depth_", dpt, "/", mode, "/blastn_align.tsv")
         ctg.fa <- readDNAStringSet(ctg.path)
         align.res <- read.table(align.path, header = TRUE, row.names = 1)
-        if (!all(nchar(ctg.fa) == align.res$qlen[rownames(ctg.fa)])) {
-            stop(paste(ctg.path, align.path, sep = "\n"))
-        }
+	cat("\t", length(ctg.fa), nrow(align.res), "\n")
         stats.res <- rbind(stats.res,
                            data.frame("depth" = dpt,
                                       "mode" = paste0("rnaSPAdes ", strsplit(mode, split = "-")[[1]][1]),    
@@ -69,15 +66,17 @@ for (dpt in seq(1, 10)) {
 write.csv(stats.res, paste0(work.dir, "results/1_cmp_assembly_extension.csv"),
           quote = FALSE)
 
-plt <- ggplot(data = stats.res) +
-    geom_line(aes(x = depth, y = perf.align, color = mode), linewidth = 1) +
-    geom_point(aes(x = depth, y = perf.align, color = mode)) +
-    scale_x_continuous(breaks = seq(0, 10)) +
+plt <- ggplot(data = stats.res, aes(x = depth, y = perf.align, color = mode)) +
+    geom_line(linewidth = 1) +
+    geom_point() +
+    # geom_text_repel(aes(label = ctg.median.len)) +
+    scale_x_continuous(breaks = c(1, 5, 10, 20, 30, 40, 50)) +
     scale_color_manual(values = c("KaMRaT none" = "#e66101",
 				  "rnaSPAdes allkmers" = "#808080",
 				  "rnaSPAdes allreads" = "#000000")) +
     ylab("%perfect alignment") +
     theme_light() +
-    theme(text = element_text(size = 15, family = "sans"))
+    theme(text = element_text(size = 15, family = "sans"),
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 ggsave(plt, filename = paste0(work.dir, "results/1_cmp_assembly_extension.pdf"),
        width = 9, height = 3)

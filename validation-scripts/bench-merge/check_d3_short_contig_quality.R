@@ -32,20 +32,20 @@ evaluate_global <- function(ctg.fa, align.res) {
     return(round(sum(ident) / length(ctg.fa) * 100, 2))
 }
 
-pdf(paste0(work.dir, "results/2_cmp_with_without_intervention.pdf"),
+pdf(paste0(work.dir, "results/check3_cmp_short_ctg_quality.pdf"),
     width=9, height=3)
 for (abd in c(1, 5)) {
     stats.res <- NULL
     for (dpt in c(1, 5, 10, 20, 30, 40, 50)) {
         # KaMRaT none
-        cat(dpt, "KaMRaT none", ":")
+        cat(dpt, "KaMRaT none", "\n")
         ctg.path <- paste0(work.dir, "kamrat_res_err-illumina5_2-", abd, "/depth_", dpt, "/ctg-seq.none.fa")
         align.path <- paste0(work.dir, "kamrat_res_err-illumina5_2-", abd, "/depth_", dpt, "/ctg-aligned.none.tsv")
         ctg.fa <- readDNAStringSet(ctg.path)
         align.res <- read.table(align.path, header = TRUE, row.names = 1)
-	ctg.fa <- ctg.fa[width(ctg.fa) > min_len]
-	align.res <- align.res[align.res$qlen > min_len, ]
-	cat("\t", length(ctg.fa), nrow(align.res), "\n")
+	cat(length(ctg.fa), nrow(align.res), "\n")
+	ctg.fa <- ctg.fa[width(ctg.fa) <= min_len]
+	align.res <- align.res[align.res$qlen <= min_len, ]
         stats.res <- rbind(stats.res,
                            data.frame("depth" = dpt,
                                       "mode" = "KaMRaT none",
@@ -55,14 +55,14 @@ for (abd in c(1, 5)) {
 				      "identical" = evaluate_global(ctg.fa, align.res)))
         # KaMRaT with intervention
         for (mode in c("pearson", "spearman", "mac")) {
-            cat(dpt, "KaMRaT", paste(mode, 0.2, sep = ":"), ":")
+            cat(dpt, "KaMRaT", paste(mode, 0.2, sep = ":"), "\n")
             ctg.path <- paste0(work.dir, "kamrat_res_err-illumina5_2-", abd, "/depth_", dpt, "/ctg-seq.", mode, "_0.2", ".fa")
             align.path <- paste0(work.dir, "kamrat_res_err-illumina5_2-", abd, "/depth_", dpt, "/ctg-aligned.", mode, "_0.2", ".tsv")
             ctg.fa <- readDNAStringSet(ctg.path)
             align.res <- read.table(align.path, header = TRUE, row.names = 1)
-	    ctg.fa <- ctg.fa[width(ctg.fa) > min_len]
-	    align.res <- align.res[align.res$qlen > min_len, ]
-	    cat("\t", length(ctg.fa), nrow(align.res), "\n")
+	    cat(length(ctg.fa), nrow(align.res), "\n")
+	    ctg.fa <- ctg.fa[width(ctg.fa) <= min_len]
+	    align.res <- align.res[align.res$qlen <= min_len, ]
             stats.res <- rbind(stats.res,
                                data.frame("depth" = dpt,
                                           "mode" = paste0("KaMRaT ", mode, ":0.2"),
@@ -71,30 +71,14 @@ for (abd in c(1, 5)) {
 					  "perf.align" = evaluate_local(ctg.fa, align.res),
 					  "identical" = evaluate_global(ctg.fa, align.res)))
         }
-        # rnaSPAdes
-        for (mode in c("allreads", paste0("allkmers-2-", abd))) {
-            cat(dpt, "SPAdes", mode, ":")
-            ctg.path <- paste0(work.dir, "spades_res/err-illumina5/depth_", dpt, "/", mode, "/transcripts.fasta")
-            align.path <- paste0(work.dir, "spades_res/err-illumina5/depth_", dpt, "/", mode, "/blastn_align.tsv")
-            ctg.fa <- readDNAStringSet(ctg.path)
-            align.res <- read.table(align.path, header = TRUE, row.names = 1)
-	    cat("\t", length(ctg.fa), nrow(align.res), "\n")
-            stats.res <- rbind(stats.res,
-                               data.frame("depth" = dpt,
-                                          "mode" = paste0("rnaSPAdes ", strsplit(mode, split = "-")[[1]][1]),
-					  "nb.ctg" = length(ctg.fa),
-					  "ctg.median.len" = median(nchar(ctg.fa)),
-					  "perf.align" = evaluate_local(ctg.fa, align.res),
-					  "identical" = evaluate_global(ctg.fa, align.res)))
-        }
     }
-    write.csv(stats.res, paste0(work.dir, "results/2_cmp_with_without_intervention_2-", abd, ".csv"),
+    write.csv(stats.res, paste0(work.dir, "results/check3_cmp_short_ctg_quality_2-", abd, ".csv"),
               quote = FALSE)
 
     plt <- ggplot(data = stats.res, aes(x = depth, y = perf.align, color = mode)) +
         geom_line(linewidth = 1) +
         geom_point() +
-	#geom_text_repel(aes(label = ctg.median.len)) +
+	# geom_text_repel(aes(label = ctg.median.len)) +
         scale_x_continuous(breaks = c(1, 5, 10, 20, 30, 40, 50)) +
         scale_color_manual(values = c("KaMRaT none" = "#e66101",
 				      "KaMRaT mac:0.2" = "#fdb863",

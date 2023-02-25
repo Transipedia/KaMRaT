@@ -17,7 +17,7 @@ BLAST_DB = RES_DIR + "blast_db/"
 MAT_DIR = RES_DIR + "matrices/"
 
 # Parameters
-MEAN_DEPTH_LIST = list(range(1, 11))
+MEAN_DEPTH_LIST = [1, 5, 10, 20, 30, 40, 50]
 INTERV_LIST = ["pearson", "spearman", "mac"]
 THRES_LIST = [str(i / 10) for i in range(1, 11)]
 RECABD_LIST = [(2, 1), (2, 5)]

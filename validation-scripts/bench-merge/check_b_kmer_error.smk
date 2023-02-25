@@ -2,12 +2,10 @@
 # Author: Haoliang Xue
 
 # nohup command:
-#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile check_a_simulated_error.smk --cluster "qsub -q common -l nodes=1:ppn=6 -l mem=20G -l walltime=300:00:00" --jobs 8 -p --latency-wait 60 --rerun-incomplete >> workflow_check_a_simulated_error.txt &
+#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile check_b_kmer_error.smk --cluster "qsub -q common -l nodes=1:ppn=6 -l mem=20G -l walltime=300:00:00" --jobs 8 -p --latency-wait 60 --rerun-incomplete >> workflow_check_b_kmer_error.txt &
 
 
 # Parameters
-SMP_LIST = ["sample_01", "sample_02", "sample_03", "sample_04", "sample_05", "sample_06", "sample_07", "sample_08", "sample_09", "sample_10",
-            "sample_11", "sample_12", "sample_13", "sample_14", "sample_15", "sample_16", "sample_17", "sample_18", "sample_19", "sample_20"]
 MEAN_DEPTH_LIST = [1, 5, 10, 20, 30, 40, 50]
 
 # Involved programs
@@ -20,15 +18,19 @@ MKBLASTDB = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/makeblastdb
 REF_FASTA = "/store/plateformes/CALCUL/SSFA_KaMRaT/Data/gc34.50-53.fa"
 RES_DIR = f"/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
 BLAST_DB = RES_DIR + "blast_db/"
-PLSTR_DIR = RES_DIR + "polyester_res/"
-CHECK_READ_DIR = RES_DIR + "check_read_error/"
+MAT_DIR = RES_DIR + "matrices/"
+CHECK_KMER_DIR = RES_DIR + "check_kmer_error/"
 
 
 # ===== Workflow ===== #
 rule all:
     input:
-        expand(CHECK_READ_DIR + "{mode}/depth_{meandepth}/{smp}_{num}.align.tsv",
-               mode = ["err-free", "err-illumina5"], smp = SMP_LIST, num = [1, 2], meandepth = MEAN_DEPTH_LIST)
+        expand(CHECK_KMER_DIR + "err-free_1-1/depth_{meandepth}.align.tsv",
+               meandepth = MEAN_DEPTH_LIST),
+        expand(CHECK_KMER_DIR + "err-illumina5_2-1/depth_{meandepth}.align.tsv",
+               meandepth = MEAN_DEPTH_LIST),
+        expand(CHECK_KMER_DIR + "err-illumina5_2-5/depth_{meandepth}.align.tsv",
+               meandepth = MEAN_DEPTH_LIST)
 
 rule makeblastdb:
     input:
@@ -50,15 +52,18 @@ rule makeblastdb:
 
 rule blastn:
     input:
-        read_file = PLSTR_DIR + "{mode}/depth_{meandepth}/{file}.fasta",
+        kmer_mat = MAT_DIR + "{mode}/depth_{meandepth}/kmer-counts-{min_rec}-{min_abd}.tsv",
         blast_db = BLAST_DB + "gc34.50-53.fa"
     output:
-        CHECK_READ_DIR + "{mode}/depth_{meandepth}/{file}.align.tsv"
+        CHECK_KMER_DIR + "{mode}_{min_rec}-{min_abd}/depth_{meandepth}.align.tsv"
+    params:
+        CHECK_KMER_DIR + "{mode}_{min_rec}-{min_abd}/depth_{meandepth}.fa"
     threads: 6
     shell:
         """
+        awk 'NR > 1 {{print ">kmer_"NR - 1"\\n"$1}}' {input.kmer_mat} > {params}
         echo -e "qseqid\\tqlen\\tqstart\\tqend\\tslen\\tsstart\\tsend\\tlength\\tnident\\tpident\\tsseqid" > {output}
-        {BLASTN} -db {input.blast_db} -query {input.read_file} -num_threads 6 -max_hsps 1 -max_target_seqs 1 \
+        {BLASTN} -db {input.blast_db} -query {params} -num_threads 6 -max_hsps 1 -max_target_seqs 1 \
                  -outfmt "6 qseqid qlen qstart qend slen sstart send length nident pident sseqid" -dust no >> {output}
         """
 
