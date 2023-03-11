@@ -1,5 +1,6 @@
 rm(list = ls())
 
+library(Biostrings)
 library(tidyr)
 library(ggplot2)
 library(patchwork)
@@ -25,6 +26,15 @@ for (mode in c("pearson", "spearman", "mac")) {
                                              align.res.x$qlen == align.res.x$nident &
                                              align.res.x$pident == 100,
                                          yes = "yes", no = "no")
+        align.res.x <- align.res.x[, c("qlen", "perf.align")]
+        fa.path <- paste0(work.dir, "kamrat_ctg_align/kamrat_res_err-illumina5_2-1/depth_10/ctg-seq.",
+                          mode, "_", formatC(thres, digits = 1, format = "f"), ".fa")
+        ctg.fa <- readDNAStringSet(fa.path)
+        ctg.fa <- ctg.fa[!(names(ctg.fa) %in% rownames(align.res.x))]
+        unaligned.res <- data.frame("qlen" = nchar(ctg.fa),
+                                    "perf.align" = "no")
+        rownames(unaligned.res) <- names(ctg.fa)
+        align.res.x <- rbind(align.res.x, unaligned.res)
         align.res.x$threshold <- as.character(thres)
         align.res.x$mode <- mode
         align.res <- rbind(align.res, align.res.x)
