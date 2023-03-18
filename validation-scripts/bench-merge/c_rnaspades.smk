@@ -79,9 +79,9 @@ rule blastn:
         SPADES_DIR + "{errmode}/depth_{meandepth}/{mode}/log-blastn.txt"
     shell:
         """
-        echo -e "qseqid\\tqlen\\tqstart\\tqend\\tslen\\tsstart\\tsend\\tlength\\tnident\\tpident\\tsseqid" > {output}
-        {BLASTN} -db {BLAST_DB} -query {input} -max_hsps 1 -max_target_seqs 1 \
-                 -outfmt "6 qseqid qlen qstart qend slen sstart send length nident pident sseqid" -num_threads 6 -dust no >> {output} 2> {log}
+        echo -e "qseqid\\tqlen\\tqstart\\tqend\\tslen\\tsstart\\tsend\\tlength\\tnident\\tpident\\tqcovs\\tsseqid" > {output}
+        {BLASTN} -db {BLAST_DB} -query {input} -max_hsps 1 -max_target_seqs 1 -evalue 0.001 \
+                 -outfmt "6 qseqid qlen qstart qend slen sstart send length nident pident qcovs sseqid" -num_threads 6 -dust no >> {output} 2> {log}
         """
 
 

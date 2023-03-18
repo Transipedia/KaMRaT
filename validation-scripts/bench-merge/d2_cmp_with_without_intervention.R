@@ -3,7 +3,7 @@ rm(list = ls())
 library(Biostrings)
 library(tidyr)
 library(ggplot2)
-library(ggrepel)
+library(patchwork)
 
 
 work.dir <- "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
@@ -11,7 +11,7 @@ work.dir <- "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
 
 min_len <- 61
 
-evaluate_local <- function(ctg.fa, align.res) {
+evaluate_perfalign <- function(ctg.fa, align.res) {
     perfect.align <- (align.res$qlen == align.res$qend &
                       align.res$qstart == 1 &
                       align.res$qlen == align.res$length &
@@ -20,21 +20,13 @@ evaluate_local <- function(ctg.fa, align.res) {
     return(round(sum(perfect.align) / length(ctg.fa) * 100, 2))
 }
 
-evaluate_global <- function(ctg.fa, align.res) {
-    ident <- (align.res$qlen == align.res$qend &
-              align.res$qstart == 1 &
-              align.res$qlen == align.res$length &
-              align.res$qlen == align.res$nident &
-              align.res$sstart == 1 &
-              align.res$send == align.res$slen &
-              align.res$slen == align.res$qlen &
-              align.res$pident == 100)
-    return(round(sum(ident) / length(ctg.fa) * 100, 2))
+evaluate_compalign <- function(ctg.fa, align.res) {
+    return(round(sum(align.res$qcovs == 100) / length(ctg.fa) * 100, 2))
 }
 
-pdf(paste0(work.dir, "results/2_cmp_with_without_intervention.pdf"),
-    width=9, height=3)
-for (abd in c(1, 5)) {
+pdf(paste0(work.dir, "results/2_newcmp_with_without_intervention.pdf"),
+    width=9, height=7)
+for (abd in c(1)) {
     stats.res <- NULL
     for (dpt in c(1, 5, 10, 20, 30, 40, 50)) {
         # KaMRaT none
@@ -51,8 +43,8 @@ for (abd in c(1, 5)) {
                                       "mode" = "KaMRaT none",
 				      "nb.ctg" = length(ctg.fa),
 				      "ctg.median.len" = median(nchar(ctg.fa)),
-                                      "perf.align" = evaluate_local(ctg.fa, align.res),
-				      "identical" = evaluate_global(ctg.fa, align.res)))
+                                      "perf.align" = evaluate_perfalign(ctg.fa, align.res),
+				      "comp.align" = evaluate_compalign(ctg.fa, align.res)))
         # KaMRaT with intervention
         for (mode in c("pearson", "spearman", "mac")) {
             cat(dpt, "KaMRaT", paste(mode, 0.2, sep = ":"), ":")
@@ -68,8 +60,8 @@ for (abd in c(1, 5)) {
                                           "mode" = paste0("KaMRaT ", mode, ":0.2"),
 					  "nb.ctg" = length(ctg.fa),
 					  "ctg.median.len" = median(nchar(ctg.fa)),
-					  "perf.align" = evaluate_local(ctg.fa, align.res),
-					  "identical" = evaluate_global(ctg.fa, align.res)))
+					  "perf.align" = evaluate_perfalign(ctg.fa, align.res),
+					  "comp.align" = evaluate_compalign(ctg.fa, align.res)))
         }
         # rnaSPAdes
         for (mode in c("allreads", paste0("allkmers-2-", abd))) {
@@ -84,17 +76,16 @@ for (abd in c(1, 5)) {
                                           "mode" = paste0("rnaSPAdes ", strsplit(mode, split = "-")[[1]][1]),
 					  "nb.ctg" = length(ctg.fa),
 					  "ctg.median.len" = median(nchar(ctg.fa)),
-					  "perf.align" = evaluate_local(ctg.fa, align.res),
-					  "identical" = evaluate_global(ctg.fa, align.res)))
+					  "perf.align" = evaluate_perfalign(ctg.fa, align.res),
+					  "comp.align" = evaluate_compalign(ctg.fa, align.res)))
         }
     }
-    write.csv(stats.res, paste0(work.dir, "results/2_cmp_with_without_intervention_2-", abd, ".csv"),
+    write.csv(stats.res, paste0(work.dir, "results/2_newcmp_with_without_intervention_2-", abd, ".csv"),
               quote = FALSE)
 
-    plt <- ggplot(data = stats.res, aes(x = depth, y = perf.align, color = mode)) +
+    plt1 <- ggplot(data = stats.res, aes(x = depth, y = perf.align, color = mode)) +
         geom_line(linewidth = 1) +
         geom_point() +
-	#geom_text_repel(aes(label = ctg.median.len)) +
         scale_x_continuous(breaks = c(1, 5, 10, 20, 30, 40, 50)) +
         scale_color_manual(values = c("KaMRaT none" = "#e66101",
 				      "KaMRaT mac:0.2" = "#fdb863",
@@ -106,6 +97,20 @@ for (abd in c(1, 5)) {
         theme_light() +
         theme(text = element_text(size = 15, family = "sans"),
 	      panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-    plot(plt)
+    plt2 <- ggplot(data = stats.res, aes(x = depth, y = comp.align, color = mode)) +
+        geom_line(linewidth = 1) +
+        geom_point() +
+        scale_x_continuous(breaks = c(1, 5, 10, 20, 30, 40, 50)) +
+        scale_color_manual(values = c("KaMRaT none" = "#e66101",
+				      "KaMRaT mac:0.2" = "#fdb863",
+				      "KaMRaT pearson:0.2" = "#b2abd2",
+				      "KaMRaT spearman:0.2" = "#5e3c99",
+				      "rnaSPAdes allkmers" = "#808080",
+				      "rnaSPAdes allreads" = "#000000")) +
+        ylab("%complete alignment") +
+        theme_light() +
+        theme(text = element_text(size = 15, family = "sans"),
+	      panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+    plot(plt1/plt2)
 }
 dev.off()

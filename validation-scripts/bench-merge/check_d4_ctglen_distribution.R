@@ -5,10 +5,9 @@ library(tidyr)
 library(ggplot2)
 library(patchwork)
 
-# work.dir <- "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
-work.dir <- "../../../revision/"
+work.dir <- "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge/"
+#work.dir <- "../../../revision/"
 
-min_len <- 61
 
 pdf(paste0(work.dir, "results/check4_ctglen_distribution_summarised.pdf"),
     width=15, height=10)
@@ -17,7 +16,7 @@ for (mode in c("pearson", "spearman", "mac")) {
     for (thres in seq(0.1, 0.9, 0.2)) {
         # KaMRaT with intervention
         cat("KaMRaT", paste(mode, thres, sep = ":"), "\n")
-        align.path <- paste0(work.dir, "kamrat_ctg_align/kamrat_res_err-illumina5_2-1/depth_10/ctg-aligned.",
+        align.path <- paste0(work.dir, "kamrat_res_err-illumina5_2-1/depth_10/ctg-aligned.",
                              mode, "_", formatC(thres, digits = 1, format = "f"), ".tsv")
         align.res.x <- read.table(align.path, header = TRUE, row.names = 1)
         align.res.x$perf.align <- ifelse(align.res.x$qlen == align.res.x$qend &
@@ -27,7 +26,7 @@ for (mode in c("pearson", "spearman", "mac")) {
                                              align.res.x$pident == 100,
                                          yes = "yes", no = "no")
         align.res.x <- align.res.x[, c("qlen", "perf.align")]
-        fa.path <- paste0(work.dir, "kamrat_ctg_align/kamrat_res_err-illumina5_2-1/depth_10/ctg-seq.",
+        fa.path <- paste0(work.dir, "kamrat_res_err-illumina5_2-1/depth_10/ctg-seq.",
                           mode, "_", formatC(thres, digits = 1, format = "f"), ".fa")
         ctg.fa <- readDNAStringSet(fa.path)
         ctg.fa <- ctg.fa[!(names(ctg.fa) %in% rownames(align.res.x))]

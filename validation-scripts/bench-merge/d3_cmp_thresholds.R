@@ -62,7 +62,7 @@ write.csv(stats.res, paste0(work.dir, "results/3_cmp_thresholds.csv"),
 plt <- ggplot(data = stats.res, aes(x = threshold, y = perf.align, color = mode)) +
     geom_line(linewidth = 1) +
     geom_point() +
-    #geom_text_repel(aes(label = ctg.median.len)) +
+    geom_text_repel(aes(label = ctg.median.len)) +
     scale_x_reverse(breaks = seq(0, 1, 0.1)) +
     scale_color_manual(values = c("KaMRaT mac" = "#fdb863", 
         			  "KaMRaT pearson" = "#b2abd2",

@@ -21,7 +21,7 @@ pdf(paste0(work.dir, "results/check2_kmer_errorrate.pdf"),
     width = 9, height = 5)
 for (mode in c("err-free_1-1", "err-illumina5_2-1", "err-illumina5_2-5")) {
     stats.res <- NULL
-    for (dpt in as.character(c(1, 5, 10, 20, 30, 40, 50))) {
+    for (dpt in c(1, 5, 10, 20, 30, 40, 50)) {
         print(paste(mode, dpt))
         kmer.fa <- readDNAStringSet(paste0(work.dir, "check_kmer_error/", mode, "/depth_", dpt, ".fa"))
         align.path <- paste0(work.dir, "check_kmer_error/", mode, "/depth_", dpt, ".align.tsv")
@@ -37,6 +37,7 @@ for (mode in c("err-free_1-1", "err-illumina5_2-1", "err-illumina5_2-5")) {
     plt <- ggplot(stats.res, aes(x = depth, y = perf.align)) +
         geom_point() +
 	geom_line(linewidth = 1) +
+	scale_x_continuous(breaks = c(1, 5, 10, 20, 30, 40, 50)) +
         ggtitle(mode) +
         theme_light() +
         theme(text = element_text(size = 15, family = "sans"))

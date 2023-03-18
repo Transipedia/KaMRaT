@@ -126,7 +126,7 @@ rule blastn:
     shell:
         """
         awk 'NR > 1 && $2 - 1 > 0 {{print ">ctg_"NR - 1"\\n"$1}}' {input.ctg_file} > {params}
-        echo -e "qseqid\\tqlen\\tqstart\\tqend\\tslen\\tsstart\\tsend\\tlength\\tnident\\tpident\\tsseqid" > {output}
-        {BLASTN} -db {input.blast_db} -query {params} -max_hsps 1 -max_target_seqs 1 \
-                 -outfmt "6 qseqid qlen qstart qend slen sstart send length nident pident sseqid" -num_threads 1 -dust no >> {output}
+        echo -e "qseqid\\tqlen\\tqstart\\tqend\\tslen\\tsstart\\tsend\\tlength\\tnident\\tpident\\tqcovs\\tsseqid" > {output}
+        {BLASTN} -db {input.blast_db} -query {params} -max_hsps 1 -max_target_seqs 1 -evalue 0.001 \
+                 -outfmt "6 qseqid qlen qstart qend slen sstart send length nident pident qcovs sseqid" -num_threads 1 -dust no >> {output}
         """
