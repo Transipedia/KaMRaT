@@ -5,11 +5,11 @@
 #       nohup snakemake --snakefile a_dataPrepare.smk --cluster "qsub -q common -l nodes=node28:ppn=6" --jobs 3 -p --latency-wait 60 --rerun-incomplete >> workflow_a_dataPrepare.txt &
 
 # Involved programs
-CUTADAPT = "/home/haoliang.xue/.conda/envs/cutadapt/bin/cutadapt"
-FASTQC = "/home/haoliang.xue/.conda/envs/multiqc/bin/fastqc"
-MULTIQC = "/home/haoliang.xue/.conda/envs/multiqc/bin/multiqc"
-JELLYFISH = "/home/haoliang.xue/.conda/envs/dekupl-hlx/bin/jellyfish"
-KAMRAT_IMG = "/home/haoliang.xue/tools/KaMRaT-da1150c.sif"
+CUTADAPT = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/cutadapt"
+#FASTQC = "/home/haoliang.xue/.conda/envs/multiqc/bin/fastqc"
+#MULTIQC = "/home/haoliang.xue/.conda/envs/multiqc/bin/multiqc"
+JELLYFISH = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/jellyfish"
+KAMRAT_IMG = "/home/haoliang.xue_ext/KaMRaT.sif"
 
 #configfile: "luad-config.json"
 configfile: "prad-config.json"
