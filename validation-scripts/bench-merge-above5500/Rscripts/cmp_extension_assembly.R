@@ -6,7 +6,8 @@ library(ggplot2)
 library(patchwork)
 
 
-work.dir <- "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge-above5500/"
+# work.dir <- "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge-above5500/"
+work.dir <- "/store/plateformes/CALCUL/SSFA_KaMRaT/Results/bench-merge-above5500/"
 # work.dir <- "../../../../Ariticles/KaMRaT/RevisedAnalysis/bench-merge/"
 
 min_len <- 61
@@ -34,8 +35,6 @@ for (dpt in c(0.05, 0.2, 0.4, 0.6, 0.8, 1)) {
     align.path <- paste0(work.dir, "kamrat_res_err-free_1-", abd, "/depth_", dpt, "/ctg-aligned.none.tsv")
     ctg.fa <- readDNAStringSet(ctg.path)
     align.res <- read.table(align.path, header = TRUE, row.names = 1)
-    #ctg.fa <- ctg.fa[width(ctg.fa) > min_len]
-    #align.res <- align.res[align.res$qlen > min_len, ]
     cat("\t", length(ctg.fa), nrow(align.res), "\n")
     stats.res <- rbind(stats.res,
                        data.frame("depth" = dpt,
@@ -51,8 +50,6 @@ for (dpt in c(0.05, 0.2, 0.4, 0.6, 0.8, 1)) {
         align.path <- paste0(work.dir, "kamrat_res_err-free_1-", abd, "/depth_", dpt, "/ctg-aligned.", mode, "_0.2", ".tsv")
         ctg.fa <- readDNAStringSet(ctg.path)
         align.res <- read.table(align.path, header = TRUE, row.names = 1)
-        #ctg.fa <- ctg.fa[width(ctg.fa) > min_len]
-        #align.res <- align.res[align.res$qlen > min_len, ]
         cat("\t", length(ctg.fa), nrow(align.res), "\n")
         stats.res <- rbind(stats.res,
                            data.frame("depth" = dpt,
