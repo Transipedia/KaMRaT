@@ -2,7 +2,7 @@
 # Author: Haoliang Xue
 
 # nohup command:
-#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile c_rnaspades.smk --cluster "qsub -q common -l nodes=node22:ppn=6 -l mem=50G -l walltime=300:00:00" --jobs 5 -p --latency-wait 60 --rerun-incomplete >> workflow_c_rnaspades.txt &
+#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile c_rnaspades.smk --cluster "qsub -q common -l nodes=node06:ppn=6 -l mem=50G -l walltime=300:00:00" --jobs 5 -p --latency-wait 60 --rerun-incomplete >> workflow_c_rnaspades.txt &
 
 # Involved programs
 SPADES = "/home/haoliang.xue_ext/SPAdes-3.15.5-Linux/bin/spades.py"
@@ -10,7 +10,7 @@ BLASTN = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/blastn"
 MKBLASTDB = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/makeblastdb"
 
 # Inputs and outputs
-RES_DIR = f"/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge-above5500/"
+RES_DIR = "/store/plateformes/CALCUL/SSFA_KaMRaT/Results/bench-merge-above5500/"
 SMPREF_DIR = RES_DIR + "smpref_res/"
 BLAST_DB = RES_DIR + "blast_db/"
 PLSTR_DIR = RES_DIR + "polyester_res/"
@@ -18,7 +18,7 @@ MAT_DIR = RES_DIR + "matrices/"
 SPADES_DIR = RES_DIR + "spades_res/"
 
 # Parameters
-MEAN_DEPTH_LIST = [0.05, 0.2, 0.4, 0.6, 0.8, 1]
+MEAN_DEPTH_LIST = [0.01]
 
 # ===== Workflow ===== #
 rule all:

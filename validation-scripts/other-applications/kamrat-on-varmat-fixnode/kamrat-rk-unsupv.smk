@@ -2,7 +2,7 @@
 # Author: Haoliang Xue
 
 # nohup command:
-#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile kamrat-on-varmat.smk --cluster "qsub -q lowprio -l nodes=node40:ppn=1 -l mem=700G -l walltime=300:00:00 -m ea -M xhl-1993@hotmail.com" --jobs 6 -p --latency-wait 60 --rerun-incomplete >> workflow_kamrat-on-varmat3.txt &
+#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile kamrat-rk-unsupv.smk --cluster "qsub -q lowprio -l nodes=1:ppn=1 -l mem=120G -l walltime=300:00:00 -m ea -M xhl-1993@hotmail.com" --jobs 6 -p --latency-wait 60 --rerun-incomplete >> workflow_kamrat-on-50smp-unsupv.txt &
 
 # Involved programs
 KAMRAT_IMG = "/home/haoliang.xue_ext/KaMRaT.sif"
@@ -24,14 +24,8 @@ KAMRAT_DIR = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/kamrat_on_varm
 
 rule all:
     input:
-        #expand(KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/kamrat-index-merge.{mergemthd}.tsv",
-        #       nsmp = [140], mergemthd = ["pearson", "spearman", "mac", "none"]),
-        #expand(KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/kamrat-index-rank.{rankmthd}.tsv",
-        #       nsmp = [140], rankmthd = ["ttest.padj", "ttest.pi", "snr", "dids", "bayes", "lr"]),
-        expand(KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/kamrat-index-merge.{mergemthd}.tsv",
-               nsmp = [232], mergemthd = ["pearson"]),
         expand(KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/kamrat-index-rank.{rankmthd}.tsv",
-               nsmp = [232], rankmthd = ["snr"])
+               nsmp = [50], rankmthd = ["sd", "entropy"])
 
 rule shuffle_samples:
     input:
@@ -89,27 +83,6 @@ rule kamrat_index_nsmp:
                                                                                      -klen 31 -unstrand -nfbase 2000000000 &> {log}
         """
 
-rule kamrat_merge_nsmp:
-    input:
-        expand(KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/index/{f}.bin",
-               nsmp = ["{nsmp}"], f = ["idx-meta", "idx-pos", "idx-mat"])
-    output:
-        KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/kamrat-index-merge.{mode}.tsv"
-    threads: 1
-    resources:
-        mem_mb = 700 * 1024 # 700G memory
-    params:
-        idxdir = KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/index/",
-        mode = "{mode}"
-    log:
-        KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/log-kamrat-merge-{mode}.txt"
-    shell:
-        """
-        apptainer exec -B "/store:/store" -B "/data:/data" {KAMRAT_IMG} kamrat merge -idxdir {params.idxdir} -overlap 30-15 \
-                                                                                     -interv {params.mode}:0.20 -outpath {output} \
-                                                                                     -withcounts mean &> {log}
-        """
-
 rule kamrat_rank_nsmp:
     input:
         meta = KAMRAT_DIR + "{nsmp}-smp.tsv",
@@ -119,7 +92,7 @@ rule kamrat_rank_nsmp:
         KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/kamrat-index-rank.{mode}.tsv"
     threads: 1
     resources:
-        mem_mb = 700 * 1024 # 700G memory
+        mem_mb = 120 * 1024 # 120G memory
     params:
         idxdir = KAMRAT_DIR + "apply-on-varmat/{nsmp}-smp/index/",
         mode = "{mode}"

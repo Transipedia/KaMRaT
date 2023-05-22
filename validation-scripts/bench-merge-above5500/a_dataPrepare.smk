@@ -2,11 +2,11 @@
 # Author: Haoliang Xue
 
 # nohup command:
-#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile a_dataPrepare.smk --cluster "qsub -q common -l nodes=node13:ppn=6 -l mem=30G -l walltime=300:00:00" --jobs 10 -p --latency-wait 60 --rerun-incomplete >> workflow_a_dataPrepare.txt &
+#       nohup /home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/snakemake --snakefile a_dataPrepare.smk --cluster "qsub -q common -l nodes=1:ppn=6 -l mem=30G -l walltime=300:00:00" --jobs 10 -p --latency-wait 60 --rerun-incomplete >> workflow_a_dataPrepare.txt &
 
 # Involved programs
 MUTATIONSIMULATOR = "/home/haoliang.xue_ext/miniconda3/envs/py310/bin/mutation-simulator"
-POLYESTER = "/store/plateformes/CALCUL/SSFA_KaMRaT/KaMRaT/validation-scripts/bench-merge-new/polyester.R"
+POLYESTER = "/store/plateformes/CALCUL/SSFA_KaMRaT/KaMRaT/validation-scripts/bench-merge-above5500/polyester.R"
 RSCRIPT = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/Rscript"
 JELLYFISH = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/jellyfish"
 KAMRAT_IMG = "/home/haoliang.xue_ext/KaMRaT.sif"
@@ -15,10 +15,11 @@ KAMRAT_IMG = "/home/haoliang.xue_ext/KaMRaT.sif"
 REF_FASTA = "/store/plateformes/CALCUL/SSFA_KaMRaT/Data/gc34.above5500nc.fa"
 
 # Parameters
-MEAN_DEPTH_LIST = [0.05, 0.2, 0.4, 0.6, 0.8, 1]
+MEAN_DEPTH_LIST = [0.01, 0.2, 0.4, 0.6, 0.8, 1]
 
 # Outputs
-RES_DIR = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge-above5500/"
+#RES_DIR = "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge-above5500/"
+RES_DIR = "/store/plateformes/CALCUL/SSFA_KaMRaT/Results/bench-merge-above5500/"
 SMPREF_DIR = RES_DIR + "smpref_res/"
 PLSTR_DIR = RES_DIR + "polyester_res/"
 JF_DIR = RES_DIR + "jellyfish_res/"
@@ -101,5 +102,5 @@ rule joinCounts:
         """
         echo -en "tag\\t" > {output}
         echo `ls {input} | sed 's/.txt//g' | sed 's|.*/sample|sample|g'` | sed 's/ /\\t/g' >> {output}
-        apptainer exec -B "/data:/data" {KAMRAT_IMG} joinCounts -r {params.min_rec} -a {params.min_abd} {input} >> {output} 2> {log}
+        apptainer exec -B "/store:/store" {KAMRAT_IMG} joinCounts -r {params.min_rec} -a {params.min_abd} {input} >> {output} 2> {log}
         """

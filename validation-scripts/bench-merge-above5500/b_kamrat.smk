@@ -11,13 +11,13 @@ BLASTN = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/blastn"
 MKBLASTDB = "/home/haoliang.xue_ext/miniconda3/envs/kamrat-valid/bin/makeblastdb"
 
 # Inputs and outputs
-RES_DIR = f"/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/bench-merge-above5500/"
+RES_DIR = f"/store/plateformes/CALCUL/SSFA_KaMRaT/Results/bench-merge-above5500/"
 SMPREF_DIR = RES_DIR + "smpref_res/"
 BLAST_DB = RES_DIR + "blast_db/"
 MAT_DIR = RES_DIR + "matrices/"
 
 # Parameters
-MEAN_DEPTH_LIST = [0.05, 0.2, 0.4, 0.6, 0.8, 1]
+MEAN_DEPTH_LIST = [0.01]
 INTERV_LIST = ["pearson", "spearman", "mac"]
 THRES_LIST = [str(i / 10) for i in range(1, 11, 2)]
 
@@ -29,7 +29,7 @@ rule all:
                mean_depth=MEAN_DEPTH_LIST),
         expand(RES_DIR + "kamrat_res_err-free_1-1/depth_{mean_depth}/ctg-aligned.{interv}_0.2.tsv",
                mean_depth=MEAN_DEPTH_LIST, interv=INTERV_LIST),
-        expand(RES_DIR + "kamrat_res_err-free_1-1/depth_0.05/ctg-aligned.{interv}_{thres}.tsv",
+        expand(RES_DIR + "kamrat_res_err-free_1-1/depth_0.01/ctg-aligned.{interv}_{thres}.tsv",
                interv=INTERV_LIST, thres=THRES_LIST)
 
 rule makeblastdb:
@@ -66,7 +66,7 @@ rule kamrat_index:
     threads: 1
     shell:
         """
-        apptainer exec -B "/data:/data" {KAMRAT_IMG} kamrat index -intab {input} \
+        apptainer exec -B "/store:/store" {KAMRAT_IMG} kamrat index -intab {input} \
                                                                   -outdir {params} \
                                                                   -klen 31 -unstrand -nfbase 500000000 &> {log}
         """
@@ -85,7 +85,7 @@ rule kamrat_merge_none:
         RES_DIR + "kamrat_res_{errmode}_{min_rec}-{min_abd}/depth_{mean_depth}/log-kamrat-merge-none.txt"
     shell:
         """
-        apptainer exec -B "/data:/data" {KAMRAT_IMG} kamrat merge -idxdir {params} \
+        apptainer exec -B "/store:/store" {KAMRAT_IMG} kamrat merge -idxdir {params} \
                                                                   -overlap 30-15 -interv none \
                                                                   -outpath {output} -withcounts rep &> {log}
         """
@@ -106,7 +106,7 @@ rule kamrat_merge_interv:
         thres = "{thres}"
     shell:
         """
-        apptainer exec -B "/data:/data" {KAMRAT_IMG} kamrat merge -idxdir {params.idxdir} \
+        apptainer exec -B "/store:/store" {KAMRAT_IMG} kamrat merge -idxdir {params.idxdir} \
                                                                   -overlap 30-15 -interv {params.interv}:{params.thres} \
                                                                   -outpath {output} -withcounts rep &> {log}
         """

@@ -2,8 +2,8 @@ rm(list = ls())
 
 library(Biostrings)
 library(magrittr)
-library(UpSetR)
 library(ggplot2)
+library(ggsignif)
 library(patchwork)
 
 ctg.dir <- "/data/work/I2BC/haoliang.xue/kamrat-new-res/Results/kamrat_on_varmat/apply-on-varmat/140-smp/"
@@ -55,25 +55,37 @@ pval.df$pvalue.adj <- p.adjust(pval.df$pvalue.nominal, method = "bonferroni")
 pval.df$significant <- (pval.df$pvalue.adj < 0.05)
 pval.df <- pval.df[order(pval.df$pvalue.adj, pval.df$pvalue.nominal,
                          decreasing = FALSE), ]
+write.csv(pval.df, file = paste0(ctg.dir, "qcovs_wilcoxon_padj_notshared.csv"),
+	  quote = FALSE)
 
 all.df <- rbind(align[["none"]], align[["mac"]], align[["pearson"]], align[["spearman"]])
 all.df$source <- factor(all.df$source, levels = c("none", "mac", "pearson", "spearman"))
 p1 <- ggplot(data = all.df, aes(x = source, y = qcovs, fill = source)) +
     geom_boxplot(outlier.size = 1, outlier.alpha = 0.1) +
+    geom_signif(comparisons = list(c("none", "mac"),
+				   c("none", "pearson"),
+				   c("none", "spearman")),
+		stat="signif", position="identity") +
+#    geom_jitter(color="black", size=0.001, alpha=0.05) +
     scale_fill_manual(values = c("none" = "#e66101",
                                  "mac" = "#fdb863",
                                  "pearson" = "#b2abd2",
                                  "spearman" = "#5e3c99")) +
     theme_bw() +
-    theme(text = element_blank(), legend.position = "none",
+    theme(text = element_text(size = 15), legend.position = "none",
           panel.grid = element_blank())
 p2 <- ggplot(data = all.df, aes(x = source, y = my_pident, fill = source)) +
     geom_boxplot(outlier.size = 0.1) +
+    geom_signif(comparisons = list(c("none", "mac"),
+				   c("none", "pearson"),
+				   c("none", "spearman")),
+		stat="signif", position="identity") +
+#    geom_jitter(color="black", size=0.001, alpha=0.05) +
     scale_fill_manual(values = c("none" = "#e66101",
                                  "mac" = "#fdb863",
                                  "pearson" = "#b2abd2",
                                  "spearman" = "#5e3c99")) +
     theme_bw() +
     theme(text = element_text(size = 15), legend.position = "none")
-ggsave(p1, filename = paste0(ctg.dir, "qcovs_pidents_boxplots_notshared.png"),
+ggsave(p1, filename = paste0(ctg.dir, "qcovs_boxplot_notshared.svg"),
        width = 9, height = 3.5, dpi = 600)
