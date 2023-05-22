@@ -4,17 +4,23 @@ library(stringr)
 library(ggdendro)
 library(ggplot2)
 
-work.dir <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/KaMRaT-paper/benchmark-rank/"
-rank.dir <- paste0(work.dir, "/kamrat_res")
+work.dir <- "../../../revision/benchmark-rank/"
+# work.dir <- "/home/haoliang.xue/media/ssfa/MEMBERS/haoliang.xue/KaMRaT-paper/benchmark-rank/"
+rank.dir <- paste0(work.dir, "kamrat_res/")
 
 dlist <- c("ft20000-es10-pout0", "ft20000-es1.5-pout0", "ft20000-es1.5-pout20", "ft200000-es1.5-pout20")
 
 for (d in dlist) {
     score.all <- NULL
     print(d)
-    for (m in c("ttest.padj", "ttest.pi", "snr", "dids", "bayes", "lr")) {
-        f <- paste0(rank.dir, "/", d, "/ranked.", m, ".tsv")
+    for (m in c("ttest.padj", "ttest.pi", "snr", "dids", "bayes", "lr", "deseq2.padj")) {
+        f <- paste0(rank.dir, d, "/ranked.", m, ".tsv")
         score.res <- read.table(f, header = T)[, c(1, 2)]
+        if (m == "ttest.padj" || m == "deseq2.padj") {
+            score.res[, 2] <- rank(score.res[, 2], ties.method = "average")
+        } else {
+            score.res[, 2] <- rank(-score.res[, 2], ties.method = "average")
+        }
         score.res[, 2] <- 1 : nrow(score.res)
         colnames(score.res) <- c("feature", m)
         if (is.null(score.all)) {
@@ -28,9 +34,10 @@ for (d in dlist) {
     p <- ggdendrogram(hclust(dist.mat, method = "complete"), 
                       rotate = T, theme_dendro = F, size = 1) +
         ylim(0, 0.5) +
+        theme_bw() +
         theme(text = element_text(size = 18, family = "Arial"),
               axis.text.x = element_text(hjust = 0.5),
-              axis.title = element_blank(),
+              axis.title = element_blank(), panel.grid = element_blank(),
               plot.margin = margin(r = 0.1, t = 0.1, b = 0.1, l = 0.1, unit = "cm"))
-    ggsave(filename = paste0(work.dir, "/", d, "-hclust.svg"), plot = p, width = 3.5, height = 2)
+    ggsave(filename = paste0(work.dir, "/", d, "-hclust.withdeseq2.svg"), plot = p, width = 3.5, height = 2)
 }
