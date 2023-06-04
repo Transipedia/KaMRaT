@@ -105,6 +105,7 @@ void IndexCount(std::ofstream &idx_pos, std::ofstream &idx_mat, const std::vecto
         idx_pos.write(reinterpret_cast<char *>(&ft_code), sizeof(uint64_t)); // [idx_pos] if indexing k-mer, write also k-mer code
         if (!code_set.insert(ft_code).second)
         {
+	    std::cout << ft_code << std::endl;
             throw std::domain_error("unicity checking failed, an equivalent key already existed for feature: " + ft_name);
         }
     }
