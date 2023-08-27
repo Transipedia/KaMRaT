@@ -129,9 +129,9 @@ void PrintWithCounts_features(const std::vector<double> & scores, std::vector<ui
         feature_t feature = stream.next();
 
         // If the next feature of interest is not yet reached
-        // potential bug to test: if (features[feature_idx] > idx++) {
-        // potential bug to test:     continue;
-        // potential bug to test: }
+        if (features[feature_idx] > idx++) {
+            continue;
+        }
         feature->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
 
         // Print the current feature
