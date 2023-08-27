@@ -30,5 +30,5 @@ singularity exec $BINDS $KAMRAT kamrat rank -idxdir /sif_out/kamrat.idx -rankby 
 
 # Case 1-3: To evaluate sample counts' dispersion by standard deviation
 singularity exec $BINDS $KAMRAT kamrat rank -idxdir /sif_out/kamrat.idx -rankby sd \
-					    -with /sif_out/merge-rank/merged-kmers.bin -seltop 0.1 \
+					    -with /sif_out/merge-rank/merged-kmers.bin \
 					    -outpath /sif_out/merge-rank/top-ctg-counts.sd.tsv -withcounts
