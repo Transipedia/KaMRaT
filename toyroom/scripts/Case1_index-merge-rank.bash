@@ -2,26 +2,33 @@
 
 set -e
 
-mkdir -p output/mergingfirst/ output/kamrat.idx/
+BINDS='-B ../data:/sif_in -B ../output:/sif_out'
+#KAMRAT='/path/to/KaMRaT.sif'
+KAMRAT='../../../../software/KaMRaT.sif'
 
-# make index, normalizating sample counts as "k-mer count per billion"
-../bin/kamrat index -intab data/kmer-counts.subset4toy.tsv.gz -outdir output/kamrat.idx -klen 31 -unstrand -nfbase 1000000000
+singularity exec $BINDS $KAMRAT mkdir -p /sif_out/merge-rank/ /sif_out/kamrat.idx/
+
+# make index with normalisation
+singularity exec $BINDS $KAMRAT kamrat index -intab /sif_in/kmer-counts.subset4toy.tsv.gz \
+					     -outdir /sif_out/kamrat.idx -klen 31 -unstrand -nfbase 1000000
 
 # merge k-mers into contigs, using default intervention method (pearson:0.20)
-../bin/kamrat merge -idxdir output/kamrat.idx -overlap 30-15 -outpath output/mergingfirst/merged-kmers.bin
+singularity exec $BINDS $KAMRAT kamrat merge -idxdir /sif_out/kamrat.idx -overlap 30-15 \
+					     -outpath /sif_out/merge-rank/merged-kmers.bin
 
-# evalate association between sample counts and sample conditions, -seltop 0.1 may be added for selecting top 10% of contigs
-for m in `echo ttest.padj ttest.pi snr lr dids bayes`
-do
-	../bin/kamrat rank -idxdir output/kamrat.idx -rankby $m -design data/sample-states.toy.tsv -with output/mergingfirst/merged-kmers.bin -outpath output/mergingfirst/top-ctg-counts.$m.tsv -withcounts
-done
-for m in `echo pearson spearman`
-do
-	../bin/kamrat rank -idxdir output/kamrat.idx -rankby $m -design data/sample-values.toy.tsv -with output/mergingfirst/merged-kmers.bin -outpath output/mergingfirst/top-ctg-counts.$m.tsv -withcounts
-done
-for m in `echo sd rsd1 rsd2 entropy`
-do
-	../bin/kamrat rank -idxdir output/kamrat.idx -rankby $m -with output/mergingfirst/merged-kmers.bin -outpath output/mergingfirst/top-ctg-counts.$m.tsv -withcounts
-done
+# Case 1-1: To evalate association between sample counts and sample states using t-test
+singularity exec $BINDS $KAMRAT kamrat rank -idxdir /sif_out/kamrat.idx -rankby ttest.padj \
+					    -design /sif_in/sample-states.toy.tsv \
+					    -with /sif_out/merge-rank/merged-kmers.bin \
+					    -outpath /sif_out/merge-rank/top-ctg-counts.ttest.padj.tsv -withcounts
 
-rm -rf output/kamrat.idx/
+# Case 1-2: To evaluate Spearman correlation between sample counts and sample values
+singularity exec $BINDS $KAMRAT kamrat rank -idxdir /sif_out/kamrat.idx -rankby spearman \
+					    -design /sif_in/sample-values.toy.tsv \
+					    -with /sif_out/merge-rank/merged-kmers.bin \
+					    -outpath /sif_out/merge-rank/top-ctg-counts.spearman.tsv -withcounts
+
+# Case 1-3: To evaluate sample counts' dispersion by standard deviation
+singularity exec $BINDS $KAMRAT kamrat rank -idxdir /sif_out/kamrat.idx -rankby sd \
+					    -with /sif_out/merge-rank/merged-kmers.bin -seltop 0.1 \
+					    -outpath /sif_out/merge-rank/top-ctg-counts.sd.tsv -withcounts
