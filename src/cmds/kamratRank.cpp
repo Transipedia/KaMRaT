@@ -120,7 +120,7 @@ void PrintHeader(const bool after_merge, const std::vector<std::string> &colname
 void PrintWithCounts_features(const std::vector<double> & scores, std::vector<uint64_t> & features, size_t max_to_sel, FeatureStreamer & stream, ifstream & idx_mat, size_t nb_smp, std::string count_mode)
 {
     features.resize(max_to_sel);
-    std::sort(features.begin(), features.end());
+    // potential bug to test: std::sort(features.begin(), features.end());
 
     std::vector<float> count_vect;
 
