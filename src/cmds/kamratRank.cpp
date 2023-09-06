@@ -117,21 +117,44 @@ void PrintHeader(const bool after_merge, const std::vector<std::string> &colname
 }
 
 
+/**
+  * @param scores The score of each feature according to the input order
+  * @param features The index of the features sorted with the best score first
+  * @param max_to_sel Maximum number of element to keep in the output
+  * @param stream Object that will allow to enumerate features onr by one in the input order
+  * @param idx_mat matrix indexes file
+  * @param nb_smp number of columns in the matrix
+  * @param count_mode Counting mode
+ **/
 void PrintWithCounts_features(const std::vector<double> & scores, std::vector<uint64_t> & features, size_t max_to_sel, FeatureStreamer & stream, ifstream & idx_mat, size_t nb_smp, std::string count_mode)
 {
+    // for (double val : scores)
+    //     std::cout << val << " ";
+    // std::cout << std::endl;
+    std::cerr << "max to sel " << max_to_sel << std::endl;
+    // Resize the feature vector to only keep the max_to_sel best ones
     features.resize(max_to_sel);
+    std::cerr << "features size " << features.size() << endl;
+    for (uint64_t feature : features)
+        std::cerr << feature << " ";
+    std::cerr << std::endl;
     std::sort(features.begin(), features.end());
+    std::cerr << "features size " << features.size() << endl;
+    for (uint64_t feature : features)
+        std::cerr << feature << " ";
+    std::cerr << std::endl;
 
     std::vector<float> count_vect;
 
     uint64_t feature_idx = 0, idx = 0;
-    while (stream.hasNext()) {
+    while (stream.hasNext() and feature_idx < max_to_sel) {
         feature_t feature = stream.next();
 
         // If the next feature of interest is not yet reached
         if (features[feature_idx] > idx++) {
             continue;
         }
+        std::cerr << "In " << features[feature_idx] << std::endl;
         feature->EstimateCountVect(count_vect, idx_mat, nb_smp, count_mode);
 
         // Print the current feature
