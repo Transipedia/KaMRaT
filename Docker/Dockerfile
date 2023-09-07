@@ -11,7 +11,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 RUN cd /usr \
     && git clone --recursive https://github.com/Transipedia/KaMRaT.git \
     && cd KaMRaT/ \
-    && git checkout master \
     && cmake . \
     && make -j
 RUN cd /usr/KaMRaT/related-tools/prepare_kmer_table/dekupl-joinCounts \
