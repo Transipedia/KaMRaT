@@ -291,7 +291,7 @@ int RankMain(int argc, char *argv[])
     {
         throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
     }
-    if (seltop < 0)
+    if (sel_top < 0)
     {
         std::cerr << BOLDYELLOW << "[warning] " << RESET << "-seltop not set, only evaluate features scores" << std::endl;
     }
