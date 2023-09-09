@@ -3,17 +3,17 @@
 
 void RankWelcome()
 {
-    std::cerr << "KaMRaT rank: rank features according to their association with sample conditions" << std::endl
+    std::cerr << "KaMRaT score: score features according to their association with sample conditions" << std::endl
               << "-----------------------------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void PrintRankHelper()
 {
-    std::cerr << "[USAGE]    kamrat rank -idxdir STR -count-mode STR -rankby STR -design STR [-with STR1[:STR2] -seltop NUM -outpath STR -withcounts]" << std::endl
+    std::cerr << "[USAGE]    kamrat score -idxdir STR -count-mode STR -scoreby STR -design STR [-with STR1[:STR2] -seltop NUM -outpath STR -withcounts]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help             Print the helper" << std::endl;
     std::cerr << "            -idxdir STR          Indexing folder by KaMRaT index, mandatory" << std::endl;
-    std::cerr << "            -rankby STR          Ranking method, mandatory, can be one of: " << std::endl
+    std::cerr << "            -scoreby STR         Scoring method, mandatory, can be one of: " << std::endl
               << "                                     classification (binary sample labels given by design file)" << std::endl
               << "                                         ttest.padj      adjusted p-value of t-test between conditions" << std::endl
               << "                                         ttest.pi        \u03C0-value of t-test between conditions" << std::endl
@@ -35,23 +35,23 @@ void PrintRankHelper()
               << "                                     without header line, each row can be either: " << std::endl
               << "                                         sample name, sample condition" << std::endl
               << "                                         sample name, sample condition, sample batch (only for lrc, nbc, and svm)" << std::endl;
-    std::cerr << "            -with STR1[:STR2]    File indicating features to rank (STR1) and counting mode (STR2)" << std::endl
-              << "                                     if not provided, all indexed features are used for ranking" << std::endl
+    std::cerr << "            -with STR1[:STR2]    File indicating features to score (STR1) and counting mode (STR2)" << std::endl
+              << "                                     if not provided, all indexed features are used for scoring" << std::endl
               << "                                     STR2 can be one of [rep, mean, median]" << std::endl;
-    std::cerr << "            -seltop NUM          Select top ranked features" << std::endl
+    std::cerr << "            -seltop NUM          Select top scored features" << std::endl
               << "                                     if NUM > 1, number of top features to select (should be integer)" << std::endl
               << "                                     if 0 < NUM <= 1, ratio of top features to select" << std::endl
               << "                                     if absent or NUM <= 0, output all features" << std::endl;
-    std::cerr << "            -outpath STR         Path to ranking result" << std::endl
+    std::cerr << "            -outpath STR         Path to scoring result" << std::endl
               << "                                     if not provided, output to screen" << std::endl;
     std::cerr << "            -withcounts          Output sample count vectors [false]" << std::endl
               << std::endl;
-    std::cerr << "[NOTE]      For ranking methods lrc, nbc, and svm, a univariate CV fold number (nfold) can be provided" << std::endl
+    std::cerr << "[NOTE]      For scoring methods lrc, nbc, and svm, a univariate CV fold number (nfold) can be provided" << std::endl
               << "                if nfold = 0, leave-one-out cross-validation" << std::endl
               << "                if nfold = 1, without cross-validation, training and testing on the whole datset" << std::endl
               << "                if nfold > 1, n-fold cross-validation" << std::endl
-              << "            For t-test ranking methods, a transformation log2(x + 1) is applied to sample counts" << std::endl
-              << "            For SVM ranking, sample counts standardization is applied feature by feature" << std::endl
+              << "            For t-test scoring methods, a transformation log2(x + 1) is applied to sample counts" << std::endl
+              << "            For SVM scoring, sample counts standardization is applied feature by feature" << std::endl
               << std::endl;
 }
 
@@ -64,7 +64,7 @@ void PrintRunInfo(const std::string &idx_dir,
 {
     std::cerr << std::endl;
     std::cerr << "KaMRaT index:                 " << idx_dir << std::endl;
-    std::cerr << "Ranking method:               " << rk_mthd;
+    std::cerr << "Scoring method:               " << rk_mthd;
     if (rk_mthd == "lr" || rk_mthd == "nbc" || rk_mthd == "svm")
     {
         if (nfold == 0)
@@ -87,7 +87,7 @@ void PrintRunInfo(const std::string &idx_dir,
         std::cerr << std::endl;
     }
 
-    std::cerr << "Ranking with:                 " << (with_path.empty() ? "features in index" : "features in " + with_path) << std::endl;
+    std::cerr << "Scoring with:                 " << (with_path.empty() ? "features in index" : "features in " + with_path) << std::endl;
     std::cerr << "Feature counting mode:        " + count_mode << std::endl;
     if (!dsgn_path.empty())
     {
@@ -139,7 +139,7 @@ void ParseOptions(int argc, char *argv[],
         {
             idx_dir = argv[++i_opt];
         }
-        else if (arg == "-rankby" && i_opt + 1 < argc)
+        else if (arg == "-scoreby" && i_opt + 1 < argc)
         {
             arg = argv[++i_opt];
             split_pos = arg.find(":");
@@ -199,7 +199,7 @@ void ParseOptions(int argc, char *argv[],
     if (rk_mthd.empty())
     {
         PrintRankHelper();
-        throw std::invalid_argument("-rankby STR is mandatory");
+        throw std::invalid_argument("-scoreby STR is mandatory");
     }
     if (rk_mthd != "sd" && rk_mthd != "rsd1" && rk_mthd != "rsd2" && rk_mthd != "rsd3" && rk_mthd != "entropy" && dsgn_path.empty())
     {

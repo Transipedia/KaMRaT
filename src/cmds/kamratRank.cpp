@@ -14,6 +14,8 @@
 #include "IndexRandomAccess.hpp"
 #include "scorer.hpp"
 
+#define BOLDYELLOW "\033[1m\033[33m"
+#define RESET "\033[0m"
 
 using namespace std;
 
@@ -288,6 +290,10 @@ int RankMain(int argc, char *argv[])
     if (!idx_mat.is_open())
     {
         throw std::invalid_argument("loading index-mat failed, KaMRaT index folder not found or may be corrupted");
+    }
+    if (seltop < 0)
+    {
+        std::cerr << BOLDYELLOW << "[warning] " << RESET << "-seltop not set, only evaluate features scores" << std::endl;
     }
     
     featureVect_t ft_vect;
