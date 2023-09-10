@@ -11,7 +11,7 @@ KaMRaT then provides a set of tools for reducing the k-mer matrix and extending 
 - kamrat filter: remove/retain features* by expression level 
 - kamrat mask: remove/retain k-mers matching given fasta sequences
 - kamrat merge: merge k-mers into contigs
-- kamrat rank: rank features* by classification performance, statistical significance, correlation, or variability 
+- kamrat score (or rank as an alias): score features* by classification performance, statistical significance, correlation, or variability 
 - kamrat query: estimate count vectors of given list of contigs
 
   Note: \*	features can be not only k-mers or k-mer contigs, but also general features such as genes or transcripts.
@@ -67,7 +67,7 @@ apptainer exec --bind /src:/des kamrat.sif kamrat index -intab $kmer_tab_path -o
 
 ```bash
 # Select top 50% of relevant k-mers using ttest pi-value
-apptainer exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -rankby ttest.pi -design $indir/rank-design.txt -outpath $outdir/top-ranked-kmers.ttest-pi.bin -seltop 0.5
+apptainer exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -scoreby ttest.pi -design $indir/rank-design.txt -outpath $outdir/top-ranked-kmers.ttest-pi.bin -seltop 0.5
 # Extend k-mers by tolerating overlap from 30nc to 15nc, intervened by Pearson distance <= 0.20, and with mean contig count
 apptainer exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -with $outdir/top-ranked-kmers.ttest-pi.bin -interv pearson:0.20 -outpath $outdir/contig-counts.ttest-pi.pearson20.tsv -withcounts mean
 ```
@@ -78,7 +78,7 @@ apptainer exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.i
 # Extend k-mers by tolerating overlap from 30nc to 15nc, intervened by Pearson distance <= 0.20, and with mean contig count
 apptainer exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -interv pearson:0.20 -outpath $outdir/contigs.pearson20.bin
 # Select top 50% of relevant contigs using ttest pi-value
-apptainer exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -rankby ttest.pi -design $indir/rank-design.txt -seltop 0.5 -with $outdir/contigs.pearson20.bin -outpath $outdir/top-ranked-contigs.pearson20.ttest-pi.tsv -withcounts
+apptainer exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -scoreby ttest.pi -design $indir/rank-design.txt -seltop 0.5 -with $outdir/contigs.pearson20.bin -outpath $outdir/top-ranked-contigs.pearson20.ttest-pi.tsv -withcounts
 ```
 
 ## General Information
@@ -93,7 +93,7 @@ In the shown workflow, KaMRaT is used for reducing a count matrix produced from 
 
 ### Input Feature Count Matrix for KaMRaT
 
-The feature count matrix contains features in row and samples in column. Features can be k-mers (for all modules) as well as other general features such as genes/transcripts (only for KaMRaT index, filter, and rank). The feature counts can be either normalized or non-normalized. 
+The feature count matrix contains features in row and samples in column. Features can be k-mers (for all modules) as well as other general features such as genes/transcripts (only for KaMRaT index, filter, and score). The feature counts can be either normalized or non-normalized. 
 
 The matrix should be in .tsv or .tsv.gz format, in which fields are separated by tabulations.  The first column in matrix should always be the feature column (sequences or feature names).
 
@@ -116,22 +116,22 @@ This final output of count matrix is generated when `-withcounts` option is give
 
 KaMRaT index is always the first module of workflow.  In a typical use case, it only needs to be done once for different applications of other functional modules.  However, because currently KaMRaT only supports up to two-layer chaining of functional modules, advanced users may want to reindex the final output matrix.  In this situation, please ensure that the matrix to reindex only contains feature column and sample count columns.
 
-### Functional Modules of KaMRaT: filter, mask, merge, rank, query
+### Functional Modules of KaMRaT: filter, mask, merge, score, query
 
-The functional modules of KaMRaT include filter, mask, merge, rank, and query.  They are always applied on the constructed KaMRaT index.  As indicated in the workflow figure, some functional modules like merge and rank can follow others as a second layer.  In these cases, the intermediate output of the first module and the final output of the second module are controlled by the `-withcounts` and `-with` arguments (described below).
+The functional modules of KaMRaT include filter, mask, merge, score, and query.  They are always applied on the constructed KaMRaT index.  As indicated in the workflow figure, some functional modules like merge and score can follow others as a second layer.  In these cases, the intermediate output of the first module and the final output of the second module are controlled by the `-withcounts` and `-with` arguments (described below).
 
 
 ### Design File
 
-The design file is indicated by the `-design` option in the modules filter and rank. 
+The design file is indicated by the `-design` option in the modules filter and score. 
 
 The design file is formed by two columns:
 - the first column indicates samples (i.e., columns of the input count matrix);
-- the second column indicates the associated values considered to filter or rank.
+- the second column indicates the associated values considered to filter or score.
 
 In KaMRaT filter, the second column can be either "UP" or "DOWN", indicating whether the sample should be considered as up-regulated or down-regulated for filtering.
 
-In KaMRaT rank, the second column can be:
+In KaMRaT score, the second column can be:
 - a string indicating sample's condition for the classification methods;
 - a real value for correlation evaluation.
 
@@ -143,7 +143,7 @@ The FASTA file is indicated by the `-fasta` option in the modules mask and query
 
 ### Intermediate Output by KaMRaT
 
-As indicated by the workflow figure, some functional modules may follow others in the workflow.  In this situation, the `-withcounts` option is supposed to be given to the second module rather than to the first.  For example in the merge-rank workflow, `-withcounts` should be given to rank but not to merge.
+As indicated by the workflow figure, some functional modules may follow others in the workflow.  In this situation, the `-withcounts` option is supposed to be given to the second module rather than to the first.  For example in the merge-score workflow, `-withcounts` should be given to score but not to merge.
 
 The first functional module in the workflow without `-withcounts` option genrates binary intermediate files as the second module's input (taken by the `-with` argument of the second module).
 
@@ -212,7 +212,7 @@ We recommande using KaMRaT within ```apptainer```(previously singularity):
 
 ``` bash
 apptainer exec -B /bind_src:/bind_des kamrat <CMD> [options] input_table 
-# <CMD> can be one of filter, mask, merge, rank
+# <CMD> can be one of filter, mask, merge, score
 ```
 
 The ```-B``` option is for binding disk partitions to apptainer image, please check ```apptainer``` helper for details:
@@ -225,7 +225,7 @@ It's also executable directly on command line:
 
 ```bash
 /path_to_KaMRaT_bin_dir/kamrat <CMD> [options] input_table 
-# <CMD> can be index, filter, mask, merge, rank, query
+# <CMD> can be index, filter, mask, merge, score, query
 ```
 
 In the following sections, we present under the situation of using KaMRaT in ```apptainer```.  
@@ -244,7 +244,7 @@ apptainer exec kamrat -help
 Helpers of each KaMRaT modules are accessible via:
 
 ``` bash
-# <CMD> can be one from filter, mask, merge, rank #
+# <CMD> can be one from filter, mask, merge, score #
 apptainer exec kamrat <CMD> -h
 apptainer exec kamrat <CMD> -help
 ```
@@ -352,15 +352,15 @@ The threshold controlling these distances can be given between [0, 1], where 0 i
 </details>
 
 <details>
-<summary>rank: rank features* by classification performance, statistical significance, correlation, or variability</summary>
+<summary>score: score features* by classification performance, statistical significance, correlation, or variability</summary>
 
 
 ```text
-[USAGE]    kamrat rank -idxdir STR -count-mode STR -rankby STR -design STR [-with STR1[:STR2] -seltop NUM -outpath STR -withcounts]
+[USAGE]    kamrat score -idxdir STR -count-mode STR -scoreby STR -design STR [-with STR1[:STR2] -seltop NUM -outpath STR -withcounts] # kamrat rank as an alias
 
 [OPTION]         -h,-help             Print the helper
                  -idxdir STR          Indexing folder by KaMRaT index, mandatory
-                 -rankby STR          Ranking method, mandatory, can be one of:
+                 -scoreby STR         Scoring method, mandatory, can be one of:
                                           ttest.padj      adjusted p-value of t-test between conditions
                                           ttest.pi        \u03C0-value of t-test between conditions
                                           snr             signal-to-noise ratio between conditions
@@ -372,23 +372,23 @@ The threshold controlling these distances can be given between [0, 1], where 0 i
                                           without header line, each row can be either:
                                           sample name, sample condition
                                           sample name, sample condition, sample batch (only for lrc, nbc, and svm)
-                 -with STR1[:STR2]    File indicating features to rank (STR1) and counting mode (STR2)
-                                          if not provided, all indexed features are used for ranking
+                 -with STR1[:STR2]    File indicating features to score (STR1) and counting mode (STR2)
+                                          if not provided, all indexed features are used for scoring
                                           STR2 can be one of [rep, mean, median]
-                 -seltop NUM          Select top ranked features
+                 -seltop NUM          Select top scored features
                                           if NUM > 1, number of top features to select (should be integer)
                                           if 0 < NUM <= 1, ratio of top features to select
                                           if absent or NUM <= 0, output all features
-                 -outpath STR         Path to ranking result
+                 -outpath STR         Path to scoring result
                                           if not provided, output to screen
                  -withcounts          Output sample count vectors [false]
 
-[NOTE]     For ranking methods lrc, nbc, and svm, a univariate CV fold number (nfold) can be provided
+[NOTE]     For scoring methods lrc, nbc, and svm, a univariate CV fold number (nfold) can be provided
                if nfold = 0, leave-one-out cross-validation
                if nfold = 1, without cross-validation, training and testing on the whole datset
                if nfold > 1, n-fold cross-validation
-           For t-test ranking methods, a transformation log2(x + 1) is applied to sample counts
-           For SVM ranking, sample counts standardization is applied feature by feature
+           For t-test scoring methods, a transformation log2(x + 1) is applied to sample counts
+           For SVM scoring, sample counts standardization is applied feature by feature
 ```
 
 </details>
