@@ -11,7 +11,7 @@ KaMRaT then provides a set of tools for reducing the k-mer matrix and extending 
 - kamrat filter: remove/retain features* by expression level 
 - kamrat mask: remove/retain k-mers matching given fasta sequences
 - kamrat merge: merge k-mers into contigs
-- kamrat score (or rank as an alias): score features* by classification performance, statistical significance, correlation, or variability 
+- kamrat score (or kamrat rank as an alias): score features* by classification performance, statistical significance, correlation, or variability 
 - kamrat query: estimate count vectors of given list of contigs
 
   Note: \*	features can be not only k-mers or k-mer contigs, but also general features such as genes or transcripts.
@@ -63,22 +63,22 @@ mkdir $outdir/kamrat.idx
 apptainer exec --bind /src:/des kamrat.sif kamrat index -intab $kmer_tab_path -outdir $outdir/kamrat.idx -klen 31 -unstrand -nfbase 1000000000
 ```
 
-**KaMRaT rank-merge approach**
+**KaMRaT score-merge approach**
 
 ```bash
 # Select top 50% of relevant k-mers using ttest pi-value
-apptainer exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -scoreby ttest.pi -design $indir/rank-design.txt -outpath $outdir/top-ranked-kmers.ttest-pi.bin -seltop 0.5
+apptainer exec --bind /src:/des kamrat.sif kamrat score -idxdir $outdir/kamrat.idx -scoreby ttest.pi -design $indir/rank-design.txt -outpath $outdir/top-ranked-kmers.ttest-pi.bin -seltop 0.5
 # Extend k-mers by tolerating overlap from 30nc to 15nc, intervened by Pearson distance <= 0.20, and with mean contig count
 apptainer exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -with $outdir/top-ranked-kmers.ttest-pi.bin -interv pearson:0.20 -outpath $outdir/contig-counts.ttest-pi.pearson20.tsv -withcounts mean
 ```
 
-**KaMRaT merge-rank approach**
+**KaMRaT merge-score approach**
 
 ```bash
 # Extend k-mers by tolerating overlap from 30nc to 15nc, intervened by Pearson distance <= 0.20, and with mean contig count
 apptainer exec --bind /src:/des kamrat.sif kamrat merge -idxdir $outdir/kamrat.idx -overlap 30-15 -interv pearson:0.20 -outpath $outdir/contigs.pearson20.bin
 # Select top 50% of relevant contigs using ttest pi-value
-apptainer exec --bind /src:/des kamrat.sif kamrat rank -idxdir $outdir/kamrat.idx -scoreby ttest.pi -design $indir/rank-design.txt -seltop 0.5 -with $outdir/contigs.pearson20.bin -outpath $outdir/top-ranked-contigs.pearson20.ttest-pi.tsv -withcounts
+apptainer exec --bind /src:/des kamrat.sif kamrat score -idxdir $outdir/kamrat.idx -scoreby ttest.pi -design $indir/rank-design.txt -seltop 0.5 -with $outdir/contigs.pearson20.bin -outpath $outdir/top-ranked-contigs.pearson20.ttest-pi.tsv -withcounts
 ```
 
 ## General Information
