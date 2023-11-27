@@ -17,7 +17,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 find_package(Armadillo REQUIRED)
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
-find_package(MLPACK REQUIRED)
+find_package(MLPACK REQUIRED VERSION 4)
 include_directories(${MLPACK_INCLUDE_DIR})
 
 find_package(OpenMP)

@@ -1,8 +1,7 @@
 #include <map>
 #include <cmath>
 #include <boost/math/distributions/students_t.hpp>
-#include <mlpack/core/cv/k_fold_cv.hpp>
-#include <mlpack/core/cv/metrics/accuracy.hpp>
+#include <mlpack/core.hpp>
 #include <mlpack/methods/logistic_regression/logistic_regression.hpp>
 #include <mlpack/methods/naive_bayes/naive_bayes_classifier.hpp>
 #include <mlpack/methods/linear_svm/linear_svm.hpp>
@@ -284,13 +283,13 @@ const double CalcLRScore(const size_t nfold, const arma::Row<size_t> &arma_categ
 {
     if (nfold == 1) // without cross-validation, train and test on the whole set
     {
-        mlpack::regression::LogisticRegression<> lr(arma_count_vect, arma_categ_target_vect);
-        mlpack::cv::Accuracy acc;
+        mlpack::LogisticRegression<> lr(arma_count_vect, arma_categ_target_vect);
+        mlpack::Accuracy acc;
         return acc.Evaluate(lr, arma_count_vect, arma_categ_target_vect);
     }
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
-        mlpack::cv::KFoldCV<mlpack::regression::LogisticRegression<>, mlpack::cv::Accuracy>
+        mlpack::KFoldCV<mlpack::LogisticRegression<>, mlpack::Accuracy>
             score_data(nfold, arma_count_vect, arma_categ_target_vect);
         return score_data.Evaluate();
     }
@@ -300,13 +299,13 @@ const double CalcBayesScore(const size_t nfold, const arma::Row<size_t> &arma_ca
 {
     if (nfold == 1) // without cross-validation, train and test on the whole set
     {
-        mlpack::naive_bayes::NaiveBayesClassifier<> nbc(arma_count_vect, arma_categ_target_vect, nclass);
-        mlpack::cv::Accuracy acc;
+        mlpack::NaiveBayesClassifier<> nbc(arma_count_vect, arma_categ_target_vect, nclass);
+        mlpack::Accuracy acc;
         return acc.Evaluate(nbc, arma_count_vect, arma_categ_target_vect);
     }
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
-        mlpack::cv::KFoldCV<mlpack::naive_bayes::NaiveBayesClassifier<>, mlpack::cv::Accuracy>
+        mlpack::KFoldCV<mlpack::NaiveBayesClassifier<>, mlpack::Accuracy>
             score_data(nfold, arma_count_vect, arma_categ_target_vect, nclass);
         return score_data.Evaluate();
     }
@@ -316,13 +315,13 @@ const double CalcSVMScore(const size_t nfold, const arma::Row<size_t> &arma_cate
 {
     if (nfold == 1) // without cross-validation, train and test on the whole set
     {
-        mlpack::svm::LinearSVM<> lsvm(arma_count_vect, arma_categ_target_vect, nclass);
-        mlpack::cv::Accuracy acc;
+        mlpack::LinearSVM<> lsvm(arma_count_vect, arma_categ_target_vect, nclass);
+        mlpack::Accuracy acc;
         return acc.Evaluate(lsvm, arma_count_vect, arma_categ_target_vect);
     }
     else // k-fold cross-validation (k=0 for leave-one-out cross-validation)
     {
-        mlpack::cv::KFoldCV<mlpack::svm::LinearSVM<>, mlpack::cv::Accuracy>
+        mlpack::KFoldCV<mlpack::LinearSVM<>, mlpack::Accuracy>
             score_data(nfold, arma_count_vect, arma_categ_target_vect, nclass);
         return score_data.Evaluate();
     }
