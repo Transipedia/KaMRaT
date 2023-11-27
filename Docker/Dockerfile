@@ -1,6 +1,8 @@
 FROM ubuntu:latest
 
-ENV PATH="/usr/KaMRaT/apps/:/usr/include/mlpack/:$PATH"
+ENV PATH="/usr/include/mlpack/:/usr/KaMRaT/apps/:$PATH"
+ENV CMAKE_PREFIX_PATH="/usr/include/mlpack/:$CMAKE_PREFIX_PATH"
+ENV LD_LIBRARY_PATH="/usr/include/mlpack/:$LD_LIBRARY_PATH"
 ENV LC_ALL=C
 
 RUN export DEBIAN_FRONTEND=noninteractive \
