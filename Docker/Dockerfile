@@ -1,10 +1,11 @@
-FROM ubuntu:22.04
+FROM ubuntu:latest
 
-ENV PATH="/usr/KaMRaT/apps/:$PATH"
+ENV PATH="/usr/KaMRaT/apps/:/usr/include/mlpack/:$PATH"
 ENV LC_ALL=C
 
 RUN export DEBIAN_FRONTEND=noninteractive \
-    && buildDeps="build-essential cmake libarmadillo-dev libensmallen-dev libmlpack-dev libboost-iostreams-dev" \
+    && echo 'deb http://cz.archive.ubuntu.com/ubuntu noble main universe' >> /etc/apt/sources.list \
+    && buildDeps="build-essential cmake libarmadillo-dev libensmallen-dev libmlpack-dev libboost-iostreams-dev wget" \
     && apt-get update \
     && apt-get -yq install $buildDeps \
     && apt -y install git
