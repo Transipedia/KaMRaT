@@ -9,6 +9,7 @@ target_link_libraries(unittests
     vectOp
     dataStruct
     armadillo
+    indexLoading
 )
 
 target_include_directories(unittests
