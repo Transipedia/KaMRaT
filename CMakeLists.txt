@@ -17,6 +17,13 @@ include_directories(${Boost_INCLUDE_DIRS})
 find_package(Armadillo REQUIRED)
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
+add_library(Armadillo::Armadillo INTERFACE IMPORTED)
+set_target_properties(
+  Armadillo::Armadillo PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${ARMADILLO_INCLUDE_DIR}"
+  INTERFACE_LINK_LIBRARIES "${ARMADILLO_LIBRARIES}"
+)
+
 find_package(OpenMP)
 include_directories(${OPENMP_INCLUDE_DIR})
 
