@@ -3,7 +3,7 @@ target_link_libraries(kamratIndex PRIVATE indexLoading seqCoding boost_iostreams
 target_include_directories(kamratIndex PRIVATE "${PROJECT_SOURCE_DIR}/src/runinfo_files/")
 
 add_library(kamratMerge kamratMerge.cpp)
-target_link_libraries(kamratMerge PRIVATE indexLoading seqCoding vectOp dataStruct boost_iostreams mlpack armadillo)
+target_link_libraries(kamratMerge PRIVATE indexLoading seqCoding vectOp dataStruct boost_iostreams mlpack-interface armadillo)
 target_include_directories(kamratMerge PRIVATE "${PROJECT_SOURCE_DIR}/src/runinfo_files/")
 
 add_library(kamratRank kamratRank.cpp)
