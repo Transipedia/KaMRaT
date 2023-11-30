@@ -1,25 +1,17 @@
 FROM ubuntu:latest
 
-ENV PATH="/usr/include/mlpack/:/usr/KaMRaT/apps/:$PATH"
-ENV CMAKE_PREFIX_PATH="/usr/include/mlpack/:$CMAKE_PREFIX_PATH"
-ENV LD_LIBRARY_PATH="/usr/include/mlpack/:$LD_LIBRARY_PATH"
+ENV PATH="/usr/KaMRaT/apps/:$PATH"
 ENV LC_ALL=C
 
 RUN export DEBIAN_FRONTEND=noninteractive \
-    && echo 'deb http://cz.archive.ubuntu.com/ubuntu noble main universe' >> /etc/apt/sources.list \
-    && buildDeps="build-essential cmake libarmadillo-dev libensmallen-dev libmlpack-dev libboost-iostreams-dev wget" \
-    && apt-get update \
-    && apt-get -yq install $buildDeps \
-    && apt -y install git
-RUN cd /usr \
-    && git clone --recursive https://github.com/Transipedia/KaMRaT.git \
-    && cd KaMRaT/ \
-    && cmake . \
-    && make -j
+	&& apt-get clean all && apt-get update && apt-get -y upgrade \
+	&& apt-get -yq install build-essential cmake libboost-math-dev libboost-program-options-dev libboost-test-dev libboost-serialization-dev libarmadillo-dev binutils-dev python3-pandas python3-numpy python3-dev python-setuptools libensmallen-dev libstb-dev liblapack-dev libmlpack-dev libblas-dev libboost-dev libboost-iostreams-dev libarmadillo-dev \
+	&& apt -y install git \
+	&& cd /usr && git clone --recursive https://github.com/Transipedia/KaMRaT.git && cd KaMRaT \
+	&& cmake . && make -j
 RUN cd /usr/KaMRaT/related-tools/prepare_kmer_table/dekupl-joinCounts \
-    && make \
-    && mv joinCounts /usr/KaMRaT/apps/
+	&& make \
+	&& mv joinCounts /usr/KaMRaT/apps/
 RUN cp /usr/KaMRaT/related-tools/prepare_kmer_table/*.bash /usr/KaMRaT/apps/ \
-    && cp /usr/KaMRaT/related-tools/prepare_kmer_table/*.pl /usr/KaMRaT/apps/
-RUN apt-get purge -y --auto-remove $buildDeps git \
-    && echo "Creation Complete !"
+	&& cp /usr/KaMRaT/related-tools/prepare_kmer_table/*.pl /usr/KaMRaT/apps/ \
+	&& echo "Creation Complete !"
