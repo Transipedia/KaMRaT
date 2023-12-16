@@ -1,8 +1,8 @@
 {
-  "fastq_dir": "data",
+  "fastq_dir": "/sif_data",
   "kmer_length": 31,
   "lib_type": "rf",
-  "output_dir": "DEkupl_result",
+  "output_dir": "/sif_out",
   "r1_suffix": "_1.fastq.gz",
   "r2_suffix": "_2.fastq.gz",
   "min_recurrence": 2,
