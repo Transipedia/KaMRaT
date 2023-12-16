@@ -1,0 +1,28 @@
+{
+  "kmer_length": 31,
+  "lib_type": "rf",
+  "output_dir":"/sif_out/DEkupl_result",
+  "diff_method": "DESeq2",
+  "data_type": "RNA-Seq",
+  "chunk_size":1000000,
+
+  "dekupl_counter": {
+    "min_recurrence": 2,
+    "min_recurrence_abundance": 5
+  },
+
+  "diff_analysis": {
+    "condition" : {
+      "A": "normal",
+      "B": "tumor"
+    },
+    "pvalue_threshold": 0.05,
+    "log2fc_threshold": 2
+  },
+
+  "samples_tsv": "/sif_data/samples_tsv.tsv",
+  "masking": "nomask",
+  "raw_count_table": "/sif_data/seo50sup100.tsv.gz",
+  "sample_conditions_full": "/sif_data/sample_conditions_full.tsv",
+  "tmp_dir": "/sif_out/DEkupl_result"
+}
