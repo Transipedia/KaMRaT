@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#BSUB -J dekupl
+#BSUB -o dekupl.o%J
+#BSUB -e dekupl.e%J
+#BSUB -q normal
+#BSUB -M 30G
+#BSUB -R "select[mem>=30G] rusage[mem=30G]"
+#BSUB -n 8
+
+set -e 
+
+WKDIR="../../../../../temp" 
+DEKUPL="../../../../../software/SingularityImages/dekupl-run.simg"
+TIME='/usr/bin/time -v'
+
+# -c -W $PWD 
+bash -c "$TIME singularity exec -B $WKDIR/seo50sup100/:/sif_data/ -B $PWD/:/sif_pwd/ -B $WKDIR/dekupl_res/:/sif_out/ $DEKUPL Rscript /sif_pwd/DESeq2_diff_method.R /dekupl/bin/TtestFilter /sif_data/seo50sup100.tsv.gz /sif_data/sample_conditions_full.tsv 0.05 1 normal tumor 8 1000000 /sif_out/dekupl_tmp /sif_out/diff-counts.tsv.gz /sif_out/raw_pvals.txt.gz /sif_out/log.txt fixed"
