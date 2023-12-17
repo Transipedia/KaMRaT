@@ -24,7 +24,7 @@ TIME='/usr/bin/time -v'
 
 echo "Running DE-kupl..."
 BIND="-B $WKDIR/seo50sup100/:/sif_data/ -B $PWD/:/sif_pwd/ -B $WKDIR/dekupl_res/:/sif_out/"
-bash -c "$TIME singularity exec $BIND $DEKUPL Rscript /dekupl/bin/Ttest_diff_method.R /dekupl/bin/TtestFilter /sif_data/seo50sup100.tsv.gz /sif_data/sample_conditions.tsv 0.05 1 normal tumor 1 1000000 /sif_out/dekupl_tmp /sif_out/diff-counts.tsv.gz /sif_out/raw_pvals.txt.gz /sif_out/log.txt fixed"
+bash -c "$TIME singularity exec $BIND $DEKUPL Rscript /dekupl/bin/Ttest_diff_method.R /dekupl/bin/TtestFilter /sif_data/seo50sup100.tab.tsv.gz /sif_data/sample_conditions_full.tsv 0.05 1 normal tumor 1 1000000 /sif_out/dekupl_tmp /sif_out/diff-counts.tsv.gz /sif_out/raw_pvals.txt.gz /sif_out/log.txt fixed"
 ```
 
 ## Run with `KaMRaT`
@@ -35,7 +35,7 @@ TIME='/usr/bin/time -v'
 
 BIND="-B $WKDIR/seo50sup100/:/sif_data/ -B $WKDIR/kamrat_res/:/sif_out/"
 echo "Running KaMRaT index..."
-bash -c "$TIME singularity exec $BIND $KAMRAT kamrat index -intab /sif_data/seo50sup100.tab.tsv.gz -outdir /sif_out/index -klen 31 -unstrand -nffile /sif_data/seo50sup100.NF &> /sif_out/log-index.txt"
-echo "\nRunning KaMRaT score..."
-bash -c "$TIME singularity exec $BIND $KAMRAT kamrat score -idxdir /sif_out/index -scoreby ttest.padj -design /sif_data/seo50sup100.samples -outpath /sif_out/scored-counts.tsv -seltop 1000000 -withcounts &> /sif_out/log-score.txt"
+bash -c "$TIME singularity exec $BIND $KAMRAT kamrat index -intab /sif_data/seo50sup100.tab.tsv.gz -outdir /sif_out/index -klen 31 -unstrand -nffile /sif_data/seo50sup100.NF"
+echo -e "\nRunning KaMRaT score..."
+bash -c "$TIME singularity exec $BIND $KAMRAT kamrat score -idxdir /sif_out/index -scoreby ttest.padj -design /sif_data/seo50sup100.samples -outpath /sif_out/scored-counts.tsv -seltop 5000000 -withcounts"
 ```
