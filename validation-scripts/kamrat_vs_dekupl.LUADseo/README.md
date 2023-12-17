@@ -1,4 +1,4 @@
-# Evaluate `DE-kupl` Performance with 130M k-mers and 50 samples
+# Run `KaMRaT` and `DE-kupl` with 130M k-mers and 50 samples
 
 Here we test `DE-kupl`'s performance to compare to `KaMRaT`. The two jobs were running on the same CPU model indicated below.
 
