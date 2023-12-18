@@ -1,11 +1,12 @@
 {
-  "samples_tsv": "samples.tsv",
+  "samples_tsv": "/sif_pwd/sample.tsv",
   "lib_type": "rf",
-  "fastq_dir": "/sif_data",
+  "fastq_dir": "/sif_data/fastq_dir",
   "r1_suffix": ".R1.fastq.gz",
   "r2_suffix": ".R2.fastq.gz",
-  "output_dir": "/sif_out",
+  "output_dir": "/sif_out/kmer-matrix",
   "kmer_length": 31,
-  "min_rec": 2,
-  "min_rec_abd": 5
+  "min_rec": 1,
+  "min_rec_abd": 1,
+  "n_cores": 1
 }

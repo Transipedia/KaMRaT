@@ -44,17 +44,19 @@ OUTPUT_DIR = config["output_dir"]
 KMER_LENGTH = config["kmer_length"] if "kmer_length" in config else 31
 MIN_REC = config["min_rec"] if "min_rec" in config else 2
 MIN_REC_ABD = config["min_rec_abd"] if "min_rec_abd" in config else 5
+MAX_CPU = config["n_cores"] if "n_cores" in config else 20
 
 # DIRECTORIES AND FILES
-BIN_DIR = "/usr/KaMRaT/bin"
+BIN_DIR = "/usr/KaMRaT/apps"
 LOGS = OUTPUT_DIR + "/Logs"
-KMER_COUNT_TAB = OUTPUT_DIR + "/kmer-counts.tsv.gz"
+JELLYFISH_DIR = OUTPUT_DIR + "/jellyfish_res"
+RAW_COUNTS = OUTPUT_DIR + "/kmer-counts.tsv.gz"
 
 # BINARIES
 REVCOMP = BIN_DIR + "/revCompFastq.pl"
 JELLYFISH_COUNT = "jellyfish count"
 JELLYFISH_DUMP = "jellyfish dump"
-JOINCOUNT = BIN_DIR + "/joinCounts"
+JOIN_COUNTS = BIN_DIR + "/joinCounts"
 PIGZ = "pigz"
 ZCAT = "gunzip -c"
 SORT = "sort"
@@ -62,23 +64,20 @@ SORT = "sort"
 # SET MEMORY/THREAD USAGE FOR EACH RULE
 MAX_MEM_JELLYFISH = 8000
 MAX_MEM_SORT = 3000
-MAX_CPU = 20
-MAX_CPU_JELLYFISH = 10
-MAX_CPU_SORT = 10
 
 # LOAD SAMPLES FROM TSV FILE
 SAMPLES = []
 with open(SAMPLES_TSV) as f:
     reader = csv.DictReader(f, delimiter="\t")
     if "sample" not in reader.fieldnames:
-        sys.exit("Missing column "sample" in " + SAMPLES_TSV)
+        sys.exit("Missing column 'sample' in " + SAMPLES_TSV)
     for row in reader:
         SAMPLES.append({"sample": row["sample"]})
 SAMPLE_NAMES = [i["sample"] for i in SAMPLES]
 
 # VERIFY LIB_TYPE VALUE
 if LIB_TYPE not in ["rf", "fr", "unstranded"]:
-    sys.exit("Invalid value for "lib_type", possible choices are: rf, fr, and unstranded")
+    sys.exit("Invalid value for 'lib_type', possible choices are: rf, fr, and unstranded")
 
 # VALIDATE sample names, because they will be used with R and cause errors if malformed
 # Sample names must start with at least one letter and then only letters, numbers and underscore characters are allowed
@@ -104,17 +103,17 @@ def end_log(log_file, rule_name):
 
 
 rule all:
-    input: KMER_COUNT_TAB
+    input: RAW_COUNTS
 
 
 rule jellyfish_count:
     input:
         r1 = FASTQ_DIR + "/{sample}" + R1_SUFFIX,
         r2 = FASTQ_DIR + "/{sample}" + R2_SUFFIX
-    output: COUNTS_DIR + "/{sample}.jf"
+    output: JELLYFISH_DIR + "/{sample}.jf"
     log:
         exec_time = LOGS + "/{sample}_jellyfishRawCounts_exec_time.log"
-    threads: MAX_CPU_JELLYFISH
+    threads: MAX_CPU
     resources: ram = MAX_MEM_SORT
     run:
         options = "-L 2 -m {KMER_LENGTH} -s 10000 -t {threads} -o {output} -F 2"
@@ -136,21 +135,23 @@ rule jellyfish_count:
 
 
 rule jellyfish_dump:
-    input: COUNTS_DIR + "/{sample}.jf"
-    output: COUNTS_DIR + "/{sample}.txt.gz"
-    threads: MAX_CPU_SORT
+    input: JELLYFISH_DIR + "/{sample}.jf"
+    params: JELLYFISH_DIR + "{sample}.tmp/"
+    output: JELLYFISH_DIR + "/{sample}.txt.gz"
+    threads: MAX_CPU
     resources: ram = MAX_MEM_SORT
     log:
         exec_time = LOGS + "/{sample}_jellyfishDumpRawCounts_exec_time.log"
     run:
         start_log(log["exec_time"], "jellyfish_dump")
-        shell("{JELLYFISH_DUMP} -c {input} | {SORT} -k 1 -S {resources.ram}M --parallel {threads}| {PIGZ} -p {threads} -c > {output}")
+        shell("mkdir -p {params}")
+        shell("{JELLYFISH_DUMP} -c {input} | {SORT} -k 1 -S {resources.ram}M --parallel {threads} -T {params} | {PIGZ} -p {threads} -c > {output}")
         end_log(log["exec_time"], "jellyfish_dump")
 
 
 rule join_counts:
     input:
-        fastq_files = expand("{counts_dir}/{sample}.txt.gz",counts_dir=COUNTS_DIR,sample=SAMPLE_NAMES)
+        fastq_files = expand("{counts_dir}/{sample}.txt.gz",counts_dir=JELLYFISH_DIR,sample=SAMPLE_NAMES)
     params:
         sample_names = "\t".join(SAMPLE_NAMES)
     output: RAW_COUNTS
