@@ -35,20 +35,20 @@ from sys import platform
 
 
 # COMMON VARIABLES
-BIN_DIR = config["kamrat_bin"]
 SAMPLES_TSV = config["samples_tsv"]
 LIB_TYPE = config["lib_type"] if "lib_type" in config else "rf"
+FASTQ_DIR = config["fastq_dir"]
 R1_SUFFIX = config["r1_suffix"] if "r1_suffix" in config else "_1.fastq.gz"
 R2_SUFFIX = config["r2_suffix"] if "r2_suffix" in config else "_2.fastq.gz"
 OUTPUT_DIR = config["output_dir"]
 KMER_LENGTH = config["kmer_length"] if "kmer_length" in config else 31
-FASTQ_DIR = config["fastq_dir"]
-JELLYFISH = config["jellyfish"] if "jellyfish" in config else "jellyfish"
+MIN_REC = config["min_rec"] if "min_rec" in config else 2
+MIN_REC_ABD = config["min_rec_abd"] if "min_rec_abd" in config else 5
 
 # DIRECTORIES AND FILES
-COUNTS_DIR = OUTPUT_DIR + "/kmer_counts"
+BIN_DIR = "/usr/KaMRaT/bin"
 LOGS = OUTPUT_DIR + "/Logs"
-KMER_COUNT_TAB = COUNTS_DIR + "/kmer-counts.tsv.gz"
+KMER_COUNT_TAB = OUTPUT_DIR + "/kmer-counts.tsv.gz"
 
 # BINARIES
 REVCOMP = BIN_DIR + "/revCompFastq.pl"
@@ -58,8 +58,6 @@ JOINCOUNT = BIN_DIR + "/joinCounts"
 PIGZ = "pigz"
 ZCAT = "gunzip -c"
 SORT = "sort"
-if platform == "darwin":
-    SORT = "gsort"
 
 # SET MEMORY/THREAD USAGE FOR EACH RULE
 MAX_MEM_JELLYFISH = 8000
@@ -77,7 +75,6 @@ with open(SAMPLES_TSV) as f:
     for row in reader:
         SAMPLES.append({"sample": row["sample"]})
 SAMPLE_NAMES = [i["sample"] for i in SAMPLES]
-
 
 # VERIFY LIB_TYPE VALUE
 if LIB_TYPE not in ["rf", "fr", "unstranded"]:
@@ -161,6 +158,6 @@ rule join_counts:
         exec_time = LOGS + "/joinRawCounts_exec_time.log"
     run:
         shell("echo 'tag\t{params.sample_names}' | gzip -c > {output}")
-        start_log(log['exec_time'], "join_counts")
-        shell("{JOIN_COUNTS} -r {MIN_REC} -a {MIN_REC_AB} {input.fastq_files} | gzip -c >> {output}")
-        end_log(log['exec_time'], "join_counts")
+        start_log(log["exec_time"], "join_counts")
+        shell("{JOIN_COUNTS} -r {MIN_REC} -a {MIN_REC_ABD} {input.fastq_files} | gzip -c >> {output}")
+        end_log(log["exec_time"], "join_counts")
