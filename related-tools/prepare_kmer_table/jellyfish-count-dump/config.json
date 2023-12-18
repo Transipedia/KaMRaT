@@ -1,13 +1,12 @@
 {
+  "kamrat_bin": "/usr/KaMRaT/bin/",
+  "samples_tsv": "samples.tsv",
   "fastq_dir": "/sif_data",
+  "r1_suffix": ".R1.fastq.gz",
+  "r2_suffix": ".R2.fastq.gz",
+  "output_dir": "/sif_out",
   "kmer_length": 31,
   "lib_type": "rf",
-  "output_dir": "/sif_out",
-  "r1_suffix": "_1.fastq.gz",
-  "r2_suffix": "_2.fastq.gz",
   "min_recurrence": 2,
-  "min_recurrence_abundance": 5,
-  "jellyfish": "path_to_jellyfish",
-  "pigz": "path_to_pigz",
-  "samples_tsv": "samples.tsv"
+  "min_recurrence_abundance": 5
 }

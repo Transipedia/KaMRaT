@@ -27,39 +27,39 @@
 # Software.
 #######################################################################
 
-import os
+import sys
 import csv
-import gzip
+import re
 import datetime
 from sys import platform
 
-configfile: "config.json"
 
 # COMMON VARIABLES
-SAMPLES_TSV = config['samples_tsv']
-LIB_TYPE = config['lib_type'] if 'lib_type' in config else "rf"
-R1_SUFFIX = config['r1_suffix'] if 'r1_suffix' in config else "_1.fastq.gz"
-R2_SUFFIX = config['r2_suffix'] if 'r2_suffix' in config else "_2.fastq.gz"
-OUTPUT_DIR = config['output_dir']
-KMER_LENGTH = config['kmer_length'] if 'kmer_length' in config else 31
-FASTQ_DIR = config['fastq_dir']
-JELLYFISH = config['jellyfish'] if 'jellyfish' in config else "jellyfish"
-PIGZ = config['pigz'] if 'pigz' in config else "pigz"
+BIN_DIR = config["kamrat_bin"]
+SAMPLES_TSV = config["samples_tsv"]
+LIB_TYPE = config["lib_type"] if "lib_type" in config else "rf"
+R1_SUFFIX = config["r1_suffix"] if "r1_suffix" in config else "_1.fastq.gz"
+R2_SUFFIX = config["r2_suffix"] if "r2_suffix" in config else "_2.fastq.gz"
+OUTPUT_DIR = config["output_dir"]
+KMER_LENGTH = config["kmer_length"] if "kmer_length" in config else 31
+FASTQ_DIR = config["fastq_dir"]
+JELLYFISH = config["jellyfish"] if "jellyfish" in config else "jellyfish"
 
-# DIRECTORIES
-BIN_DIR = workflow.basedir
+# DIRECTORIES AND FILES
 COUNTS_DIR = OUTPUT_DIR + "/kmer_counts"
 LOGS = OUTPUT_DIR + "/Logs"
-
-# FILES
 KMER_COUNT_TAB = COUNTS_DIR + "/kmer-counts.tsv.gz"
 
-# binaries
+# BINARIES
 REVCOMP = BIN_DIR + "/revCompFastq.pl"
-JELLYFISH_COUNT = JELLYFISH + " count"
-JELLYFISH_DUMP = JELLYFISH + " dump"
+JELLYFISH_COUNT = "jellyfish count"
+JELLYFISH_DUMP = "jellyfish dump"
+JOINCOUNT = BIN_DIR + "/joinCounts"
+PIGZ = "pigz"
 ZCAT = "gunzip -c"
 SORT = "sort"
+if platform == "darwin":
+    SORT = "gsort"
 
 # SET MEMORY/THREAD USAGE FOR EACH RULE
 MAX_MEM_JELLYFISH = 8000
@@ -71,34 +71,23 @@ MAX_CPU_SORT = 10
 # LOAD SAMPLES FROM TSV FILE
 SAMPLES = []
 with open(SAMPLES_TSV) as f:
-    reader = csv.DictReader(f, delimiter='\t')
-    if 'sample' not in reader.fieldnames:
-        sys.exit("Missing column 'sample' in " + SAMPLES_TSV)
+    reader = csv.DictReader(f, delimiter="\t")
+    if "sample" not in reader.fieldnames:
+        sys.exit("Missing column "sample" in " + SAMPLES_TSV)
     for row in reader:
-        SAMPLES.append({'sample': row['sample']})
+        SAMPLES.append({"sample": row["sample"]})
+SAMPLE_NAMES = [i["sample"] for i in SAMPLES]
 
-SAMPLE_NAMES = [i['sample'] for i in SAMPLES]
-
-if platform == "darwin":
-    SORT = "gsort"
 
 # VERIFY LIB_TYPE VALUE
-if LIB_TYPE not in ['rf', 'fr', 'unstranded']:
-    sys.exit("Invalid value for 'lib_type', possible choices are: rf, fr, and unstranded")
+if LIB_TYPE not in ["rf", "fr", "unstranded"]:
+    sys.exit("Invalid value for "lib_type", possible choices are: rf, fr, and unstranded")
 
 # VALIDATE sample names, because they will be used with R and cause errors if malformed
 # Sample names must start with at least one letter and then only letters, numbers and underscore characters are allowed
 for name in SAMPLE_NAMES:
     if not re.match(r"^[a-zA-Z][0-9a-zA-Z_]*$", name):
-        sys.exit("Invalid sample name '" + name + "'.\n")
-
-# Print Variables in use
-onstart:
-    sys.stderr.write("***************** PARAMETERS ******************\n")
-    sys.stderr.write("\n* General\n")
-    sys.stderr.write("KMER_LENGTH = " + str(KMER_LENGTH) + "\n")
-    sys.stderr.write("\n* k-mer counting\n")
-    return []
+        sys.exit("Invalid sample name "" + name + "".\n")
 
 
 def current_date():
@@ -117,18 +106,10 @@ def end_log(log_file, rule_name):
         f.write("******\n")
 
 
-###############################################################################
-#
-# TARGET
-#
 rule all:
-    input: expand("{counts_dir}/{sample}.txt.gz", counts_dir = COUNTS_DIR, sample = SAMPLE_NAMES)
+    input: KMER_COUNT_TAB
 
-###############################################################################
-#
-# KMER COUNTS
-# Count k-mers on all the samples
-#
+
 rule jellyfish_count:
     input:
         r1 = FASTQ_DIR + "/{sample}" + R1_SUFFIX,
@@ -140,7 +121,7 @@ rule jellyfish_count:
     resources: ram = MAX_MEM_SORT
     run:
         options = "-L 2 -m {KMER_LENGTH} -s 10000 -t {threads} -o {output} -F 2"
-        start_log(log['exec_time'], "jellyfish_count (raw counts)")
+        start_log(log["exec_time"], "jellyfish_count (raw counts)")
         r1_pipe = "{ZCAT} {input.r1}" if input.r1.endswith(".gz") else "cat {input.r1}"
         r2_pipe = "{ZCAT} {input.r2}" if input.r2.endswith(".gz") else "cat {input.r2}"
         if LIB_TYPE == "rf":
@@ -152,9 +133,10 @@ rule jellyfish_count:
         elif LIB_TYPE == "unstranded":
             options += " -C <(%s) <(%s)" % (r1_pipe, r2_pipe)
         else:
-            sys.exit('Unknown library type')
+            sys.exit("Unknown library type")
         shell("{JELLYFISH_COUNT} " + options)
-        end_log(log['exec_time'], "jellyfish_count")
+        end_log(log["exec_time"], "jellyfish_count")
+
 
 rule jellyfish_dump:
     input: COUNTS_DIR + "/{sample}.jf"
@@ -164,7 +146,21 @@ rule jellyfish_dump:
     log:
         exec_time = LOGS + "/{sample}_jellyfishDumpRawCounts_exec_time.log"
     run:
-        start_log(log['exec_time'], "jellyfish_dump")
+        start_log(log["exec_time"], "jellyfish_dump")
         shell("{JELLYFISH_DUMP} -c {input} | {SORT} -k 1 -S {resources.ram}M --parallel {threads}| {PIGZ} -p {threads} -c > {output}")
-        end_log(log['exec_time'], "jellyfish_dump")
+        end_log(log["exec_time"], "jellyfish_dump")
 
+
+rule join_counts:
+    input:
+        fastq_files = expand("{counts_dir}/{sample}.txt.gz",counts_dir=COUNTS_DIR,sample=SAMPLE_NAMES)
+    params:
+        sample_names = "\t".join(SAMPLE_NAMES)
+    output: RAW_COUNTS
+    log :
+        exec_time = LOGS + "/joinRawCounts_exec_time.log"
+    run:
+        shell("echo 'tag\t{params.sample_names}' | gzip -c > {output}")
+        start_log(log['exec_time'], "join_counts")
+        shell("{JOIN_COUNTS} -r {MIN_REC} -a {MIN_REC_AB} {input.fastq_files} | gzip -c >> {output}")
+        end_log(log['exec_time'], "join_counts")
