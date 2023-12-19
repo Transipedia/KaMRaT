@@ -1,6 +1,3 @@
-[submodule "related-scripts/prepare_kmer_table/dekupl-joinCounts"]
-	path = related-scripts/prepare_kmer_table/dekupl-joinCounts
-	url = https://github.com/Transipedia/dekupl-joinCounts.git
-[submodule "related-tools/prepare_kmer_table/dekupl-joinCounts"]
-	path = related-tools/prepare_kmer_table/dekupl-joinCounts
+[submodule "related-tools/dekupl-joinCounts"]
+	path = related-tools/dekupl-joinCounts
 	url = https://github.com/Transipedia/dekupl-joinCounts.git
