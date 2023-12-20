@@ -32,9 +32,9 @@ Users are expected to prepare and provide a `config.json` file for the `snakemak
 To launch the workflow, please run:
 
 ```bash
-singularity exec -B /in_dir/:/sif_data/ -B /out_dir/:/sif_out/ -B $PWD:/sif_pwd/ KaMRaT.sif \
-                 snakemake -s /usr/KaMRaT/related-tools/make-matrix/Snakefile \
-                           --configfile /sif_pwd/toy-config.json --cores 1
+apptainer exec -B /in_dir/:/sif_data/ -B /out_dir/:/sif_out/ -B $PWD:/sif_pwd/ KaMRaT.sif \
+               snakemake -s /usr/KaMRaT/related-tools/make-matrix/Snakefile \
+                         --configfile /sif_pwd/toy-config.json --cores 1
 ```
 
 A toy use case with examples of `config.json` and `sample_tsv` files can be found in the `toyroom/usecases/MakeTab.usecases/` folder of this GitHub repository.

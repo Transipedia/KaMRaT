@@ -1,6 +1,6 @@
 # Making k-mer count matrix from fastq files
 
-The singularity image of KaMRaT integrates a `snakemake` workflow to produce k-mer count matrix from fastq files. Here a toy example is provided as an instruction.
+The Apptainer/Singularity image of KaMRaT integrates a `snakemake` workflow to produce k-mer count matrix from fastq files. Here a toy example is provided as an instruction.
 
 To run the snakemake workflow, all the fastq files are required to be wrapped in a same folder, with suffixes in the same pattern. For example, in this show case, all the fastq files for the two toy samples are wrapped in the folder `toyroom/data/fastq_dir/`, with the shared suffixes pattern as `.R1.fastq.gz` and `.R2.fastq.gz`.
 
@@ -22,7 +22,7 @@ An example value for the `samples_tsv` key is provided in `sample.tsv` file.
 To launch the workflow, please run:
 
 ```bash
-singularity exec -B /in_dir/:/sif_data/ -B /out_dir/:/sif_out/ -B $PWD:/sif_pwd/ KaMRaT.sif \
-                 snakemake -s /usr/KaMRaT/related-tools/make-matrix/Snakefile \
-                           --configfile /sif_pwd/toy-config.json --cores 1
+apptainer exec -B /in_dir/:/sif_data/ -B /out_dir/:/sif_out/ -B $PWD:/sif_pwd/ KaMRaT.sif \
+               snakemake -s /usr/KaMRaT/related-tools/make-matrix/Snakefile \
+                         --configfile /sif_pwd/toy-config.json --cores 1
 ```
