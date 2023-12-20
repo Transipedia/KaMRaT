@@ -2,13 +2,13 @@
 
 Here we provide several companion scripts for a more friendly usage of KaMRaT.
 
-1. dekupl-joinCounts
+## dekupl-joinCounts
 
 This is a submodule cloned from [here](https://github.com/Transipedia/dekupl-joinCounts/) which was initially developped for the [DE-kupl software](https://doi.org/10.1186/s13059-017-1372-2).
 
 This submodule merges Jellyfish count results of multiple samples into a single k-mer count matrix, and is called by the Snakefile in make-matrix folder (see below). Please refer to dekupl-joinCounts GitHub page for detailed information and cite [DE-kupl article](https://doi.org/10.1186/s13059-017-1372-2) for the usage of it.
 
-2. make-matrix
+## make-matrix
 
 This folder includes a Snakefile summarising workflow to produce k-mer count matrix from fastq files.
 
@@ -39,18 +39,18 @@ singularity exec -B /in_dir/:/sif_data/ -B /out_dir/:/sif_out/ -B $PWD:/sif_pwd/
 
 A toy use case with examples of `config.json` and `sample_tsv` files can be found in the `toyroom/usecases/MakeTab.usecases/` folder of this GitHub repository.
 
-3. splitCV.bash
+## splitCV.bash
 
 A bash script shuffling and splitting feature count matrix for n-fold CV analysis.
 
-4. selectSubmat.bash
+## selectSubmat.bash
 
 A bash script for retrieving specific samples (in columns) from a given matrix.
 
-5. zero-counter.bash
+## zero-counter.bash
 
 An one-line command in AWK for counting number of zeros in the given matrix.
 
-6. downstream_analysis
+## downstream_analysis
 
 Scripts for downstream analyses, e.g., classifier construction.
