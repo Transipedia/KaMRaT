@@ -146,6 +146,7 @@ rule jellyfish_dump:
         start_log(log["exec_time"], "jellyfish_dump")
         shell("mkdir -p {params}")
         shell("{JELLYFISH_DUMP} -c {input} | {SORT} -k 1 -S {resources.ram}M --parallel {threads} -T {params} | {PIGZ} -p {threads} -c > {output}")
+	shell("rmdir {params}")
         end_log(log["exec_time"], "jellyfish_dump")
 
 
