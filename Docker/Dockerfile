@@ -10,9 +10,9 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 	&& pip install snakemake \
 	&& cd /usr && git clone --recursive https://github.com/Transipedia/KaMRaT.git && cd KaMRaT \
 	&& cmake . && make -j
-RUN cd /usr/KaMRaT/related-tools/prepare_kmer_table/dekupl-joinCounts \
+RUN cd /usr/KaMRaT/related-tools/dekupl-joinCounts \
 	&& make \
 	&& mv joinCounts /usr/KaMRaT/apps/
-RUN cp /usr/KaMRaT/related-tools/prepare_kmer_table/*.bash /usr/KaMRaT/apps/ \
-	&& cp /usr/KaMRaT/related-tools/prepare_kmer_table/*.pl /usr/KaMRaT/apps/ \
+RUN cp /usr/KaMRaT/related-tools/*.bash /usr/KaMRaT/apps/ \
+	&& cp /usr/KaMRaT/related-tools/make-matrix/*.pl /usr/KaMRaT/apps/ \
 	&& echo "Creation Complete !"
