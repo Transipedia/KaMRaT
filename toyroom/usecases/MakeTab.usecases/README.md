@@ -22,5 +22,6 @@ An example value for the `samples_tsv` key is provided in `sample.tsv` file.
 To launch the workflow, please run:
 
 ```bash
-singularity exec -B /input_folder/:/sif_data/ -B /output_folder/:/sif_out/ -B /present_working_folder/:/sif_pwd/ KaMRaT.sif snakemake -s /usr/KaMRaT/related-tools/make-matrix/Snakefile --configfile /sif_pwd/toy-config.json --cores 1
+singularity exec -B /input_folder/:/sif_data/ -B /output_folder/:/sif_out/ -B /present_working_folder/:/sif_pwd/ KaMRaT.sif \
+                 snakemake -s /usr/KaMRaT/related-tools/make-matrix/Snakefile --configfile /sif_pwd/toy-config.json --cores 1
 ```
