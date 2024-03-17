@@ -18,7 +18,7 @@ KaMRaT then provides a set of tools for reducing the k-mer matrix and extending 
 
 KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really Tremendous !".
 
-KaMRaT has been published in [Bioinformatics](https://academic.oup.com/bioinformatics/article/40/3/btae090/7623008).
+KaMRaT has been published on [*Bioinformatics*](https://academic.oup.com/bioinformatics/article/40/3/btae090/7623008).
 
 KaMRaT is in **The MIT License**, as described [here](https://github.com/Transipedia/KaMRaT/blob/master/docs/COPYRIGHTS).
 
