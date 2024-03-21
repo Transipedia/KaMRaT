@@ -14,7 +14,7 @@ singularity exec $BINDS $KAMRAT kamrat index -intab /sif_in/kmer-counts.subset4t
 
 # To evalate association between sample counts and sample states by t-test,
 # and select top 10% of most informative contigs
-singularity exec $BINDS $KAMRAT kamrat rank -idxdir /sif_out/kamrat.idx -rankby ttest.padj \
+singularity exec $BINDS $KAMRAT kamrat rank -idxdir /sif_out/kamrat.idx -scoreby ttest.padj \
 					    -design /sif_in/sample-states.toy.tsv -seltop 0.1 \
 					    -outpath /sif_out/rank-merge/top-kmers.bin
 
