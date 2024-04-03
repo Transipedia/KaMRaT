@@ -86,6 +86,10 @@ Please refer to our [Wiki page](https://github.com/Transipedia/KaMRaT/wiki/2.-So
 
 Demostrations of example usecases can be found [here](https://github.com/Transipedia/KaMRaT/wiki/3.-Workflow-Demos).
 
+## Modifications since Version 1.1.0
+### KaMRaT index
+KaMRaT index checks if the selected k-mer length is no longer than 31nt (since commit 169d6e38ff583dafedfa2abd405b4ef4b59978dc).
+
 ## Software/Library Citations
 
 Armadillo:
