@@ -15,7 +15,9 @@ void PrintIndexHelper()
     std::cerr << "           -intab STR     Input table for index, mandatory" << std::endl;
     std::cerr << "           -outdir STR    Output index directory, mandatory" << std::endl;
     std::cerr << "           -klen          k-mer length, mandatory if features are k-mer" << std::endl
-              << "                              if present, indexation will be switched to k-mer mode" << std::endl;
+              << "                              if present, indexation will be switched to k-mer mode" << std::endl
+              << "                              currently, KaMRaT only supports k-mers no longer than 31nt" << std::endl
+              << "                              we suggest to select k as an odd number" << std::endl;
     std::cerr << "           -unstrand      Unstranded mode, indexation with canonical k-mers" << std::endl
               << "                              if present, indexation will be switched to k-mer mode" << std::endl;
     std::cerr << "           -nfbase INT    Base for calculating normalization factor, not compatible with -nffile STR" << std::endl
@@ -125,6 +127,11 @@ void ParseOptions(int argc, char *argv[], std::string &count_tab_path, std::stri
     {
         PrintIndexHelper();
         throw std::invalid_argument("output directory for index is mandatory");
+    }
+    if (k_len >= 32)
+    {
+        PrintIndexHelper();
+        throw std::invalid_argument("current KaMRaT only supports k-mer length <= 31");
     }
     if (kmer_mode && 0 == k_len)
     {

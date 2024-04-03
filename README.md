@@ -37,6 +37,11 @@ KaMRaT is designed as a flexible toolkit for combinations of different operation
 
 ![workflow](./docs/workflow.png)
 
+### Tips for the choice of k-mer length
+Currently, KaMRaT only accepts k-mers no longer than 32nt, since the k-mers are coded in an uint64 variable.
+
+Besides, we recommend users to choose k as an odd number, to avoid confounding one k-mer with its reverse complement counterpart in unstranded data. For example, in the situation k=6, 6-mers such as AAATTT lose information of their strandedness.
+
 ## Installation
 It's highly recommended to directly use KaMRaT within `apptainer`/`singularity` container for users at any level unless the task involves in software development, because:
 
