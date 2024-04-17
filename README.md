@@ -88,7 +88,12 @@ Demostrations of example usecases can be found [here](https://github.com/Transip
 
 ## Modifications since Version 1.1.0
 ### KaMRaT index
-KaMRaT index checks if the selected k-mer length is no longer than 31nt (since commit 169d6e38ff583dafedfa2abd405b4ef4b59978dc).
+Bugfix:
+- revCompFastq.pl line 39 should be `if($i % 4 == 3) {` (since commit 99ad207e9f17b798fd245aef5581bed0e76c1333).
+
+Others:
+- KaMRaT index checks if the selected k-mer length is no longer than 31nt (since commit 169d6e38ff583dafedfa2abd405b4ef4b59978dc).
+- DockerFile: added python3-pip for snakemake installation (since commit b628a76cc25dab7a403172521c12be353ac2d2e3).
 
 ## Software/Library Citations
 
