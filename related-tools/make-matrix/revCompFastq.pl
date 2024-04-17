@@ -36,7 +36,7 @@ while (<>) {
     # complement the reversed DNA sequence
     $_ =~ tr/ACGTacgt/TGCAtgca/;
     $_ = reverse $_;
-  } elsif($i % 3 == 3) {
+  } elsif($i % 4 == 3) {
     $_ = reverse $_; 
   }
   print $_,"\n";
