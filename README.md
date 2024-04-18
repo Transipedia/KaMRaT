@@ -43,6 +43,10 @@ Currently, KaMRaT only accepts k-mers no longer than 32nt, since the k-mers are 
 Besides, we recommend users to choose k as an odd number, to avoid confounding one k-mer with its reverse complement counterpart in unstranded data. For example, in the situation k=6, 6-mers such as AAATTT lose information of their strandedness.
 
 ## Modifications since Version 1.1.0
+This section describes modifications from release KaMRaT `v1.1.0` (both on GitHub and DockerHub) to the current version of GitHub `master` branch and DockerHub image tagged `latest`.
+
+We will update this section to "None" when the next KaMRaT version is released.
+
 ### KaMRaT index
 Bugfix:
 - revCompFastq.pl line 39 should be `if($i % 4 == 3) {` (since commit 99ad207e9f17b798fd245aef5581bed0e76c1333).
