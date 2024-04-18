@@ -42,6 +42,15 @@ Currently, KaMRaT only accepts k-mers no longer than 32nt, since the k-mers are 
 
 Besides, we recommend users to choose k as an odd number, to avoid confounding one k-mer with its reverse complement counterpart in unstranded data. For example, in the situation k=6, 6-mers such as AAATTT lose information of their strandedness.
 
+## Modifications since Version 1.1.0
+### KaMRaT index
+Bugfix:
+- revCompFastq.pl line 39 should be `if($i % 4 == 3) {` (since commit 99ad207e9f17b798fd245aef5581bed0e76c1333).
+
+Others:
+- KaMRaT index checks if the selected k-mer length is no longer than 31nt (since commit 169d6e38ff583dafedfa2abd405b4ef4b59978dc).
+- DockerFile: added python3-pip for snakemake installation (since commit b628a76cc25dab7a403172521c12be353ac2d2e3).
+
 ## Installation
 It's highly recommended to directly use KaMRaT within `apptainer`/`singularity` container for users at any level unless the task involves in software development, because:
 
@@ -85,15 +94,6 @@ apptainer exec kamrat <CMD>
 Please refer to our [Wiki page](https://github.com/Transipedia/KaMRaT/wiki/2.-Software-Usage) for detailed software usage description.
 
 Demostrations of example usecases can be found [here](https://github.com/Transipedia/KaMRaT/wiki/3.-Workflow-Demos).
-
-## Modifications since Version 1.1.0
-### KaMRaT index
-Bugfix:
-- revCompFastq.pl line 39 should be `if($i % 4 == 3) {` (since commit 99ad207e9f17b798fd245aef5581bed0e76c1333).
-
-Others:
-- KaMRaT index checks if the selected k-mer length is no longer than 31nt (since commit 169d6e38ff583dafedfa2abd405b4ef4b59978dc).
-- DockerFile: added python3-pip for snakemake installation (since commit b628a76cc25dab7a403172521c12be353ac2d2e3).
 
 ## Software/Library Citations
 
