@@ -37,4 +37,4 @@ unittests
 external/*
 !external/mlpack/CMakeLists.txt
 mlpack_install/
-
+*tmp_test/

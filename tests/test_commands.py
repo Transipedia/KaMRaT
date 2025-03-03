@@ -5,13 +5,13 @@ from shutil import rmtree
 import subprocess
 
 
-kamrat = path.join(".", "bin", "kamrat")
+kamrat = path.join(".", "apps", "kamrat")
 
 
 class TestCommands(unittest.TestCase):
 
     def test_basic_command(self):
-        output = subprocess.check_output(f"./bin/kamrat", stderr=subprocess.STDOUT, shell=True, text=True)
+        output = subprocess.check_output(kamrat, stderr=subprocess.STDOUT, shell=True, text=True)
         self.assertTrue("================== k-mer Matrix, Really Tremendous! ==================" in output)
 
     def test_index(self):
@@ -48,7 +48,7 @@ class TestCommands(unittest.TestCase):
         idx_mat = path.join(outdir, "idx-meta.bin")
         self.assertTrue(path.exists(idx_mat))
         stream = os.popen(f"md5sum {idx_mat}")
-        self.assertTrue(stream.read().startswith("c6ac53928b1cd9ce946de29496684cd0"))
+        self.assertTrue(stream.read().startswith("8036df91ef0fd678b431b65a83863bdb"))
         stream.close()
 
         idx_mat = path.join(outdir, "idx-pos.bin")
@@ -84,7 +84,7 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(0, process.returncode)
 
         # Define filter i/o
-        toy_conditions = path.join(data, "sample-condition.toy.tsv")
+        toy_conditions = path.join(data, "sample-states.toy.tsv")
         conditions = path.join(test_dir, "conditions.tsv")
         filtered = path.join(test_dir, "top-kmers.bin")
         filter_stdout = path.join(test_dir, "filter.stdout")
@@ -129,7 +129,7 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(0, process.returncode)
 
         # Define filter i/o
-        toy_conditions = path.join(data, "sample-condition.toy.tsv")
+        toy_conditions = path.join(data, "sample-states.toy.tsv")
         conditions = path.join(test_dir, "conditions.tsv")
         filtered = path.join(test_dir, "top-kmers.bin")
         filter_stdout = path.join(test_dir, "filter.stdout")
@@ -160,7 +160,7 @@ class TestCommands(unittest.TestCase):
 
         self.assertTrue(path.exists(merged))
         stream = os.popen(f"md5sum {merged}")
-        self.assertTrue(stream.read().startswith("54fba78dade59136999f8f5e1dfb6b08"))
+        self.assertTrue(stream.read().startswith("10e910446f777f30922f97c148a0404a"))
         stream.close()
 
         rmtree(test_dir)
@@ -189,19 +189,19 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(0, process.returncode)
 
         # Define rank i/o
-        condition = path.join(data, "sample-condition.toy.tsv")
+        condition = path.join(data, "sample-states.toy.tsv")
         ranked = path.join(test_dir, "top-kmers.bin")
         rank_out = path.join(test_dir, "rank.stdout")
         
         # Rank
-        cmd = f"{kamrat} rank -idxdir {idx_dir} -rankby ttest.padj -design {condition} -seltop 0.1 -outpath {ranked}"
+        cmd = f"{kamrat} score -idxdir {idx_dir} -scoreby ttest.padj -design {condition} -seltop 0.1 -outpath {ranked}"
         with open(rank_out, "w") as rk_out:
             process = subprocess.run(cmd.split(" "), stdout=rk_out, stderr=rk_out)
         self.assertEqual(0, process.returncode)
 
         self.assertTrue(path.exists(ranked))
         stream = os.popen(f"md5sum {ranked}")
-        self.assertTrue(stream.read().startswith("05eccafdaa7836ed2efe59821ef72289"))
+        self.assertTrue(stream.read().startswith("faf89801a833751a64c02cb9db88770f"))
         stream.close()
 
         rmtree(test_dir)
