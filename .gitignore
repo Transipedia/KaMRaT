@@ -33,3 +33,8 @@ scripts/
 perfs/
 kamrat
 unittests
+
+external/*
+!external/mlpack/CMakeLists.txt
+mlpack_install/
+
