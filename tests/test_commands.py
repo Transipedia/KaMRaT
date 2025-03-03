@@ -167,7 +167,7 @@ class TestCommands(unittest.TestCase):
 
 
     def test_rank(self):
-        test_dir = "filter_tmp_test"
+        test_dir = "rank_tmp_test"
         data = path.join("toyroom", "data")
 
         # Remove previous test remainings
