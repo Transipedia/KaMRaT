@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <limits>
 #include <ctime>
 
@@ -11,7 +12,6 @@
 
 #define RESET "\033[0m"
 #define BOLDYELLOW "\033[1m\033[33m"
-
 
 const std::pair<size_t, size_t> ParseDesign(std::vector<bool> &filter_stat_vect, const std::string &dsgn_path,
                                             const std::vector<std::string> &colname_vect, const size_t nb_smp)
@@ -65,10 +65,11 @@ const std::pair<size_t, size_t> ParseDesign(std::vector<bool> &filter_stat_vect,
 
 void ScanPrint(std::ifstream &idx_mat, const std::vector<size_t> &ft_pos_vect, const std::vector<bool> &filter_stat_vect,
                const size_t up_min_abd, const size_t up_min_rec, const size_t down_max_abd, const size_t down_min_rec,
-               const size_t nb_smp, const bool reverse_filter, const bool with_counts)
+               const size_t nb_smp, const bool reverse_filter, const std::string &out_fmt, const std::string &value_mode)
 {
     std::vector<float> count_vect;
     std::string ft_name;
+    size_t ft_idx(0);
     for (size_t ft_pos : ft_pos_vect)
     {
         GetCountVect(count_vect, idx_mat, ft_pos, nb_smp);
@@ -87,17 +88,29 @@ void ScanPrint(std::ifstream &idx_mat, const std::vector<size_t> &ft_pos_vect, c
         }
         if (reverse_filter != (up_rec >= up_min_rec && down_rec >= down_min_rec)) // !reverse && eligible || reverse && !eligible
         {
-            std::cout << ft_name;
-            if (with_counts)
+            if (out_fmt == "tab")
             {
+                std::cout << ft_name;
                 for (const float x : count_vect)
                 {
-                    std::cout << "\t" << x;
+                    if (value_mode == "float")
+                    {
+                        std::cout << "\t" << x;
+                    }
+                    else // value_mode == "int"
+                    {
+                        std::cout << "\t" << static_cast<size_t>(x + 0.5);
+                    }
                 }
             }
-            else
+            else if (out_fmt == "fa")
             {
-                std::cout << "\t0\t1\t";
+                std::cout << ">feature_" << ft_idx++ << std::endl
+                          << ft_name;
+            }
+            else // out_fmt == "bin"
+            {
+                std::cout << ft_name << "\t0\t1\t";
                 std::cout.write(reinterpret_cast<char *>(&ft_pos), sizeof(size_t));
             }
             std::cout << std::endl;
@@ -110,13 +123,13 @@ int FilterMain(int argc, char *argv[])
     FilterWelcome();
 
     std::clock_t begin_time = clock();
-    std::string idx_dir, dsgn_path, out_path;
+    std::string idx_dir, dsgn_path, out_fmt("tab"), out_path, value_mode("int");
     size_t up_min_rec(0), up_min_abd(0), down_min_rec(0), down_max_abd(std::numeric_limits<size_t>::max()), nb_smp, k_len;
-    bool reverse_filter(false), with_counts(false), _stranded; // _stranded not needed
+    bool reverse_filter(false), _stranded; // _stranded not needed
     std::vector<std::string> colname_vect;
 
-    ParseOptions(argc, argv, idx_dir, dsgn_path, up_min_abd, up_min_rec, down_max_abd, down_min_rec, reverse_filter, out_path, with_counts);
-    PrintRunInfo(idx_dir, dsgn_path, up_min_abd, up_min_rec, down_max_abd, down_min_rec, reverse_filter, out_path, with_counts);
+    ParseOptions(argc, argv, idx_dir, dsgn_path, up_min_abd, up_min_rec, down_max_abd, down_min_rec, reverse_filter, out_fmt, out_path, value_mode);
+    PrintRunInfo(idx_dir, dsgn_path, up_min_abd, up_min_rec, down_max_abd, down_min_rec, reverse_filter, out_fmt, out_path, value_mode);
     LoadIndexMeta(nb_smp, k_len, _stranded, colname_vect, idx_dir + "/idx-meta.bin");
 
     std::vector<bool> filter_stat_vect;
@@ -155,7 +168,7 @@ int FilterMain(int argc, char *argv[])
     {
         std::cout.rdbuf(out_file.rdbuf());
     }
-    if (with_counts)
+    if (out_fmt == "tab")
     {
         std::cout << colname_vect[0];
         for (size_t i_col(1); i_col <= nb_smp; ++i_col)
@@ -164,7 +177,7 @@ int FilterMain(int argc, char *argv[])
         }
         std::cout << std::endl;
     }
-    ScanPrint(idx_mat, ft_pos_vect, filter_stat_vect, up_min_abd, up_min_rec, down_max_abd, down_min_rec, nb_smp, reverse_filter, with_counts);
+    ScanPrint(idx_mat, ft_pos_vect, filter_stat_vect, up_min_abd, up_min_rec, down_max_abd, down_min_rec, nb_smp, reverse_filter, out_fmt, value_mode);
     idx_mat.close();
 
     std::cout.rdbuf(backup_buf);

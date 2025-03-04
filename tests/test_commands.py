@@ -86,7 +86,7 @@ class TestCommands(unittest.TestCase):
         # Define filter i/o
         toy_conditions = path.join(data, "sample-states.toy.tsv")
         conditions = path.join(test_dir, "conditions.tsv")
-        filtered = path.join(test_dir, "top-kmers.bin")
+        filtered = path.join(test_dir, "top-kmers.tsv")
         filter_stdout = path.join(test_dir, "filter.stdout")
 
         # Prepare design file
@@ -94,7 +94,7 @@ class TestCommands(unittest.TestCase):
             process = subprocess.run(f"sed 's/normal/DOWN/g' {toy_conditions} | sed 's/tumor/UP/g'", shell=True, stdout=cdt_out)
         self.assertEqual(0, process.returncode)
         # Filter
-        cmd = f"{kamrat} filter -idxdir {idx_dir} -design {conditions} -upmin 5:5 -downmax 0:10 -outpath {filtered}"
+        cmd = f"{kamrat} filter -idxdir {idx_dir} -design {conditions} -upmin 5:5 -downmax 0:10 -outfmt bin -outpath {filtered} -counts float"
         with open(filter_stdout, "w") as flt_out:
             process = subprocess.run(cmd.split(" "), stdout=flt_out, stderr=flt_out)
         self.assertEqual(0, process.returncode)
@@ -139,7 +139,7 @@ class TestCommands(unittest.TestCase):
             process = subprocess.run(f"sed 's/normal/DOWN/g' {toy_conditions} | sed 's/tumor/UP/g'", shell=True, stdout=cdt_out)
         self.assertEqual(0, process.returncode)
         # Filter
-        cmd = f"{kamrat} filter -idxdir {idx_dir} -design {conditions} -upmin 5:5 -downmax 0:10 -outpath {filtered}"
+        cmd = f"{kamrat} filter -idxdir {idx_dir} -design {conditions} -upmin 5:5 -downmax 0:10 -outfmt bin -outpath {filtered}"
         with open(filter_stdout, "w") as flt_out:
             process = subprocess.run(cmd.split(" "), stdout=flt_out, stderr=flt_out)
         self.assertEqual(0, process.returncode)

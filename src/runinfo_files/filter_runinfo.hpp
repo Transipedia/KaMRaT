@@ -1,6 +1,9 @@
 #ifndef KAMRAT_RUNINFOFILES_FILTERRUNINFO_HPP
 #define KAMRAT_RUNINFOFILES_FILTERRUNINFO_HPP
 
+const std::unordered_set<std::string> kOutFmtUniv{"tab", "fa", "bin"};
+const std::unordered_set<std::string> kValueModeUniv{"int", "float"};
+
 void FilterWelcome()
 {
     std::cerr << "KaMRaT filter: filter feature by expression level" << std::endl
@@ -9,7 +12,7 @@ void FilterWelcome()
 
 void PrintFilterHelper()
 {
-    std::cerr << "[USAGE]    kamrat filter -idxdir STR -design STR [-upmin INT1:INT2 -downmax INT1:INT2 -reverse -outpath STR -withcounts]" << std::endl
+    std::cerr << "[USAGE]    kamrat filter -idxdir STR -design STR [-upmin INT1:INT2 -downmax INT1:INT2 -reverse -outfmt STR -outpath STR -counts STR]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help              Print the helper" << std::endl;
     std::cerr << "            -idxdir STR           Indexing folder by KaMRaT index, mandatory" << std::endl;
@@ -25,9 +28,15 @@ void PrintFilterHelper()
     std::cerr << "            -downmax INT1:INT2    Down feature upper bound [inf:1, meaning no filter]" << std::endl
               << "                                      output features counting <= INT1 in >= INT2 DOWN-samples" << std::endl;
     std::cerr << "            -reverse              Reverse filter, to remove eligible features [false]" << std::endl;
+    std::cerr << "            -outfmt STR           Output format, STR can be `tab`, `fa`, or `bin` [default `tab`]" << std::endl
+              << "                                      `tab` will output the final count table, set by default" << std::endl
+              << "                                      `fa` will output a fasta file containing sequences without counts" << std::endl
+              << "                                      `bin` will output a binary file, to be taken by the `-with` option of other modules" << std::endl;
     std::cerr << "            -outpath STR          Path to results after filter" << std::endl
               << "                                      if not provided, output to screen" << std::endl;
-    std::cerr << "            -withcounts           Output sample count vectors [false]" << std::endl
+    std::cerr << "            -counts STR           STR can be `int` or `float` [default `int`], only works if `-outfmt tab`" << std::endl
+              << "                                      `int` will round the count values to nearest integers" << std::endl
+              << "                                      `float` will output the values in decimals" << std::endl
               << std::endl;
 }
 
@@ -36,7 +45,8 @@ void PrintRunInfo(const std::string &idx_dir,
                   const size_t up_min_abd, const size_t up_min_rec,
                   const size_t down_max_abd, const size_t down_min_rec,
                   const bool reverse_filter,
-                  const std::string &out_path, const bool with_counts)
+                  const std::string &out_fmt, const std::string &out_path,
+                  const std::string &value_mode)
 {
     std::cerr << std::endl;
     std::cerr << "KaMRaT index:                  " << idx_dir << std::endl;
@@ -47,8 +57,9 @@ void PrintRunInfo(const std::string &idx_dir,
               << "\tfeatures counting <= " << (down_max_abd == std::numeric_limits<size_t>::max() ? "inf" : std::to_string(down_max_abd))
               << " in >= " << down_min_rec << " down-regulated samples" << std::endl;
     std::cerr << "Remove eligible features:      " << (reverse_filter ? "True" : "False") << std::endl;
-    std::cerr << "Output:                        " << (out_path.empty() ? "to screen" : out_path) << ", ";
-    std::cerr << (with_counts ? "with" : "without") << " count vectors" << std::endl
+    std::cerr << "Output:                        " << (out_path.empty() ? "to screen" : out_path) << std::endl
+              << "    format:                    " + out_fmt << std::endl
+              << "    value mode:                " + value_mode << std::endl
               << std::endl;
 }
 
@@ -58,7 +69,8 @@ void ParseOptions(int argc, char *argv[],
                   size_t &up_min_abd, size_t &up_min_rec,
                   size_t &down_max_abd, size_t &down_min_rec,
                   bool &reverse_filter,
-                  std::string &out_path, bool &with_counts)
+                  std::string &out_fmt, std::string &out_path,
+                  std::string &value_mode)
 {
     int i_opt(1);
     if (argc == 1)
@@ -116,13 +128,17 @@ void ParseOptions(int argc, char *argv[],
         {
             reverse_filter = true;
         }
+        else if (arg == "-outfmt" && i_opt + 1 < argc)
+        {
+            out_fmt = argv[++i_opt];
+        }
         else if (arg == "-outpath" && i_opt + 1 < argc)
         {
             out_path = argv[++i_opt];
         }
-        else if (arg == "-withcounts")
+        else if (arg == "-counts" && i_opt + 1 < argc)
         {
-            with_counts = true;
+            value_mode = argv[++i_opt];
         }
         else
         {
@@ -145,6 +161,16 @@ void ParseOptions(int argc, char *argv[],
     {
         PrintFilterHelper();
         throw std::domain_error("-design STR is mandatory");
+    }
+    if (kOutFmtUniv.find(out_fmt) == kOutFmtUniv.cend())
+    {
+        PrintFilterHelper();
+        throw std::invalid_argument("unknown output mode: " + out_fmt);
+    }
+    if (kValueModeUniv.find(value_mode) == kValueModeUniv.cend())
+    {
+        PrintFilterHelper();
+        throw std::invalid_argument("unknown value mode: " + value_mode);
     }
 }
 
