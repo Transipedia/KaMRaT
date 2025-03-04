@@ -43,7 +43,8 @@ void MakeMask(std::unordered_set<uint64_t> &kmer_mask, const std::string &mask_f
 }
 
 void ScanPrint(std::ifstream &idx_pos, std::ifstream &idx_mat, const std::unordered_set<uint64_t> &kmer_mask,
-               const bool reverse_mask, const bool with_counts, const size_t nb_smp)
+               const bool reverse_mask, const bool with_counts, const size_t nb_smp,
+               const std::string &value_mode)
 {
     std::string kmer_seq;
     std::vector<float> count_vect;
@@ -60,10 +61,17 @@ void ScanPrint(std::ifstream &idx_pos, std::ifstream &idx_mat, const std::unorde
             {
                 for (const float x : count_vect)
                 {
-                    std::cout << "\t" << x;
+                    if (value_mode == "float")
+                    {
+                        std::cout << "\t" << x;
+                    }
+                    else // value_mode == "int"
+                    {
+                        std::cout << "\t" << static_cast<size_t>(x + 0.5);
+                    }
                 }
             }
-            else
+            else // output the binary file for other modules' `-with` argument
             {
                 std::cout << "\t0\t1\t";
                 std::cout.write(reinterpret_cast<char *>(&pos), sizeof(size_t));
@@ -78,13 +86,13 @@ int MaskMain(int argc, char **argv)
     MaskWelcome();
 
     std::clock_t begin_time = clock();
-    std::string idx_dir, mask_file_path, out_path;
+    std::string idx_dir, mask_file_path, out_fmt("tab"), out_path, value_mode("int");
     size_t nb_smp, k_len;
-    bool stranded, reverse_mask(false), with_counts(false);
+    bool stranded, reverse_mask(false);
     std::vector<std::string> colname_vect;
-    ParseOptions(argc, argv, idx_dir, mask_file_path, reverse_mask, out_path, with_counts);
+    ParseOptions(argc, argv, idx_dir, mask_file_path, reverse_mask, out_fmt, out_path, value_mode);
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
-    PrintRunInfo(idx_dir, k_len, stranded, mask_file_path, reverse_mask, out_path, with_counts);
+    PrintRunInfo(idx_dir, k_len, stranded, mask_file_path, reverse_mask, out_fmt, out_path, value_mode);
     if (k_len == 0)
     {
         throw std::invalid_argument("KaMRaT-mask relies on the index in k-mer mode, please rerun KaMRaT-index with -klen option");
@@ -112,7 +120,7 @@ int MaskMain(int argc, char **argv)
     {
         std::cout.rdbuf(out_file.rdbuf());
     }
-    if (with_counts)
+    if (out_fmt == "tab") // either `tab` or `bin`
     {
         std::cout << colname_vect[0];
         for (size_t i_col(1); i_col <= nb_smp; ++i_col)
@@ -121,7 +129,7 @@ int MaskMain(int argc, char **argv)
         }
         std::cout << std::endl;
     }
-    ScanPrint(idx_pos, idx_mat, kmer_mask, reverse_mask, with_counts, nb_smp);
+    ScanPrint(idx_pos, idx_mat, kmer_mask, reverse_mask, out_fmt == "tab", nb_smp, value_mode);
     idx_pos.close(), idx_mat.close();
 
     std::cout.rdbuf(backup_buf);
