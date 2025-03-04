@@ -242,7 +242,8 @@ void PrintHeader(const bool has_value, const std::vector<std::string> &colname_v
 }
 
 void PrintWithCounts(const bool has_value, const contigVect_t &ctg_vect, std::ifstream &idx_mat,
-                     const std::string &out_mode, const size_t nb_smp, const size_t min_nbkmer)
+                     const std::string &count_mode, const size_t nb_smp, const size_t min_nbkmer,
+                     const std::string &value_mode)
 {
     std::string rep_seq;
     std::vector<float> count_vect;
@@ -259,24 +260,45 @@ void PrintWithCounts(const bool has_value, const contigVect_t &ctg_vect, std::if
             std::cout << "\t" << elem->GetRepVal();
         }
         std::cout << "\t" << GetTagSeq(rep_seq, idx_mat, elem->GetRepPos(), nb_smp);
-        if (out_mode == "rep")
+        if (count_mode == "rep")
         {
             GetCountVect(count_vect, idx_mat, elem->GetRepPos(), nb_smp); // output sample count vector of representative k-mer
         }
-        else if (out_mode == "mean")
+        else if (count_mode == "mean")
         {
             GetMeanCountVect(count_vect, idx_mat, nb_smp, elem->GetMemPosVect()); // output mean sample count vector
         }
-        else // out_mode == "median"
+        else // count_mode == "median"
         {
             GetMedianCountVect(count_vect, idx_mat, nb_smp, elem->GetMemPosVect()); // output median sample count vector
         }
         for (const float x : count_vect)
         {
-            std::cout << "\t" << x;
+            if (value_mode == "float")
+            {
+                std::cout << "\t" << x;
+            }
+            else // value_mode == "int"
+            {
+                std::cout << "\t" << static_cast<size_t>(x + 0.5);
+            }
         }
         std::cout << std::endl;
         count_vect.clear();
+    }
+}
+
+void PrintAsFasta(const contigVect_t &ctg_vect, const size_t min_nbkmer)
+{
+    size_t ctg_idx(0);
+    for (const auto &elem : ctg_vect)
+    {
+        if (elem->GetNbMemKmer() >= min_nbkmer)
+        {
+            std::cout << "<ctg_" + std::to_string(ctg_idx) << std::endl
+                      << elem->GetSeq() << std::endl;
+        }
+        ctg_idx++;
     }
 }
 
@@ -308,12 +330,12 @@ int MergeMain(int argc, char **argv)
     MergeWelcome();
 
     std::clock_t begin_time = clock(), inter_time;
-    std::string idx_dir, with_path, rep_mode("min"), itv_mthd("pearson"), out_path, out_mode;
+    std::string idx_dir, with_path, rep_mode("min"), itv_mthd("pearson"), out_fmt("tab"), out_path, count_mode("rep"), value_mode("int");
     float itv_thres(0.20);
     size_t max_ovlp(0), min_ovlp(0), nb_smp(0), k_len(0), min_nbkmer(1);
     bool stranded(false);
     std::vector<std::string> colname_vect;
-    ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, with_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_mode);
+    ParseOptions(argc, argv, idx_dir, max_ovlp, min_ovlp, with_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_fmt, count_mode, value_mode);
 
     // --- Loading ---
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
@@ -321,7 +343,7 @@ int MergeMain(int argc, char **argv)
     {
         throw std::invalid_argument("KaMRaT-merge relies on the index in k-mer mode, please rerun KaMRaT-index with -klen option");
     }
-    if (max_ovlp == 0 && min_ovlp == 0) 
+    if (max_ovlp == 0 && min_ovlp == 0)
     {
         max_ovlp = k_len - 1;
         min_ovlp = static_cast<size_t>(k_len / 2);
@@ -330,7 +352,7 @@ int MergeMain(int argc, char **argv)
     {
         throw std::invalid_argument("max overlap (" + std::to_string(max_ovlp) + ") should not exceed k-mer length (" + std::to_string(k_len) + ")");
     }
-    PrintRunInfo(idx_dir, k_len, stranded, max_ovlp, min_ovlp, with_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_mode);
+    PrintRunInfo(idx_dir, k_len, stranded, max_ovlp, min_ovlp, with_path, rep_mode, itv_mthd, itv_thres, min_nbkmer, out_path, out_fmt, count_mode, value_mode);
 
     contigVect_t ctg_vect;
     std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
@@ -378,16 +400,20 @@ int MergeMain(int argc, char **argv)
     {
         std::cout.rdbuf(out_file.rdbuf());
     }
-    if (has_value && out_mode.empty())
+    if (has_value && out_fmt == "bin")
     {
         throw std::invalid_argument("output as intermediate after rank-merge is not possible");
     }
-    if (!out_mode.empty())
+    if (out_fmt == "tab")
     {
         PrintHeader(has_value, colname_vect);
-        PrintWithCounts(has_value, ctg_vect, idx_mat, out_mode, nb_smp, min_nbkmer);
+        PrintWithCounts(has_value, ctg_vect, idx_mat, count_mode, nb_smp, min_nbkmer, value_mode);
     }
-    else
+    else if (out_fmt == "fa")
+    {
+        PrintAsFasta(ctg_vect, min_nbkmer);
+    }
+    else // out_fmt == "bin"
     {
         PrintAsIntermediate(ctg_vect, min_nbkmer);
     }

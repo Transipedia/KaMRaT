@@ -5,7 +5,9 @@
 
 const std::unordered_set<std::string> kIntervMethodUniv{"none", "pearson", "spearman", "mac"};
 const std::unordered_set<std::string> kRepModeUniv{"min", "minabs", "max", "maxabs"};
-const std::unordered_set<std::string> kOutModeUniv{"rep", "mean", "median"};
+const std::unordered_set<std::string> kOutFmtUniv{"tab", "fa", "bin"};
+const std::unordered_set<std::string> kCountModeUniv{"rep", "mean", "median"};
+const std::unordered_set<std::string> kValueModeUniv{"int", "float"};
 
 void MergeWelcome()
 {
@@ -15,7 +17,7 @@ void MergeWelcome()
 
 void PrintMergeHelper()
 {
-    std::cerr << "[USAGE]    kamrat merge -idxdir STR -overlap MAX-MIN [-with STR1[:STR2] -interv STR[:FLOAT] -min-nbkmer INT -outpath STR -withcounts STR]" << std::endl
+    std::cerr << "[USAGE]    kamrat merge -idxdir STR -overlap MAX-MIN [-with STR1[:STR2] -interv STR[:FLOAT] -min-nbkmer INT -outfmt STR -outpath STR -counts STR1[:STR2]]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help               Print the helper" << std::endl;
     std::cerr << "            -idxdir STR            Indexing folder by KaMRaT index, mandatory" << std::endl;
@@ -29,10 +31,20 @@ void PrintMergeHelper()
               << "                                       can be one of {none, pearson, spearman, mac}" << std::endl
               << "                                       the threshold may follow a ':' symbol" << std::endl;
     std::cerr << "            -min-nbkmer INT        Minimal length of extended contigs [0]" << std::endl;
+    std::cerr << "            -outfmt STR            Output format, STR can be `tab`, `fa`, or `bin` [default `tab`]" << std::endl
+              << "                                       `tab` will output the final count table, set by default" << std::endl
+              << "                                       `fa` will output a fasta file containing sequences without counts" << std::endl
+              << "                                       `bin` will output a binary file, to be taken by the `-with` option of other modules" << std::endl;
     std::cerr << "            -outpath STR           Path to extension results" << std::endl
               << "                                       if not provided, output to screen" << std::endl;
-    std::cerr << "            -withcounts STR        Output sample count vectors, STR can be one of [mean, median]" << std::endl
-              << "                                       if not provided, output without count vector" << std::endl
+    std::cerr << "            -counts STR1[:STR2]    How to compute contig counts from k-mer counts, only works if `-outfmt tab`" << std::endl
+              << "                                       STR1 can be `rep`, `mean`, or `median` [default `rep`]" << std::endl
+              << "                                           `rep` uses the representative k-mer count for the contig (see rep-mode in `-with`)" << std::endl
+              << "                                           `mean` computes mean counts among all composite k-mers for each sample" << std::endl
+              << "                                           `median` computes median counts among all composite k-mers for each sample" << std::endl
+              << "                                       STR2 can be `int` or `float` [default `int`]" << std::endl
+              << "                                           `int` will round the count values to nearest integers" << std::endl
+              << "                                           `float` will output the values in decimals" << std::endl
               << std::endl;
 }
 
@@ -40,7 +52,8 @@ void PrintRunInfo(const std::string &idx_dir, const size_t k_len, const bool str
                   const size_t max_ovlp, const size_t min_ovlp,
                   const std::string &with_path, const std::string &rep_mode,
                   const std::string &itv_mthd, const float itv_thres,
-                  const size_t min_nbkmer, const std::string &out_path, const std::string &out_mode)
+                  const size_t min_nbkmer, const std::string &out_path,
+                  const std::string &out_fmt, const std::string &count_mode, const std::string &value_mode)
 {
     std::cerr << std::endl;
     std::cerr << "KaMRaT index:                      " << idx_dir << std::endl;
@@ -52,8 +65,10 @@ void PrintRunInfo(const std::string &idx_dir, const size_t k_len, const bool str
     std::cerr << "Intervention method:               " << itv_mthd
               << (itv_mthd != "none" ? (", threshold = " + std::to_string(itv_thres)) : "") << std::endl;
     std::cerr << "Minimal component k-mer number:    " + std::to_string(min_nbkmer) << std::endl;
-    std::cerr << "Output:                            " << (out_path.empty() ? "to screen" : out_path) << ", "
-              << (out_mode.empty() ? "without" : out_mode) + " count vectors" << std::endl
+    std::cerr << "Output:                            " << (out_path.empty() ? "to screen" : out_path) << std::endl
+              << "    format:                        " + out_fmt << std::endl
+              << "    count mode:                    " + count_mode << std::endl
+              << "    value mode:                    " + value_mode << std::endl
               << std::endl;
 }
 
@@ -61,7 +76,8 @@ void ParseOptions(int argc, char *argv[],
                   std::string &idx_dir, size_t &max_ovlp, size_t &min_ovlp,
                   std::string &with_path, std::string &rep_mode,
                   std::string &itv_mthd, float &itv_thres,
-                  size_t &min_nbkmer, std::string &out_path, std::string &out_mode)
+                  size_t &min_nbkmer, std::string &out_path,
+                  std::string &out_fmt, std::string &count_mode, std::string &value_mode)
 {
     int i_opt(1);
     if (argc == 1)
@@ -129,13 +145,23 @@ void ParseOptions(int argc, char *argv[],
         {
             min_nbkmer = std::stoul(argv[++i_opt]);
         }
+        else if (arg == "-outfmt" && i_opt + 1 < argc)
+        {
+            out_fmt = argv[++i_opt];
+        }
         else if (arg == "-outpath" && i_opt + 1 < argc)
         {
             out_path = argv[++i_opt];
         }
-        else if (arg == "-withcounts" && i_opt + 1 < argc)
+        else if (arg == "-counts" && i_opt + 1 < argc)
         {
-            out_mode = argv[++i_opt];
+            arg = argv[++i_opt];
+            split_pos = arg.find(":");
+            if (split_pos != std::string::npos)
+            {
+                value_mode = arg.substr(split_pos + 1);
+            }
+            count_mode = arg.substr(0, split_pos);
         }
         else
         {
@@ -169,11 +195,21 @@ void ParseOptions(int argc, char *argv[],
         PrintMergeHelper();
         throw std::invalid_argument("unknown representative mode: " + rep_mode);
     }
-    if (!out_mode.empty() && kOutModeUniv.find(out_mode) == kOutModeUniv.cend())
+    if (kOutFmtUniv.find(out_fmt) == kOutFmtUniv.cend())
     {
         PrintMergeHelper();
-        throw std::invalid_argument("unknown output mode: " + out_mode);
+        throw std::invalid_argument("unknown output mode: " + out_fmt);
+    }
+    if (kCountModeUniv.find(count_mode) == kCountModeUniv.cend())
+    {
+        PrintMergeHelper();
+        throw std::invalid_argument("unknown count mode: " + count_mode);
+    }
+    if (kValueModeUniv.find(value_mode) == kValueModeUniv.cend())
+    {
+        PrintMergeHelper();
+        throw std::invalid_argument("unknown value mode: " + value_mode);
     }
 }
 
-#endif //KAMRAT_RUNINFOFILES_MERGERUNINFO_HPP
+#endif // KAMRAT_RUNINFOFILES_MERGERUNINFO_HPP

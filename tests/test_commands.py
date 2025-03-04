@@ -153,7 +153,7 @@ class TestCommands(unittest.TestCase):
         merged = path.join(test_dir, "top-ctg-counts.tsv")
 
         # Merge
-        cmd = f"{kamrat} merge -idxdir {idx_dir} -overlap 30-15 -with {filtered}:min -outpath {merged} -withcounts mean"
+        cmd = f"{kamrat} merge -idxdir {idx_dir} -overlap 30-15 -with {filtered}:min -outpath {merged} -counts mean:float"
         with open(filter_stdout, "w") as flt_out:
             process = subprocess.run(cmd.split(" "), stdout=flt_out, stderr=flt_out)
         self.assertEqual(0, process.returncode)
