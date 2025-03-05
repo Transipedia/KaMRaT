@@ -194,7 +194,7 @@ class TestCommands(unittest.TestCase):
         rank_out = path.join(test_dir, "rank.stdout")
         
         # Rank
-        cmd = f"{kamrat} score -idxdir {idx_dir} -scoreby ttest.padj -design {condition} -seltop 0.1 -outpath {ranked}"
+        cmd = f"{kamrat} score -idxdir {idx_dir} -scoreby ttest.padj -design {condition} -seltop 0.1 -outfmt bin -outpath {ranked} -counts float"
         with open(rank_out, "w") as rk_out:
             process = subprocess.run(cmd.split(" "), stdout=rk_out, stderr=rk_out)
         self.assertEqual(0, process.returncode)

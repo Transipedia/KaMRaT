@@ -1,6 +1,9 @@
 #ifndef KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP
 #define KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP
 
+const std::unordered_set<std::string> kOutFmtUniv{"tab", "fa", "bin"};
+const std::unordered_set<std::string> kValueModeUniv{"int", "float"};
+
 void RankWelcome()
 {
     std::cerr << "KaMRaT score: score features according to their association with sample conditions" << std::endl
@@ -9,7 +12,7 @@ void RankWelcome()
 
 void PrintRankHelper()
 {
-    std::cerr << "[USAGE]    kamrat score -idxdir STR -count-mode STR -scoreby STR -design STR [-with STR1[:STR2] -seltop NUM -outpath STR -withcounts]" << std::endl
+    std::cerr << "[USAGE]    kamrat score -idxdir STR -scoreby STR -design STR [-with STR1[:STR2] -seltop NUM -outfmt STR -outpath STR -counts STR]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help             Print the helper" << std::endl;
     std::cerr << "            -idxdir STR          Indexing folder by KaMRaT index, mandatory" << std::endl;
@@ -42,9 +45,15 @@ void PrintRankHelper()
               << "                                     if NUM > 1, number of top features to select (should be integer)" << std::endl
               << "                                     if 0 < NUM <= 1, ratio of top features to select" << std::endl
               << "                                     if absent or NUM <= 0, output all features" << std::endl;
+    std::cerr << "            -outfmt STR          Output format, STR can be `tab`, `fa`, or `bin` [default `tab`]" << std::endl
+              << "                                     `tab` will output the final count table, set by default" << std::endl
+              << "                                     `fa` will output a fasta file containing sequences without counts" << std::endl
+              << "                                     `bin` will output a binary file, to be taken by the `-with` option of other modules" << std::endl;
     std::cerr << "            -outpath STR         Path to scoring result" << std::endl
               << "                                     if not provided, output to screen" << std::endl;
-    std::cerr << "            -withcounts          Output sample count vectors [false]" << std::endl
+    std::cerr << "            -counts STR          STR can be `int` or `float` [default `int`], only works if `-outfmt tab`" << std::endl
+              << "                                     `int` will round the count values to nearest integers" << std::endl
+              << "                                     `float` will output the values in decimals" << std::endl
               << std::endl;
     std::cerr << "[NOTE]      For scoring methods lrc, nbc, and svm, a univariate CV fold number (nfold) can be provided" << std::endl
               << "                if nfold = 0, leave-one-out cross-validation" << std::endl
@@ -60,7 +69,8 @@ void PrintRunInfo(const std::string &idx_dir,
                   const std::string &with_path, const std::string &count_mode,
                   const std::string &dsgn_path,
                   const float sel_top,
-                  const std::string &out_path, const bool with_counts)
+                  const std::string &out_fmt, const std::string &out_path,
+                  const std::string &value_mode)
 {
     std::cerr << std::endl;
     std::cerr << "KaMRaT index:                 " << idx_dir << std::endl;
@@ -106,8 +116,9 @@ void PrintRunInfo(const std::string &idx_dir,
     {
         std::cerr << static_cast<int>(sel_top + 0.5) << std::endl;
     }
-    std::cerr << "Output:                       " << (out_path.empty() ? "to screen" : out_path) << ", ";
-    std::cerr << (with_counts ? "with" : "without") << " count vectors" << std::endl
+    std::cerr << "Output:                       " << (out_path.empty() ? "to screen" : out_path) << std::endl
+              << "    format:                   " + out_fmt << std::endl
+              << "    value mode:               " + value_mode << std::endl
               << std::endl;
 }
 
@@ -117,7 +128,8 @@ void ParseOptions(int argc, char *argv[],
                   std::string &with_path, std::string &count_mode,
                   std::string &dsgn_path,
                   float &sel_top,
-                  std::string &out_path, bool &with_counts)
+                  std::string &out_fmt, std::string &out_path, 
+                  std::string &value_mode)
 {
     int i_opt(1);
     if (argc == 1)
@@ -171,13 +183,17 @@ void ParseOptions(int argc, char *argv[],
         {
             sel_top = std::stof(argv[++i_opt]);
         }
+        else if (arg == "-outfmt" && i_opt + 1 < argc)
+        {
+            out_fmt = argv[++i_opt];
+        }
         else if (arg == "-outpath" && i_opt + 1 < argc)
         {
             out_path = argv[++i_opt];
         }
-        else if (arg == "-withcounts")
+        else if (arg == "-counts" && i_opt + 1 < argc)
         {
-            with_counts = true;
+            value_mode = argv[++i_opt];
         }
         else
         {
@@ -206,6 +222,16 @@ void ParseOptions(int argc, char *argv[],
         PrintRankHelper();
         throw std::invalid_argument("-design STR is mandatory");
     }
+    if (kOutFmtUniv.find(out_fmt) == kOutFmtUniv.cend())
+    {
+        PrintRankHelper();
+        throw std::invalid_argument("unknown output mode: " + out_fmt);
+    }
+    if (kValueModeUniv.find(value_mode) == kValueModeUniv.cend())
+    {
+        PrintRankHelper();
+        throw std::invalid_argument("unknown value mode: " + value_mode);
+    }
 }
 
-#endif //KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP
+#endif // KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP
