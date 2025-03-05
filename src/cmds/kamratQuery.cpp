@@ -26,7 +26,8 @@ void PrintHeader(const std::vector<std::string> &colname_vect)
 
 void PrintQueryRes(const std::string &seq, const std::string &query_mthd,
                    std::ifstream &idx_mat, const std::map<uint64_t, size_t> &code_pos_map,
-                   const size_t nb_smp, const size_t k_len, const bool stranded, const bool with_absent)
+                   const size_t nb_smp, const size_t k_len, const bool stranded, const bool with_absent,
+                   const std::string &value_mode)
 {
     static std::vector<size_t> mem_pos_vect;
     static std::vector<float> count_vect;
@@ -68,7 +69,14 @@ void PrintQueryRes(const std::string &seq, const std::string &query_mthd,
         std::cout << seq;
         for (const float x : count_vect)
         {
-            std::cout << "\t" << x;
+            if (value_mode == "float")
+            {
+                std::cout << "\t" << x;
+            }
+            else // value_mode == "int"
+            {
+                std::cout << "\t" << static_cast<size_t>(x + 0.5);
+            }
         }
         std::cout << std::endl;
     }
@@ -81,12 +89,12 @@ int QueryMain(int argc, char **argv)
     QueryWelcome();
 
     std::clock_t begin_time = clock(), inter_time;
-    std::string idx_dir, seq_file_path, query_mtd, out_path;
+    std::string idx_dir, seq_file_path, query_mtd, out_path, value_mode("int");
     size_t nb_smp, k_len;
     bool stranded(true), with_absent(false);
     std::vector<std::string> colname_vect;
-    ParseOptions(argc, argv, idx_dir, seq_file_path, query_mtd, with_absent, out_path);
-    PrintRunInfo(idx_dir, seq_file_path, query_mtd, with_absent, out_path);
+    ParseOptions(argc, argv, idx_dir, seq_file_path, query_mtd, with_absent, out_path, value_mode);
+    PrintRunInfo(idx_dir, seq_file_path, query_mtd, with_absent, out_path, value_mode);
 
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
     if (k_len == 0)
@@ -133,7 +141,7 @@ int QueryMain(int argc, char **argv)
         {
             if (!is_first_line)
             {
-                PrintQueryRes(seq, query_mtd, idx_mat, code_pos_map, nb_smp, k_len, stranded, with_absent);
+                PrintQueryRes(seq, query_mtd, idx_mat, code_pos_map, nb_smp, k_len, stranded, with_absent, value_mode);
                 seq.clear(); // prepare for the next sequence
                 nb_seq++;
             }
@@ -144,7 +152,7 @@ int QueryMain(int argc, char **argv)
             seq += line;
         }
     }
-    PrintQueryRes(seq, query_mtd, idx_mat, code_pos_map, nb_smp, k_len, stranded, with_absent); // query the last sequence
+    PrintQueryRes(seq, query_mtd, idx_mat, code_pos_map, nb_smp, k_len, stranded, with_absent, value_mode); // query the last sequence
     seq_list_file.close();
     std::cerr << "Number of sequence for evaluation: " << nb_seq << std::endl;
 
