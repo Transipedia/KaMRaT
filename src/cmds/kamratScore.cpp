@@ -8,7 +8,7 @@
 #include <memory>
 #include <ctime>
 
-#include "rank_runinfo.hpp"
+#include "score_runinfo.hpp"
 #include "index_loading.hpp"
 #include "feature_elem.hpp"
 #include "FeatureStreamer.hpp"
@@ -128,9 +128,9 @@ void PrintHeader(const bool after_merge, const std::vector<std::string> &colname
  * @param nb_smp number of columns in the matrix
  * @param count_mode Counting mode
  **/
-void PrintWithCounts_features(const std::vector<double> &scores, std::vector<uint64_t> &features, size_t max_to_sel,
-                              FeatureStreamer &stream, ifstream &idx_mat, size_t nb_smp,
-                              std::string count_mode, const std::string &value_mode)
+void PrintWithCountsFromFile(const std::vector<double> &scores, std::vector<uint64_t> &features, size_t max_to_sel,
+                             FeatureStreamer &stream, ifstream &idx_mat, size_t nb_smp,
+                             std::string count_mode, const std::string &value_mode)
 {
     // Resize the feature vector to only keep the max_to_sel best ones
     features.resize(max_to_sel);
@@ -172,9 +172,9 @@ void PrintWithCounts_features(const std::vector<double> &scores, std::vector<uin
     }
 }
 
-void PrintWithCounts_kmers(const std::vector<double> &scores, const std::vector<uint64_t> &features,
-                           std::ifstream &idx_mat, const std::string &count_mode, const size_t nb_smp,
-                           const size_t max_to_sel, IndexRandomAccess &ira, const std::string &value_mode)
+void PrintWithCountsFromIndex(const std::vector<double> &scores, const std::vector<uint64_t> &features,
+                              std::ifstream &idx_mat, const std::string &count_mode, const size_t nb_smp,
+                              const size_t max_to_sel, IndexRandomAccess &ira, const std::string &value_mode)
 {
     float *counts = new float[ira.nb_smp];
     char *feature = new char[ira.k + 1];
@@ -213,8 +213,8 @@ typedef struct feature_pos_s
     uint64_t file_pos;
 } feature_pos_t;
 
-void PrintAsFasta_features(std::vector<double> &scores, std::vector<uint64_t> &features,
-                           size_t max_to_sel, FeatureStreamer &stream)
+void PrintAsFastaFromFile(std::vector<double> &scores, std::vector<uint64_t> &features,
+                          size_t max_to_sel, FeatureStreamer &stream)
 {
     features.resize(max_to_sel);
     std::sort(features.begin(), features.end());
@@ -241,8 +241,8 @@ void PrintAsFasta_features(std::vector<double> &scores, std::vector<uint64_t> &f
     }
 }
 
-void PrintAsFasta_kmers(std::vector<double> &scores, std::vector<uint64_t> &features,
-                        const size_t max_to_sel, IndexRandomAccess &ira)
+void PrintAsFastaFromIndex(std::vector<double> &scores, std::vector<uint64_t> &features,
+                           const size_t max_to_sel, IndexRandomAccess &ira)
 {
     // --- Preprocess features/scores to free some memory ---
     uint64_t saved_space = (features.size() - max_to_sel) * sizeof(uint64_t);
@@ -281,7 +281,7 @@ void PrintAsFasta_kmers(std::vector<double> &scores, std::vector<uint64_t> &feat
     delete[] feature;
 }
 
-void PrintAsIntermediate_features(std::vector<double> &scores, std::vector<uint64_t> &features, size_t max_to_sel, FeatureStreamer &stream, ifstream &idx_mat, size_t nb_smp, std::string count_mode)
+void PrintAsIntermediateFromFile(std::vector<double> &scores, std::vector<uint64_t> &features, size_t max_to_sel, FeatureStreamer &stream, ifstream &idx_mat, size_t nb_smp, std::string count_mode)
 {
     features.resize(max_to_sel);
     std::sort(features.begin(), features.end());
@@ -318,7 +318,7 @@ void PrintAsIntermediate_features(std::vector<double> &scores, std::vector<uint6
  * @param max_to_sel Number max of features to keep in the output.
  * @param ira Object to allow index random accesses.
  **/
-void PrintAsIntermediate_kmers(std::vector<double> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess &ira)
+void PrintAsIntermediateFromIndex(std::vector<double> &scores, std::vector<uint64_t> &features, const size_t max_to_sel, IndexRandomAccess &ira)
 {
     // --- Preprocess features/scores to free some memory ---
     uint64_t saved_space = (features.size() - max_to_sel) * sizeof(uint64_t);
@@ -357,15 +357,15 @@ void PrintAsIntermediate_kmers(std::vector<double> &scores, std::vector<uint64_t
     delete[] feature;
 }
 
-int RankMain(int argc, char *argv[])
+int ScoreMain(int argc, char *argv[])
 {
-    RankWelcome();
+    ScoreWelcome();
 
     std::clock_t begin_time = clock(), inter_time;
     std::string idx_dir, rk_mthd, with_path, count_mode("rep"), dsgn_path, out_fmt("tab"), out_path, value_mode("int");
     float sel_top(-1); // negative value means without selection, print all features
     size_t nfold, nb_smp, k_len, max_to_sel;
-    bool after_merge(false), _stranded; // _stranded not needed in KaMRaT-rank
+    bool after_merge(false), _stranded; // _stranded not needed in KaMRaT-score
     std::vector<std::string> colname_vect;
     ParseOptions(argc, argv, idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, sel_top, out_fmt, out_path, value_mode);
     PrintRunInfo(idx_dir, rk_mthd, nfold, with_path, count_mode, dsgn_path, sel_top, out_fmt, out_path, value_mode);
@@ -481,34 +481,34 @@ int RankMain(int argc, char *argv[])
         {
             std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
             FeatureStreamer stream(with_path);
-            PrintWithCounts_features(scores, features, max_to_sel, stream, idx_mat, nb_smp, count_mode, value_mode);
+            PrintWithCountsFromFile(scores, features, max_to_sel, stream, idx_mat, nb_smp, count_mode, value_mode);
         }
         else
         {
-            PrintWithCounts_kmers(scores, features, idx_mat, count_mode, nb_smp, max_to_sel, ira, value_mode);
+            PrintWithCountsFromIndex(scores, features, idx_mat, count_mode, nb_smp, max_to_sel, ira, value_mode);
         }
     }
     else if (out_fmt == "fa")
     {
         if (with_path.empty())
         {
-            PrintAsFasta_kmers(scores, features, max_to_sel, ira);
+            PrintAsFastaFromIndex(scores, features, max_to_sel, ira);
         }
         else
         {
             FeatureStreamer stream(with_path);
-            PrintAsFasta_features(scores, features, max_to_sel, stream);
+            PrintAsFastaFromFile(scores, features, max_to_sel, stream);
         }
     }
     else // out_fmt == "bin"
     {
         if (with_path.empty())
-            PrintAsIntermediate_kmers(scores, features, max_to_sel, ira);
+            PrintAsIntermediateFromIndex(scores, features, max_to_sel, ira);
         else
         {
             std::ifstream idx_mat(idx_dir + "/idx-mat.bin");
             FeatureStreamer stream(with_path);
-            PrintAsIntermediate_features(scores, features, max_to_sel, stream, idx_mat, nb_smp, count_mode);
+            PrintAsIntermediateFromFile(scores, features, max_to_sel, stream, idx_mat, nb_smp, count_mode);
         }
     }
     idx_mat.close();

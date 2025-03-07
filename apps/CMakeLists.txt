@@ -7,7 +7,7 @@ target_link_libraries(kamrat
     kamratIndex
     kamratFilter
     kamratMerge
-    kamratRank
+    kamratScore
     kamratMask
     kamratQuery
 )

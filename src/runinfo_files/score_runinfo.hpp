@@ -1,16 +1,16 @@
-#ifndef KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP
-#define KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP
+#ifndef KAMRAT_RUNINFOFILES_SCORERUNINFO_HPP
+#define KAMRAT_RUNINFOFILES_SCORERUNINFO_HPP
 
 const std::unordered_set<std::string> kOutFmtUniv{"tab", "fa", "bin"};
 const std::unordered_set<std::string> kValueModeUniv{"int", "float"};
 
-void RankWelcome()
+void ScoreWelcome()
 {
     std::cerr << "KaMRaT score: score features according to their association with sample conditions" << std::endl
               << "-----------------------------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
-void PrintRankHelper()
+void PrintScoreHelper()
 {
     std::cerr << "[USAGE]    kamrat score -idxdir STR -scoreby STR -design STR [-with STR1[:STR2] -seltop NUM -outfmt STR -outpath STR -counts STR]" << std::endl
               << std::endl;
@@ -134,7 +134,7 @@ void ParseOptions(int argc, char *argv[],
     int i_opt(1);
     if (argc == 1)
     {
-        PrintRankHelper();
+        PrintScoreHelper();
         exit(EXIT_SUCCESS);
     }
     size_t split_pos;
@@ -144,7 +144,7 @@ void ParseOptions(int argc, char *argv[],
         arg = argv[i_opt];
         if (arg == "-h" || arg == "-help")
         {
-            PrintRankHelper();
+            PrintScoreHelper();
             exit(EXIT_SUCCESS);
         }
         else if (arg == "-idxdir" && i_opt + 1 < argc)
@@ -197,41 +197,41 @@ void ParseOptions(int argc, char *argv[],
         }
         else
         {
-            PrintRankHelper();
+            PrintScoreHelper();
             throw std::invalid_argument("unknown option: " + arg);
         }
         ++i_opt;
     }
     if (i_opt < argc)
     {
-        PrintRankHelper();
+        PrintScoreHelper();
         throw std::invalid_argument("cannot parse arguments after " + std::string(argv[i_opt]));
     }
     if (idx_dir.empty())
     {
-        PrintRankHelper();
+        PrintScoreHelper();
         throw std::invalid_argument("-idxdir STR is mandatory");
     }
     if (rk_mthd.empty())
     {
-        PrintRankHelper();
+        PrintScoreHelper();
         throw std::invalid_argument("-scoreby STR is mandatory");
     }
     if (rk_mthd != "sd" && rk_mthd != "rsd1" && rk_mthd != "rsd2" && rk_mthd != "rsd3" && rk_mthd != "entropy" && dsgn_path.empty())
     {
-        PrintRankHelper();
+        PrintScoreHelper();
         throw std::invalid_argument("-design STR is mandatory");
     }
     if (kOutFmtUniv.find(out_fmt) == kOutFmtUniv.cend())
     {
-        PrintRankHelper();
+        PrintScoreHelper();
         throw std::invalid_argument("unknown output mode: " + out_fmt);
     }
     if (kValueModeUniv.find(value_mode) == kValueModeUniv.cend())
     {
-        PrintRankHelper();
+        PrintScoreHelper();
         throw std::invalid_argument("unknown value mode: " + value_mode);
     }
 }
 
-#endif // KAMRAT_RUNINFOFILES_RANKRUNINFO_HPP
+#endif // KAMRAT_RUNINFOFILES_SCORERUNINFO_HPP

@@ -6,7 +6,7 @@
 
 #include "kamratIndex.hpp"
 #include "kamratMerge.hpp"
-#include "kamratRank.hpp"
+#include "kamratScore.hpp"
 #include "kamratFilter.hpp"
 #include "kamratMask.hpp"
 #include "kamratQuery.hpp"
@@ -36,7 +36,6 @@ const void PrintHelper()
               << "    index:     index feature count table on disk" << std::endl
               << "    merge:     k-mer sequence extension" << std::endl
               << "    score:     univariate feature scoring" << std::endl
-              << "    rank:      an alias of score" << std::endl
               << "    filter:    feature filter by expression level" << std::endl
               << "    mask:      k-mer sequence masking" << std::endl
               << "    query:     query sequences" << std::endl
@@ -62,7 +61,7 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(argv[1], "rank") == 0 || strcmp(argv[1], "score") == 0)
         {
-            RankMain(argc - 1, &(argv[1]));
+            ScoreMain(argc - 1, &(argv[1]));
         }
         else if (strcmp(argv[1], "filter") == 0)
         {

@@ -1,0 +1,1 @@
+int ScoreMain(int argc, char *argv[]);
