@@ -8,7 +8,7 @@ KAMRAT = f"./apps/kamrat"
 
 DATADIR = "./toyroom/data/"
 COUNTTAB = f"{DATADIR}kmer-counts.subset4toy.tsv.gz"
-NFFILE = f"{DATADIR}nf_values2.txt"
+NFFILE = f"{DATADIR}nf_values.txt"
 FASTA = f"{DATADIR}sequence.toy.fa"
 SMPFLT = f"{DATADIR}sample-indications.toy.tsv"
 DSGN = f"{DATADIR}sample-states.toy.tsv"
@@ -36,20 +36,25 @@ class TestCommands(unittest.TestCase):
             shutil.rmtree(idxdir)
         # Arguments, outputs, and their md5sums
         arg_out_md5 = {
-            "-nfbase 1000000000": {
-                "idx-meta.bin": "8036df91ef0fd678b431b65a83863bdb",
+            "": {  # no normalisation
+                "idx-meta.bin": "c6ac53928b1cd9ce946de29496684cd0",
                 "idx-pos.bin": "86eca32eb46f0f701a8ba2c56e6393aa",
-                "idx-mat.bin": "e5904e8c5e9cce3be07e3d96a9a91bc0",
+                "idx-mat.bin": "654fdaf169953e8aa6c191b2367690dd",
             },
-            f"-nffile {NFFILE}": {
-                "idx-meta.bin": "8036df91ef0fd678b431b65a83863bdb",
+            "-nfbase 1000000": {  # normalisation with given base value
+                "idx-meta.bin": "2767605d73fac371b5c027d0a9af2644",
                 "idx-pos.bin": "86eca32eb46f0f701a8ba2c56e6393aa",
-                "idx-mat.bin": "e5904e8c5e9cce3be07e3d96a9a91bc0",
+                "idx-mat.bin": "728e1d2b099a1e2b92ac782c6929e6a9",
+            },
+            f"-nffile {NFFILE}": {  # normalisation with given normalisation factor
+                "idx-meta.bin": "2767605d73fac371b5c027d0a9af2644",
+                "idx-pos.bin": "86eca32eb46f0f701a8ba2c56e6393aa",
+                "idx-mat.bin": "728e1d2b099a1e2b92ac782c6929e6a9",
             },
         }
         for i, arg in enumerate(arg_out_md5.keys()):
             os.mkdir(idxdir)
-            cmd = f"{KAMRAT} index -intab {COUNTTAB} -outdir {idxdir} -klen 31 -unstrand {arg}"
+            cmd = f"{KAMRAT} index -intab {COUNTTAB} -outdir {idxdir} -klen 31 -unstrand {arg}".rstrip()
             ## Test if command runs
             process = None
             with open(f"{OUTDIR}index{i + 1}.log", "w") as outerr:
@@ -73,10 +78,9 @@ class TestCommands(unittest.TestCase):
             shutil.rmtree(mskdir)
         # Arguments, outputs, and their md5sums
         arg_md5 = {
-            "": "61f72f7489cab2f3053919bdfa224f59",
-            "-counts float": "fffe5be701f4002cd72c870bb059daa3",
-            "-reverse": "0ecea4551994dc67d8bbba52b4102c93",
-            "-reverse -counts float": "4d9f7ffa5b2100252d554f3fc7f7282f",
+            "": "083e48a1b7e599da135d5ce6bb68e81a",  # no reverse, tab, int
+            "-counts float": "36c864675446d253d1128afe2f668f15",  # no reverse, tab, float
+            "-reverse -counts float": "f08906abb46f8ef9081fff2552985074",  # reverse, tab, float
         }
         # Run index
         os.mkdir(mskdir)
@@ -110,11 +114,11 @@ class TestCommands(unittest.TestCase):
             shutil.rmtree(fltdir)
         # Arguments, outputs, and their md5sums
         arg_md5 = {
-            "-upmin 5:5 -downmax 0:10": "8f841aa7bd3e9560c0b62955e19cfdcb",  # tab, int
-            "-upmin 5:5 -downmax 0:10 -counts float": "f609ef4f8f4799c09e37174f49fe83af",  # tab, float
-            "-upmin 5:5 -downmax 0:10 -reverse": "a58f74274658d08f6e0be75d93f34a45",  # reverse, tab, int
-            "-upmin 5:5 -downmax 0:10 -outfmt fa": "28300e219e9e9591cb8d019a4398bb22",  # fa
-            "-upmin 5:5 -downmax 0:10 -outfmt bin": "6e43e7e58362415a1e252c98f5b8dd7b",  # bin
+            "-upmin 5:5 -downmax 0:5": "6f41031fe656f9d24c13a2abca2fc83e",  # tab, int
+            "-upmin 5:5 -downmax 0:5 -counts float": "07dced55477e8f41357bb1ec78a8f38b",  # tab, float
+            "-upmin 5:5 -downmax 0:5 -reverse": "2e1d65280faca08b9df60b9cc3a0ca54",  # reverse, tab, int
+            "-upmin 5:5 -downmax 0:5 -outfmt fa": "3082d4af223c0f2581f2620c2881ef40",  # fa
+            "-upmin 5:5 -downmax 0:5 -outfmt bin": "1a32d48128b2cca75382b7cd9886f755",  # bin
         }
         # Run index
         os.mkdir(fltdir)
@@ -148,12 +152,12 @@ class TestCommands(unittest.TestCase):
             shutil.rmtree(mgdir)
         # Arguments, outputs, and their md5sums
         arg_md5 = {
-            "": "90978714b0f6b397f4b9ee71905d5099",  # tab, rep, int
-            "-counts mean": "279d58144fe77a90e5ee2e04e9e9a5b3",  # tab, mean, int
-            "-counts median": "331a9af85afc4e2d14685945b16e5bea",  # tab, median, int
-            "-counts mean:float": "a6f576c240b127e1d4caf12a03c9565d",  # tab, mean, float
+            "": "d4078093f865ee9615f2bcb7e78143e7",  # tab, rep, int
+            "-counts mean": "0fb8cf5abf86ee0c6480e2238c972f17",  # tab, mean, int
+            "-counts median": "7993a9cc071d83f5c8d13927a432c3bd",  # tab, median, int
+            "-counts mean:float": "7e02083c2562e77418b16c7da88e8dd9",  # tab, mean, float
             "-outfmt fa": "8e74e45ae8ab3434a265ab9d845c9498",  # fasta
-            f"-with {mgdir}flt:min -counts mean:float": "10e910446f777f30922f97c148a0404a",  # with, mean, float
+            f"-with {mgdir}flt:min -counts mean:float": "7e16baf588cb3cbc172f4b86d5315260",  # with, mean, float
         }
         # Run index
         os.mkdir(mgdir)
@@ -167,7 +171,7 @@ class TestCommands(unittest.TestCase):
                 os.remove(f"{mgdir}out")
             if arg.startswith("-with"):
                 ## Run filter
-                flt = f"{KAMRAT} filter -idxdir {mgdir} -design {SMPFLT} -upmin 5:5 -downmax 0:10 -outfmt bin -outpath {mgdir}flt"
+                flt = f"{KAMRAT} filter -idxdir {mgdir} -design {SMPFLT} -upmin 5:5 -downmax 0:5 -outfmt bin -outpath {mgdir}flt"
                 process = None
                 outerr = subprocess.DEVNULL
                 process = subprocess.run(flt.split(" "), stdout=outerr, stderr=outerr)
@@ -193,11 +197,11 @@ class TestCommands(unittest.TestCase):
             shutil.rmtree(scdir)
         # Arguments, outputs, and their md5sums
         arg_md5 = {
-            "": "dc15382ae02524a260c8b8fa6ab26946",  # tab, int
-            "-counts float": "f07ec39e3d69d8bd453fd22f82c214ef",  # tab, float
-            "-outfmt fa": "3e5e88ed24936a33af47ebef87729902",  # fasta
-            "-outfmt bin": "faf89801a833751a64c02cb9db88770f",  # bin
-            f"-with {scdir}mg -counts int": "24e7d45f19b63638e196c2fe79f30bc8",  # with, rep, int
+            "": "6c4b831d47741122fd9854b07baea329",  # tab, int
+            "-counts float": "8861fcecd8288213551768dc3723b13f",  # tab, float
+            "-outfmt fa": "d92384e661a41708e44ac8d07ee0a2a0",  # fasta
+            "-outfmt bin": "9ec2639ff71a21d164ffb9fb93c35f54",  # bin
+            f"-with {scdir}mg:mean -counts int": "d7bf39494b7a9526cba8cafb8297ff3e",  # with, mean, int
         }
         # Run index
         os.mkdir(scdir)
@@ -237,9 +241,9 @@ class TestCommands(unittest.TestCase):
             shutil.rmtree(qydir)
         # Arguments, outputs, and their md5sums
         arg_md5 = {
-            "-toquery mean -withabsent": "33f375e98e717122f352b25a6afbffb8",  # mean, withabsent, int
-            "-toquery mean -counts float": "a034b8b18dab962938ec8c9a1562f55a",  # mean, float
-            "-toquery median -counts float": "ff72412b200a4c9780fc9133c18273b6",  # median, float
+            "-toquery mean -withabsent": "157b4014960f6a977f0d303524ce5fac",  # mean, withabsent, int
+            "-toquery mean -counts float": "64e067d3e600deef8f7acfb30eaca495",  # mean, float
+            "-toquery median -counts float": "05858c862941ca53f57d670e0106a2a0",  # median, float
         }
         # Run index
         os.mkdir(qydir)
