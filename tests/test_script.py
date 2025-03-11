@@ -178,7 +178,7 @@ class TestCommands(unittest.TestCase):
             cmd = f"{KAMRAT} merge -idxdir {mgdir} -overlap 30-15 -outpath {mgdir}out {arg}".rstrip()
             ## Test if command runs
             process = None
-            with open(f"{OUTDIR}merge{i + 1}.log", "a") as outerr:
+            with open(f"{OUTDIR}merge{i + 1}.log", "w") as outerr:
                 process = subprocess.run(cmd.split(" "), stdout=outerr, stderr=outerr)
             self.assertEqual(0, process.returncode)  # normal exit code
             ## Test if the outputs are correct
@@ -222,7 +222,7 @@ class TestCommands(unittest.TestCase):
             cmd = f"{KAMRAT} score -idxdir {scdir} -scoreby ttest.padj -design {DSGN} -seltop 0.1 -outpath {scdir}out {arg}".rstrip()
             ## Test if command runs
             process = None
-            with open(f"{OUTDIR}score{i + 1}.log", "a") as outerr:
+            with open(f"{OUTDIR}score{i + 1}.log", "w") as outerr:
                 process = subprocess.run(cmd.split(" "), stdout=outerr, stderr=outerr)
             self.assertEqual(0, process.returncode)  # normal exit code
             ## Test if the outputs are correct
@@ -258,7 +258,7 @@ class TestCommands(unittest.TestCase):
             cmd = f"{KAMRAT} query -idxdir {qydir} -fasta {FASTA} -outpath {qydir}out {arg}".rstrip()
             ## Test if command runs
             process = None
-            with open(f"{OUTDIR}query{i + 1}.log", "a") as outerr:
+            with open(f"{OUTDIR}query{i + 1}.log", "w") as outerr:
                 process = subprocess.run(cmd.split(" "), stdout=outerr, stderr=outerr)
             self.assertEqual(0, process.returncode)  # normal exit code
             ## Test if the outputs are correct

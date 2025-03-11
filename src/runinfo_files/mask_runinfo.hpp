@@ -41,9 +41,12 @@ inline void PrintRunInfo(const std::string &idx_dir, const size_t k_len, const b
     std::cerr << "Path to mask sequence file:    " << mask_file_path << std::endl;
     std::cerr << "Select k-mer in mask:          " << (reverse_mask ? "True" : "False") << std::endl;
     std::cerr << "Output:                        " << (out_path.empty() ? "to screen" : out_path) << std::endl
-              << "    format:                    " + out_fmt << std::endl
-              << "    value mode:                " + value_mode << std::endl
-              << std::endl;
+              << "    format:                    " + out_fmt << std::endl;
+    if (out_fmt == "tab")
+    {
+        std::cerr << "    value mode:                " + value_mode << std::endl;
+    }
+    std::cerr << std::endl;
 }
 
 inline void ParseOptions(int argc, char *argv[],

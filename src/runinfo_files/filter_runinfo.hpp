@@ -58,9 +58,12 @@ void PrintRunInfo(const std::string &idx_dir,
               << " in >= " << down_min_rec << " down-regulated samples" << std::endl;
     std::cerr << "Remove eligible features:      " << (reverse_filter ? "True" : "False") << std::endl;
     std::cerr << "Output:                        " << (out_path.empty() ? "to screen" : out_path) << std::endl
-              << "    format:                    " + out_fmt << std::endl
-              << "    value mode:                " + value_mode << std::endl
-              << std::endl;
+              << "    format:                    " + out_fmt << std::endl;
+    if (out_fmt == "tab")
+    {
+        std::cerr << "    value mode:                " + value_mode << std::endl;
+    }
+    std::cerr << std::endl;
 }
 
 void ParseOptions(int argc, char *argv[],
@@ -174,4 +177,4 @@ void ParseOptions(int argc, char *argv[],
     }
 }
 
-#endif //KAMRAT_RUNINFOFILES_FILTERRUNINFO_HPP
+#endif // KAMRAT_RUNINFOFILES_FILTERRUNINFO_HPP

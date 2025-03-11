@@ -67,9 +67,12 @@ void PrintRunInfo(const std::string &idx_dir, const size_t k_len, const bool str
     std::cerr << "Minimal component k-mer number:    " + std::to_string(min_nbkmer) << std::endl;
     std::cerr << "Output:                            " << (out_path.empty() ? "to screen" : out_path) << std::endl
               << "    format:                        " + out_fmt << std::endl
-              << "    count mode:                    " + count_mode << std::endl
-              << "    value mode:                    " + value_mode << std::endl
-              << std::endl;
+              << "    count mode:                    " + count_mode << std::endl;
+    if (out_fmt == "tab")
+    {
+        std::cerr << "    value mode:                    " + value_mode << std::endl;
+    }
+    std::cerr << std::endl;
 }
 
 void ParseOptions(int argc, char *argv[],

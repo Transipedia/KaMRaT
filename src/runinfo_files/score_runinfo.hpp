@@ -117,9 +117,12 @@ void PrintRunInfo(const std::string &idx_dir,
         std::cerr << static_cast<int>(sel_top + 0.5) << std::endl;
     }
     std::cerr << "Output:                       " << (out_path.empty() ? "to screen" : out_path) << std::endl
-              << "    format:                   " + out_fmt << std::endl
-              << "    value mode:               " + value_mode << std::endl
-              << std::endl;
+              << "    format:                   " + out_fmt << std::endl;
+    if (out_fmt == "tab")
+    {
+        std::cerr << "    value mode:               " + value_mode << std::endl;
+    }
+    std::cerr << std::endl;
 }
 
 void ParseOptions(int argc, char *argv[],
@@ -128,7 +131,7 @@ void ParseOptions(int argc, char *argv[],
                   std::string &with_path, std::string &count_mode,
                   std::string &dsgn_path,
                   float &sel_top,
-                  std::string &out_fmt, std::string &out_path, 
+                  std::string &out_fmt, std::string &out_path,
                   std::string &value_mode)
 {
     int i_opt(1);
