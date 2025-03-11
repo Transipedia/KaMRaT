@@ -51,7 +51,7 @@ The current release of KaMRaT is v1.2. Compared to its previous release, v1.1, i
 - The output tables of all modules `filter`, `mask`, `merge`, `score` and `query` now output the count table with values being rounted to the nearest integers. The decimal values can be output by setting `-counts` argument.
 - Updated license for commercial users (TODO).
 
-For full release notes, please refer to our [wiki page](https://github.com/Transipedia/KaMRaT/wiki/0.-General-Descriptions).
+For full release notes, please refer to our [wiki page](https://github.com/Transipedia/KaMRaT/wiki/General-Descriptions).
 
 
 ## Installation
@@ -68,7 +68,7 @@ apptainer build KaMRaT.sif docker://xuehl/kamrat:latest
     # alternatively to build singularity image: simply replace "apptainer" to "singularity"
 ```
 
-Please refer to our [Wiki page](https://github.com/Transipedia/KaMRaT/wiki/1.-Software-Installation) for:
+Please refer to our [Wiki page](https://github.com/Transipedia/KaMRaT/wiki/Software-Installation) for:
 - more detailed information on KaMRaT usage within `apptainer`/`singularity` container;
 - alternatively way of installation by building the software from source.
 
@@ -94,9 +94,9 @@ apptainer exec kamrat <CMD>
     # <CMD> can be one of index, filter, mask, merge, score, query
 ```
 
-Please refer to our [Wiki page](https://github.com/Transipedia/KaMRaT/wiki/2.-Software-Usage) for detailed software usage description.
+Please refer to our [Wiki page](https://github.com/Transipedia/KaMRaT/wiki/Software-Usage) for detailed software usage description.
 
-Demostrations of example usecases can be found [here](https://github.com/Transipedia/KaMRaT/wiki/3.-Workflow-Demos).
+Demostrations of example usecases can be found [here](https://github.com/Transipedia/KaMRaT/wiki/Workflow-Demos).
 
 ## Software/Library Citations
 
