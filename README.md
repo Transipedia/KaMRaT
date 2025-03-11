@@ -30,30 +30,27 @@ KaMRaT is in **The MIT License**, as described [here](https://github.com/Transip
 KaMRaT is designed as a flexible toolkit for combinations of different operations. The workflow always starts from index, then other operations can be combined according to user's analysis design, including:
 
 - a single operation of filter, mask, merge, score or query;
-- filter-merge or filter-rank;
-- mask-merge or mask-rank;
-- merge-rank;
-- rank-merge.
+- filter-merge or filter-score;
+- mask-merge or mask-score;
+- merge-score;
+- score-merge.
 
 ![workflow](./docs/workflow.png)
 
 ### Tips for the choice of k-mer length
 Currently, KaMRaT only accepts k-mers no longer than 32nt, since the k-mers are coded in an uint64 variable.
 
-Besides, we recommend users to choose k as an odd number, to avoid confounding one k-mer with its reverse complement counterpart in unstranded data. For example, in the situation k=6, 6-mers such as AAATTT lose information of their strandedness.
+Besides, we recommend users to choose k as an odd number, to avoid confounding one k-mer with its reverse complement counterpart in unstranded data. For example, in the situation k=6, 6-mers such as `AAATTT` lose their information of strandedness.
 
-## Modifications since Version 1.1.0
-This section describes modifications from release KaMRaT `v1.1.0` (both on GitHub and DockerHub) to the current version of GitHub `master` branch and DockerHub image tagged `latest`.
 
-We will update this section to "None" when the next KaMRaT version is released.
+## Current Release KaMRaT v1.2 (pre)
+The current release of KaMRaT is v1.2. Compared to its previous release, v1.1, it introduces several new characteristics:
+- Each module of `filter`, `merge` and `score` now supports outputting a fasta file containing selected/merged sequences.
+- The output tables of all modules `filter`, `mask`, `merge`, `score` and `query` now output the count table with values being rounted to the nearest integers. The decimal values can be output by setting `-counts` argument.
+- Updated license for commercial users (TODO).
 
-### KaMRaT index
-Bugfix:
-- revCompFastq.pl line 39 should be `if($i % 4 == 3) {` (since commit 99ad207e9f17b798fd245aef5581bed0e76c1333).
+For full release notes, please refer to our [wiki page](https://github.com/Transipedia/KaMRaT/wiki/0.-General-Descriptions).
 
-Others:
-- KaMRaT index checks if the selected k-mer length is no longer than 31nt (since commit 169d6e38ff583dafedfa2abd405b4ef4b59978dc).
-- DockerFile: added python3-pip for snakemake installation (since commit b628a76cc25dab7a403172521c12be353ac2d2e3).
 
 ## Installation
 It's highly recommended to directly use KaMRaT within `apptainer`/`singularity` container for users at any level unless the task involves in software development, because:
@@ -108,6 +105,6 @@ Armadillo:
 
 [Boost C++ Library](https://www.boost.org/)
 
-DE-kupl: Audoux, J., Philippe, N., Chikhi, R. et al. DE-kupl: exhaustive capture of biological variation in RNA-seq data through k-mer decomposition. Genome Biol 18, 243 (2017).
+DE-kupl: Audoux, J., Philippe, N., Chikhi, R. et al. DE-kupl: exhaustive capture of biological variation in RNA-seq data through k-mer decomposition. Genome Biol 18, 243, 2017.
 
 MLPack: R.R. Curtin, M. Edel, M. Lozhnikov, Y. Mentekidis, S. Ghaisas, S. Zhang. mlpack 3: a fast, flexible machine learning library. Journal of Open Source Software 3:26, 2018.
