@@ -78,9 +78,9 @@ class TestCommands(unittest.TestCase):
             shutil.rmtree(mskdir)
         # Arguments, outputs, and their md5sums
         arg_md5 = {
-            "": "083e48a1b7e599da135d5ce6bb68e81a",  # no reverse, tab, int
-            "-counts float": "36c864675446d253d1128afe2f668f15",  # no reverse, tab, float
-            "-reverse -counts float": "f08906abb46f8ef9081fff2552985074",  # reverse, tab, float
+            f"-seq2sup {FASTA}": "083e48a1b7e599da135d5ce6bb68e81a",  # suppress, tab, int
+            f"-seq2sup {FASTA} -counts float": "36c864675446d253d1128afe2f668f15",  # suppress, tab, float
+            f"-seq2sel {FASTA} -counts float": "f08906abb46f8ef9081fff2552985074",  # select, tab, float
         }
         # Run index
         os.mkdir(mskdir)
@@ -92,7 +92,7 @@ class TestCommands(unittest.TestCase):
         for i, arg in enumerate(arg_md5.keys()):
             if os.path.exists(f"{mskdir}out"):
                 os.remove(f"{mskdir}out")
-            cmd = f"{KAMRAT} mask -idxdir {mskdir} -fasta {FASTA} -outpath {mskdir}out {arg}".rstrip()
+            cmd = f"{KAMRAT} mask -idxdir {mskdir} -outpath {mskdir}out {arg}".rstrip()
             ## Test if command runs
             process = None
             with open(f"{OUTDIR}mask{i + 1}.log", "w") as outerr:

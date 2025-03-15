@@ -12,12 +12,12 @@ void MaskWelcome()
 
 inline void PrintMaskHelper()
 {
-    std::cerr << "[USAGE]    kamrat mask -idxdir STR -fasta STR [-reverse -outfmt STR -outpath STR -counts STR]" << std::endl
+    std::cerr << "[USAGE]    kamrat mask -idxdir STR [-seq2sel STR -seq2sup STR] [-outfmt STR -outpath STR -counts STR]" << std::endl
               << std::endl;
     std::cerr << "[OPTION]    -h,-help         Print the helper" << std::endl;
     std::cerr << "            -idxdir STR      Indexing folder by KaMRaT index, mandatory" << std::endl;
-    std::cerr << "            -fasta STR       Sequence fasta file as the mask, mandatory" << std::endl;
-    std::cerr << "            -reverse         Reverse mask, to select the k-mers in sequence fasta file [false]" << std::endl;
+    std::cerr << "            -seq2sel STR     Sequence fasta file to select, mandatory if -seq2sup not provided." << std::endl;
+    std::cerr << "            -seq2sup STR     Sequence fastq file to suppress, mandatory if -seq2sel not provided." << std::endl;
     std::cerr << "            -outfmt STR      Output format, STR can be `tab` or `bin` [default `tab`]" << std::endl
               << "                                 `tab` will output the final count table, set by default" << std::endl
               << "                                 `bin` will output a binary file, to be taken by the `-with` option of other modules" << std::endl;
@@ -30,18 +30,18 @@ inline void PrintMaskHelper()
 }
 
 inline void PrintRunInfo(const std::string &idx_dir, const size_t k_len, const bool stranded,
-                         const std::string &mask_file_path, const bool reverse_mask,
+                         const std::string &seq2sel_path, const std::string &seq2sup_path,
                          const std::string &out_fmt, const std::string &out_path,
                          const std::string &value_mode)
 {
     std::cerr << std::endl;
-    std::cerr << "KaMRaT index:                  " << idx_dir << std::endl;
-    std::cerr << "k-mer length:                  " << k_len << std::endl;
-    std::cerr << "Stranded mode:                 " << (stranded ? "On" : "Off") << std::endl;
-    std::cerr << "Path to mask sequence file:    " << mask_file_path << std::endl;
-    std::cerr << "Select k-mer in mask:          " << (reverse_mask ? "True" : "False") << std::endl;
-    std::cerr << "Output:                        " << (out_path.empty() ? "to screen" : out_path) << std::endl
-              << "    format:                    " + out_fmt << std::endl;
+    std::cerr << "KaMRaT index:                      " << idx_dir << std::endl;
+    std::cerr << "k-mer length:                      " << k_len << std::endl;
+    std::cerr << "Stranded mode:                     " << (stranded ? "On" : "Off") << std::endl;
+    std::cerr << "Fasta of sequences to select:      " << seq2sel_path << std::endl;
+    std::cerr << "Fasta of sequences to suppress:    " << seq2sup_path << std::endl;
+    std::cerr << "Output:                            " << (out_path.empty() ? "to screen" : out_path) << std::endl
+              << "    format:                        " + out_fmt << std::endl;
     if (out_fmt == "tab")
     {
         std::cerr << "    value mode:                " + value_mode << std::endl;
@@ -51,7 +51,7 @@ inline void PrintRunInfo(const std::string &idx_dir, const size_t k_len, const b
 
 inline void ParseOptions(int argc, char *argv[],
                          std::string &idx_dir,
-                         std::string &mask_file_path, bool &reverse_mask,
+                         std::string &seq2sel_path, std::string &seq2sup_path,
                          std::string &out_fmt, std::string &out_path,
                          std::string &value_mode)
 {
@@ -74,13 +74,13 @@ inline void ParseOptions(int argc, char *argv[],
         {
             idx_dir = argv[++i_opt];
         }
-        else if (arg == "-fasta" && i_opt + 1 < argc)
+        else if (arg == "-seq2sel" && i_opt + 1 < argc)
         {
-            mask_file_path = argv[++i_opt];
+            seq2sel_path = argv[++i_opt];
         }
-        else if (arg == "-reverse")
+        else if (arg == "-seq2sup" && i_opt + 1 < argc)
         {
-            reverse_mask = true;
+            seq2sup_path = argv[++i_opt];
         }
         else if (arg == "-outfmt" && i_opt + 1 < argc)
         {
@@ -111,10 +111,10 @@ inline void ParseOptions(int argc, char *argv[],
         PrintMaskHelper();
         throw std::invalid_argument("-idxdir STR is mandatory");
     }
-    if (mask_file_path.empty())
+    if (seq2sel_path.empty() && seq2sup_path.empty())
     {
         PrintMaskHelper();
-        throw std::invalid_argument("-fasta STR is mandatory");
+        throw std::invalid_argument("at least one of -seq2sel STR and -seq2sup STR is mandatory");
     }
     if (kOutFmtUniv.find(out_fmt) == kOutFmtUniv.cend())
     {

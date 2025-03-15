@@ -42,8 +42,10 @@ void MakeMask(std::unordered_set<uint64_t> &kmer_mask, const std::string &mask_f
     contig_list_file.close();
 }
 
-void ScanPrint(std::ifstream &idx_pos, std::ifstream &idx_mat, const std::unordered_set<uint64_t> &kmer_mask,
-               const bool reverse_mask, const bool with_counts, const size_t nb_smp,
+void ScanPrint(std::ifstream &idx_pos, std::ifstream &idx_mat,
+               const std::unordered_set<uint64_t> &kmer2sel,
+               const std::unordered_set<uint64_t> &kmer2sup,
+               const bool with_counts, const size_t nb_smp,
                const std::string &value_mode)
 {
     std::string kmer_seq;
@@ -51,8 +53,9 @@ void ScanPrint(std::ifstream &idx_pos, std::ifstream &idx_mat, const std::unorde
     size_t code, pos;
     while (idx_pos.read(reinterpret_cast<char *>(&code), sizeof(size_t)) && idx_pos.read(reinterpret_cast<char *>(&pos), sizeof(size_t)))
     {
-        const bool is_in_mask = (kmer_mask.find(code) != kmer_mask.cend());
-        if (is_in_mask == reverse_mask) // (is_in_mask && reverse_mask) || (!is_in_mask && !reverse_mask)
+        const bool is2sel = kmer2sel.empty() || (kmer2sel.find(code) != kmer2sel.cend());
+        const bool is2sup = (!kmer2sup.empty()) && (kmer2sup.find(code) != kmer2sup.cend());
+        if (is2sel && !is2sup)
         {
             GetCountVect(count_vect, idx_mat, pos, nb_smp);
             idx_mat >> kmer_seq;
@@ -86,20 +89,27 @@ int MaskMain(int argc, char **argv)
     MaskWelcome();
 
     std::clock_t begin_time = clock();
-    std::string idx_dir, mask_file_path, out_fmt("tab"), out_path, value_mode("int");
-    size_t nb_smp, k_len;
-    bool stranded, reverse_mask(false);
+    std::string idx_dir, seq2sel_path, seq2sup_path, out_fmt("tab"), out_path, value_mode("int");
+    size_t nb_smp, k_len(0);
+    bool stranded;
     std::vector<std::string> colname_vect;
-    ParseOptions(argc, argv, idx_dir, mask_file_path, reverse_mask, out_fmt, out_path, value_mode);
+    ParseOptions(argc, argv, idx_dir, seq2sel_path, seq2sup_path, out_fmt, out_path, value_mode);
     LoadIndexMeta(nb_smp, k_len, stranded, colname_vect, idx_dir + "/idx-meta.bin");
-    PrintRunInfo(idx_dir, k_len, stranded, mask_file_path, reverse_mask, out_fmt, out_path, value_mode);
+    PrintRunInfo(idx_dir, k_len, stranded, seq2sel_path, seq2sup_path, out_fmt, out_path, value_mode);
     if (k_len == 0)
     {
         throw std::invalid_argument("KaMRaT-mask relies on the index in k-mer mode, please rerun KaMRaT-index with -klen option");
     }
 
-    std::unordered_set<uint64_t> kmer_mask;
-    MakeMask(kmer_mask, mask_file_path, k_len, stranded);
+    std::unordered_set<uint64_t> kmer2sel, kmer2sup;
+    if (!seq2sel_path.empty()) // index k-mers to be selected
+    {
+        MakeMask(kmer2sel, seq2sel_path, k_len, stranded);
+    }
+    if (!seq2sup_path.empty()) // index k-mers to be suppressed
+    {
+        MakeMask(kmer2sup, seq2sup_path, k_len, stranded);
+    }
 
     std::ifstream idx_pos(idx_dir + "/idx-pos.bin"), idx_mat(idx_dir + "/idx-mat.bin");
     if (!idx_pos.is_open() || !idx_mat.is_open())
@@ -129,7 +139,7 @@ int MaskMain(int argc, char **argv)
         }
         std::cout << std::endl;
     }
-    ScanPrint(idx_pos, idx_mat, kmer_mask, reverse_mask, out_fmt == "tab", nb_smp, value_mode);
+    ScanPrint(idx_pos, idx_mat, kmer2sel, kmer2sup, out_fmt == "tab", nb_smp, value_mode);
     idx_pos.close(), idx_mat.close();
 
     std::cout.rdbuf(backup_buf);
