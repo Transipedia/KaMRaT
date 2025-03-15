@@ -9,7 +9,7 @@ KaMRaT then provides a set of tools for reducing the k-mer matrix and extending 
 
 - kamrat index: index feature* count table on disk
 - kamrat filter: remove/retain features* by expression level 
-- kamrat mask: remove/retain k-mers matching given fasta sequences
+- kamrat mask: select and suppress k-mers matching given fasta sequences
 - kamrat merge: merge k-mers into contigs
 - kamrat score: score features* by classification performance, statistical significance, correlation, or variability 
 - kamrat query: estimate count vectors of given list of contigs
@@ -49,6 +49,7 @@ Besides, we recommend users to choose k as an odd number, to avoid confounding o
 The current release of KaMRaT is v1.2. Compared to its previous release, v1.1, it introduces several new characteristics:
 - Each module of `filter`, `merge` and `score` now supports outputting a fasta file containing selected/merged sequences.
 - The output tables of all modules `filter`, `mask`, `merge`, `score` and `query` now output the count table with values being rounted to the nearest integers. The decimal values can be output by setting `-counts` argument.
+- The `mask` module now allows simultaneously indicating sequences to select and suppress.
 - Updated license for commercial users (TODO).
 
 For full release notes, please refer to our [wiki page](https://github.com/Transipedia/KaMRaT/wiki/General-Descriptions).
