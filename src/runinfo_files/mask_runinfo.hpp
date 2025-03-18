@@ -38,8 +38,14 @@ inline void PrintRunInfo(const std::string &idx_dir, const size_t k_len, const b
     std::cerr << "KaMRaT index:                      " << idx_dir << std::endl;
     std::cerr << "k-mer length:                      " << k_len << std::endl;
     std::cerr << "Stranded mode:                     " << (stranded ? "On" : "Off") << std::endl;
-    std::cerr << "Fasta of sequences to select:      " << seq2sel_path << std::endl;
-    std::cerr << "Fasta of sequences to suppress:    " << seq2sup_path << std::endl;
+    if (!seq2sel_path.empty())
+    {
+        std::cerr << "Fasta of sequences to select:      " << seq2sel_path << std::endl;
+    }
+    if (!seq2sup_path.empty())
+    {
+        std::cerr << "Fasta of sequences to suppress:    " << seq2sup_path << std::endl;
+    }
     std::cerr << "Output:                            " << (out_path.empty() ? "to screen" : out_path) << std::endl
               << "    format:                        " + out_fmt << std::endl;
     if (out_fmt == "tab")
