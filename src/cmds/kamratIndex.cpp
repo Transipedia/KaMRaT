@@ -77,13 +77,15 @@ void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, 
         if (nf_vect[i_smp] < 0.1)
         {
             std::cerr << BOLDYELLOW << "[warning]" << RESET
-                      << "normalization factor too small (" << std::to_string(nf_vect[i_smp])
+                      << " normalization factor too small for sample column "
+                      << i_smp + 1 << " (" << std::to_string(nf_vect[i_smp])
                       << "), this may result in generally small count values" << std::endl;
         }
         else if (nf_vect[i_smp] > 1000)
         {
             std::cerr << BOLDYELLOW << "[warning]" << RESET
-                      << "normalization factor too large (" << std::to_string(nf_vect[i_smp])
+                      << " normalization factor too large for sample column "
+                      << i_smp + 1 << " (" << std::to_string(nf_vect[i_smp])
                       << "), this may result in generally large count values" << std::endl;
         }
     }
