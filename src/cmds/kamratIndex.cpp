@@ -16,9 +16,9 @@
 #define RESET "\033[0m"
 #define BOLDYELLOW "\033[1m\033[33m"
 
-/* ----------------------------------------------------------------- *\ 
+/* ----------------------------------------------------------------- *\
  * idx-meta:                                                         *
- *   - sample number, k length (0 if general feature), strandedness  * 
+ *   - sample number, k length (0 if general feature), strandedness  *
  *   - header row indicating column names                            *
  *   - sample sum vector (binarized double vector)                   *
  * idx-ftpos:                                                        *
@@ -33,7 +33,9 @@ const size_t CountColumn(const std::string &line_str)
     std::istringstream conv(line_str);
     std::string term;
     // count sample number, skipping the first column
-    for (conv >> term; conv >> term; ++nb_smp){}
+    for (conv >> term; conv >> term; ++nb_smp)
+    {
+    }
     if (nb_smp == 0)
     {
         throw std::domain_error("input table parsing failed: sample number equals to 0");
@@ -54,9 +56,11 @@ void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, 
     {
         conv.str(line_str);
         // parse feature name and following count columns
-        for (conv >> term; conv >> term; count_vect.push_back(std::stof(term))) {}
+        for (conv >> term; conv >> term; count_vect.push_back(std::stof(term)))
+        {
+        }
         // check if all rows have same number of columns as the header row
-        if (count_vect.size() != nb_smp) 
+        if (count_vect.size() != nb_smp)
         {
             throw std::length_error("sample numbers are not consistent: " + std::to_string(nb_smp) + " vs " + std::to_string(count_vect.size()));
         }
@@ -72,11 +76,15 @@ void ComputeNF(std::vector<double> &nf_vect, std::istream &kmer_count_instream, 
         nf_vect[i_smp] = nf_base / nf_vect[i_smp];
         if (nf_vect[i_smp] < 0.1)
         {
-            throw std::invalid_argument("normalization factor too small (" + std::to_string(nf_vect[i_smp]) + "), please try larger base");
+            std::cerr << BOLDYELLOW << "[warning]" << RESET
+                      << "normalization factor too small (" << std::to_string(nf_vect[i_smp])
+                      << "), this may result in generally small count values" << std::endl;
         }
-	else if (nf_vect[i_smp] > 1000)
-	{
-	    throw std::invalid_argument("normalization factor too large (" + std::to_string(nf_vect[i_smp]) + "), please try smaller base");
+        else if (nf_vect[i_smp] > 1000)
+        {
+            std::cerr << BOLDYELLOW << "[warning]" << RESET
+                      << "normalization factor too large (" << std::to_string(nf_vect[i_smp])
+                      << "), this may result in generally large count values" << std::endl;
         }
     }
 }
