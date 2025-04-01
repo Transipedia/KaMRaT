@@ -49,7 +49,7 @@ The current release of KaMRaT is v1.2. Compared to its previous release, v1.1, i
 - The output tables of all modules `filter`, `mask`, `merge`, `score` and `query` now output the count table with values being rounted to the nearest integers. The decimal values can be output by setting `-counts` argument.
 - The `index` module now allows a normalisation factor base too large or too small, instead of throwing an exception, it puts a warning.
 - The `mask` module now allows simultaneously indicating sequences to select and suppress.
-- Updated license for commercial users (TODO).
+- Updated license for commercial users.
 
 For full release notes, please refer to our [wiki page](https://github.com/Transipedia/KaMRaT/wiki/General-Descriptions).
 
