@@ -43,7 +43,7 @@ Currently, KaMRaT only accepts k-mers no longer than 32nt, since the k-mers are 
 Besides, we recommend users to choose k as an odd number, to avoid confounding one k-mer with its reverse complement counterpart in unstranded data. For example, in the situation k=6, 6-mers such as `AAATTT` lose their information of strandedness.
 
 
-## Current Release KaMRaT v1.2 (pre)
+## Current Release KaMRaT v1.2
 The current release of KaMRaT is v1.2. Compared to its previous release, v1.1, it introduces several new characteristics:
 - Each module of `filter`, `merge` and `score` now supports outputting a fasta file containing selected/merged sequences.
 - The output tables of all modules `filter`, `mask`, `merge`, `score` and `query` now output the count table with values being rounted to the nearest integers. The decimal values can be output by setting `-counts` argument.
