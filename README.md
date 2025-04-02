@@ -20,7 +20,7 @@ KaMRaT means "k-mer Matrix Reduction Toolkit", or "k-mer Matrix, Really Tremendo
 
 KaMRaT has been published on [*Bioinformatics*](https://academic.oup.com/bioinformatics/article/40/3/btae090/7623008).
 
-**To use KaMRaT, please firstly refer to [License](License.pdf).**
+**Before using KaMRaT, please refer to our [License](License.md).**
 
 -----
 
