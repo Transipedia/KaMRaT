@@ -105,6 +105,9 @@ int MaskMain(int argc, char **argv)
     if (!seq2sel_path.empty()) // index k-mers to be selected
     {
         MakeMask(kmer2sel, seq2sel_path, k_len, stranded);
+        if (kmer2sel.empty()) {
+            throw std::invalid_argument("Empty seq2seq.fa loaded");
+        }
     }
     if (!seq2sup_path.empty()) // index k-mers to be suppressed
     {
