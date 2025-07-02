@@ -50,6 +50,7 @@ The current release of KaMRaT is v1.2. Compared to its previous release, v1.1, i
 - The `index` module now allows a normalisation factor base too large or too small, instead of throwing an exception, it puts a warning.
 - The `mask` module now allows simultaneously indicating sequences to select and suppress.
 - Updated license.
+- Bugfix: the `merge` module was mistakenly output '<' as fasta header leading character, corrected to '>'.
 
 For full release notes, please refer to our [wiki page](https://github.com/Transipedia/KaMRaT/wiki/General-Descriptions).
 
