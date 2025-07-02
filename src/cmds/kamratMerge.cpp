@@ -295,7 +295,7 @@ void PrintAsFasta(const contigVect_t &ctg_vect, const size_t min_nbkmer)
     {
         if (elem->GetNbMemKmer() >= min_nbkmer)
         {
-            std::cout << "<ctg_" + std::to_string(ctg_idx) << std::endl
+            std::cout << ">ctg_" + std::to_string(ctg_idx) << std::endl
                       << elem->GetSeq() << std::endl;
         }
         ctg_idx++;
