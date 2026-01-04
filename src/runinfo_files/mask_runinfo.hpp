@@ -17,7 +17,7 @@ inline void PrintMaskHelper()
     std::cerr << "[OPTION]    -h,-help         Print the helper" << std::endl;
     std::cerr << "            -idxdir STR      Indexing folder by KaMRaT index, mandatory" << std::endl;
     std::cerr << "            -seq2sel STR     Sequence fasta file to select, mandatory if -seq2sup not provided." << std::endl;
-    std::cerr << "            -seq2sup STR     Sequence fastq file to suppress, mandatory if -seq2sel not provided." << std::endl;
+    std::cerr << "            -seq2sup STR     Sequence fasta file to suppress, mandatory if -seq2sel not provided." << std::endl;
     std::cerr << "            -outfmt STR      Output format, STR can be `tab` or `bin` [default `tab`]" << std::endl
               << "                                 `tab` will output the final count table, set by default" << std::endl
               << "                                 `bin` will output a binary file, to be taken by the `-with` option of other modules" << std::endl;
